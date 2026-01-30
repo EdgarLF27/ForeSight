@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------- ENUMS ----------------
+
+enum UserRole {
+  COMPANY_ADMIN // Administrador de Empresa
+  EMPLOYEE      // Empleado
+  SUPPORT_TECH  // Técnico de Soporte
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TechStatus {
+  AVAILABLE       // Disponible
+  BUSY            // Ocupado
+  OUT_OF_SERVICE  // Fuera de Servicio
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+  EXPERT
+}
+
+// ---------------- MODELOS ----------------
+
+model Company {
+  id                Int           @id @default(autoincrement())
+  legalName         String        // Nombre Legal / Razón Social
+  taxId             String        @unique // CUIT / RFC
+  address           String        // Domicilio
+  phone             String        // Teléfono general
+  email             String        // Email corporativo
+  createdAt         DateTime      @default(now())
+  status            CompanyStatus @default(ACTIVE)
+  
+  // Relación: Administrador Principal (Vínculo al usuario)
+  // Es opcional (?) para evitar problemas de "el huevo y la gallina" al crear la empresa
+  mainAdminId       Int?          @unique 
+  mainAdmin         User?         @relation("MainAdmin", fields: [mainAdminId], references: [id])
+
+  // Relaciones inversas
+  users             User[]        @relation("CompanyUsers")
+  areas             Area[]
+}
+
+model Area {
+  id          Int      @id @default(autoincrement())
+  name        String
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  // Relaciones inversas
+  employees       User[]   @relation("EmployeeArea") // Empleados de esta área
+  specializedTechs User[]  @relation("TechSpecialization") // Técnicos especialistas en esta área
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  firstName     String     // Nombre
+  lastName      String     // Apellido
+  email         String     @unique // Credencial de acceso
+  password      String     // Hash
+  role          UserRole
+  phone         String?    // Teléfono Personal
+  accountStatus UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+
+  // --- Relación con Empresa (Todos pertenecen a una empresa) ---
+  companyId     Int
+  company       Company    @relation("CompanyUsers", fields: [companyId], references: [id])
+
+  // --- Campos Específicos de EMPLEADO ---
+  areaId        Int?       // Solo para Empleados
+  area          Area?      @relation("EmployeeArea", fields: [areaId], references: [id])
+
+  // --- Campos Específicos de TÉCNICO DE SOPORTE ---
+  experienceLevel ExperienceLevel? // Nivel de experiencia
+  techStatus      TechStatus?      // Estado del técnico
+  specializations Area[]           @relation("TechSpecialization") // Áreas que puede atender
+
+  // --- Relación Inversa (Si es admin de empresa) ---
+  managedCompany  Company?         @relation("MainAdmin")
+}
