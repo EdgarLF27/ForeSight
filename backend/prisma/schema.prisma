@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 // ---------------- ENUMS ----------------
@@ -41,7 +41,7 @@ enum ExperienceLevel {
 // ---------------- MODELOS ----------------
 
 model Company {
-  id                Int           @id @default(autoincrement())
+  id_company        Int           @id @default(autoincrement())
   legalName         String        // Nombre Legal / Razón Social
   taxId             String        @unique // CUIT / RFC
   address           String        // Domicilio
@@ -51,9 +51,8 @@ model Company {
   status            CompanyStatus @default(ACTIVE)
   
   // Relación: Administrador Principal (Vínculo al usuario)
-  // Es opcional (?) para evitar problemas de "el huevo y la gallina" al crear la empresa
-  mainAdminId       Int?          @unique 
-  mainAdmin         User?         @relation("MainAdmin", fields: [mainAdminId], references: [id])
+  mainAdminId_fk    Int?          @unique 
+  mainAdmin         User?         @relation("MainAdmin", fields: [mainAdminId_fk], references: [id_user])
 
   // Relaciones inversas
   users             User[]        @relation("CompanyUsers")
@@ -61,40 +60,40 @@ model Company {
 }
 
 model Area {
-  id          Int      @id @default(autoincrement())
-  name        String
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
+  id_area           Int      @id @default(autoincrement())
+  name              String
+  id_company_fk     Int
+  company           Company  @relation(fields: [id_company_fk], references: [id_company])
 
   // Relaciones inversas
-  employees       User[]   @relation("EmployeeArea") // Empleados de esta área
-  specializedTechs User[]  @relation("TechSpecialization") // Técnicos especialistas en esta área
+  employees         User[]   @relation("EmployeeArea") // Empleados de esta área
+  specializedTechs  User[]   @relation("TechSpecialization") // Técnicos especialistas en esta área
 }
 
 model User {
-  id            Int        @id @default(autoincrement())
-  firstName     String     // Nombre
-  lastName      String     // Apellido
-  email         String     @unique // Credencial de acceso
-  password      String     // Hash
-  role          UserRole
-  phone         String?    // Teléfono Personal
-  accountStatus UserStatus @default(ACTIVE)
-  createdAt     DateTime   @default(now())
+  id_user           Int        @id @default(autoincrement())
+  firstName         String     // Nombre
+  lastName          String     // Apellido
+  email             String     @unique // Credencial de acceso
+  password          String     // Hash
+  role              UserRole
+  phone             String?    // Teléfono Personal
+  accountStatus     UserStatus @default(ACTIVE)
+  createdAt         DateTime   @default(now())
 
   // --- Relación con Empresa (Todos pertenecen a una empresa) ---
-  companyId     Int
-  company       Company    @relation("CompanyUsers", fields: [companyId], references: [id])
+  id_company_fk     Int
+  company           Company    @relation("CompanyUsers", fields: [id_company_fk], references: [id_company])
 
   // --- Campos Específicos de EMPLEADO ---
-  areaId        Int?       // Solo para Empleados
-  area          Area?      @relation("EmployeeArea", fields: [areaId], references: [id])
+  id_area_fk        Int?       // Solo para Empleados
+  area              Area?      @relation("EmployeeArea", fields: [id_area_fk], references: [id_area])
 
   // --- Campos Específicos de TÉCNICO DE SOPORTE ---
-  experienceLevel ExperienceLevel? // Nivel de experiencia
-  techStatus      TechStatus?      // Estado del técnico
-  specializations Area[]           @relation("TechSpecialization") // Áreas que puede atender
+  experienceLevel   ExperienceLevel? // Nivel de experiencia
+  techStatus        TechStatus?      // Estado del técnico
+  specializations   Area[]           @relation("TechSpecialization") // Áreas que puede atender
 
   // --- Relación Inversa (Si es admin de empresa) ---
-  managedCompany  Company?         @relation("MainAdmin")
+  managedCompany    Company?         @relation("MainAdmin")
 }
