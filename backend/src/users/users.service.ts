@@ -20,7 +20,10 @@ export class UsersService {
 
     if (role === UserRole.COMPANY_ADMIN) {
       return this.prisma.$transaction(async (tx) => {
-        // 1. Crear Empresa usando los nuevos nombres de campos si los hubiera
+        // Generamos un código único tipo Classroom (Ej: FS-XJ23)
+        const inviteCode = 'FS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // 1. Creamos la organización con su código de invitación
         const newCompany = await tx.company.create({
           data: {
             legalName: companyName,
@@ -28,11 +31,12 @@ export class UsersService {
             address: companyAddress,
             phone: companyPhone,
             email: companyEmail,
+            inviteCode: inviteCode, // GUARDAMOS EL CÓDIGO
             status: CompanyStatus.ACTIVE
           }
         });
 
-        // 2. Crear Usuario Admin vinculado a esa empresa (id_company_fk)
+        // 2. Creamos al usuario administrador y lo vinculamos a la empresa recién creada
         const newUser = await tx.user.create({
           data: {
             firstName,
@@ -42,23 +46,22 @@ export class UsersService {
             role: UserRole.COMPANY_ADMIN,
             phone,
             accountStatus: UserStatus.ACTIVE,
-            id_company_fk: newCompany.id_company, // USANDO NUEVO NOMBRE
+            id_company_fk: newCompany.id_company,
           }
         });
 
-        // 3. Actualizar la empresa para establecer el admin principal (mainAdminId_fk)
+        // 3. Cerramos el círculo: La empresa ahora sabe quién es su administrador principal
         await tx.company.update({
-          where: { id_company: newCompany.id_company }, // USANDO NUEVO NOMBRE
-          data: { mainAdminId_fk: newUser.id_user } // USANDO NUEVO NOMBRE
+          where: { id_company: newCompany.id_company },
+          data: { mainAdminId_fk: newUser.id_user }
         });
 
         return { user: newUser, company: newCompany };
       });
     }
 
+    // Lógica para empleados y técnicos (registro independiente)
     if (role === UserRole.EMPLOYEE || role === UserRole.SUPPORT_TECH) {
-        if (!companyId) throw new Error('Company ID is required for employees/techs');
-
         const userData: any = {
             firstName,
             lastName,
@@ -67,23 +70,36 @@ export class UsersService {
             role: role,
             phone,
             accountStatus: UserStatus.ACTIVE,
-            id_company_fk: parseInt(companyId), // USANDO NUEVO NOMBRE
+            // id_company_fk queda como nulo inicialmente
         };
 
-        if (role === UserRole.EMPLOYEE) {
-             if (areaId) userData.id_area_fk = parseInt(areaId); // USANDO NUEVO NOMBRE
-        }
-
         if (role === UserRole.SUPPORT_TECH) {
-            if (experienceLevel) userData.experienceLevel = experienceLevel;
+            userData.experienceLevel = experienceLevel;
         }
 
-        const newUser = await this.prisma.user.create({
+        return this.prisma.user.create({
             data: userData
         });
-
-        return newUser;
     }
+  }
+
+  // Método para vincular un empleado a una empresa usando el código secreto
+  async linkCompany(id_user: number, inviteCode: string) {
+    // 1. Buscamos la empresa que tenga ese código
+    const company = await this.prisma.company.findUnique({
+      where: { inviteCode }
+    });
+
+    if (!company) {
+      throw new Error('Código de invitación inválido');
+    }
+
+    // 2. Actualizamos al usuario con el ID de la empresa encontrada
+    return this.prisma.user.update({
+      where: { id_user },
+      data: { id_company_fk: company.id_company },
+      include: { company: true } // Devolvemos el usuario con los datos de la empresa
+    });
   }
 
   async getCompanies() {

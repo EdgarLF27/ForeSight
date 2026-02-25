@@ -1,94 +1,86 @@
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authService } from '../../../services/auth.service';
+
+const loginSchema = z.object({
+  email: z.string()
+    .min(1, 'El correo es obligatorio')
+    .email('Formato de correo inválido'),
+  password: z.string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onSuccess: (user: any) => void;
-  onRegisterClick: () => void; // Nueva prop para navegar
+  onRegisterClick: () => void;
 }
 
 export const LoginForm = ({ onSuccess, onRegisterClick }: LoginFormProps) => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema)
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
+    setServerError('');
     try {
-      const user = await authService.login(formData);
+      const user = await authService.login(data);
       onSuccess(user);
     } catch (err) {
-      setError('Credenciales incorrectas');
+      setServerError('Credenciales incorrectas o error de servidor');
     }
   };
 
   return (
-    <div className="w-full max-w-[400px] bg-white p-8 rounded-lg shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-300">
-      {/* Logo y Header */}
+    <div className="w-full max-w-[400px] bg-white p-8 rounded-lg shadow-sm border border-gray-100">
       <div className="flex flex-col items-center mb-8">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-[#6B9E8A] rounded flex items-center justify-center">
-             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-             </svg>
-          </div>
-          <span className="text-xl font-semibold text-gray-700">ForeSight</span>
-        </div>
         <h2 className="text-2xl font-bold text-gray-800">Iniciar Sesión</h2>
       </div>
 
-      {error && <div className="mb-4 text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100">{error}</div>}
+      {serverError && <div className="mb-4 text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100">{serverError}</div>}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
           <input
+            {...register('email')}
             type="email"
             placeholder="correo@ejemplo.com"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#6B9E8A] focus:border-[#6B9E8A] outline-none transition-all placeholder:text-gray-300 text-gray-800"
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className={`w-full px-3 py-2 border rounded-md outline-none transition-all ${errors.email ? 'border-red-500' : 'border-gray-300 focus:border-[#6B9E8A]'}`}
           />
+          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
-        <div className="relative">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
           <input
-            type={showPassword ? "text" : "password"}
+            {...register('password')}
+            type="password"
             placeholder="mínimo 8 caracteres"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#6B9E8A] focus:border-[#6B9E8A] outline-none transition-all placeholder:text-gray-300 text-gray-800"
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            className={`w-full px-3 py-2 border rounded-md outline-none transition-all ${errors.password ? 'border-red-500' : 'border-gray-300 focus:border-[#6B9E8A]'}`}
           />
-          <button 
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="text-left">
-          <a href="#" className="text-xs text-[#6B9E8A] hover:underline">¿Olvidaste tu contraseña?</a>
+          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
 
         <button 
           type="submit" 
-          className="w-full py-2.5 bg-[#6B9E8A] hover:bg-[#5a8a77] text-white font-semibold rounded-md transition-colors shadow-sm"
+          disabled={isSubmitting}
+          className="w-full py-2.5 bg-[#6B9E8A] hover:bg-[#5a8a77] text-white font-semibold rounded-md transition-colors shadow-sm disabled:opacity-50"
         >
-          Iniciar Sesión
+          {isSubmitting ? 'Cargando...' : 'Iniciar Sesión'}
         </button>
 
         <div className="text-center pt-2">
-          <button 
-            type="button" 
-            onClick={onRegisterClick}
-            className="text-xs text-gray-500 hover:text-[#6B9E8A] transition-colors"
-          >
+          <button type="button" onClick={onRegisterClick} className="text-xs text-gray-500 hover:text-[#6B9E8A]">
             Crear cuenta
           </button>
         </div>

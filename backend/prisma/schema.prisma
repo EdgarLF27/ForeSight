@@ -47,6 +47,7 @@ model Company {
   address           String        // Domicilio
   phone             String        // Teléfono general
   email             String        // Email corporativo
+  inviteCode        String        @unique // CÓDIGO TIPO CLASSROOM (Llave de acceso)
   createdAt         DateTime      @default(now())
   status            CompanyStatus @default(ACTIVE)
   
@@ -74,26 +75,27 @@ model User {
   id_user           Int        @id @default(autoincrement())
   firstName         String     // Nombre
   lastName          String     // Apellido
-  email             String     @unique // Credencial de acceso
-  password          String     // Hash
-  role              UserRole
-  phone             String?    // Teléfono Personal
+  email             String     @unique // Credencial de acceso única
+  password          String     // Hash de la contraseña
+  role              UserRole   // Rol (ADMIN, EMPLOYEE, TECH)
+  phone             String?    // Teléfono (Opcional)
   accountStatus     UserStatus @default(ACTIVE)
   createdAt         DateTime   @default(now())
 
-  // --- Relación con Empresa (Todos pertenecen a una empresa) ---
-  id_company_fk     Int
-  company           Company    @relation("CompanyUsers", fields: [id_company_fk], references: [id_company])
+  // RELACIÓN CON EMPRESA:
+  // Se ha cambiado a opcional (Int?) para permitir que empleados/técnicos 
+  // se registren solos antes de ser vinculados a una organización.
+  id_company_fk     Int?
+  company           Company?    @relation("CompanyUsers", fields: [id_company_fk], references: [id_company])
 
-  // --- Campos Específicos de EMPLEADO ---
-  id_area_fk        Int?       // Solo para Empleados
+  // CAMPOS ESPECÍFICOS:
+  // Estos campos se llenarán conforme el usuario complete su perfil
+  id_area_fk        Int?       // Solo para Empleados vinculados a un área
   area              Area?      @relation("EmployeeArea", fields: [id_area_fk], references: [id_area])
 
-  // --- Campos Específicos de TÉCNICO DE SOPORTE ---
-  experienceLevel   ExperienceLevel? // Nivel de experiencia
-  techStatus        TechStatus?      // Estado del técnico
-  specializations   Area[]           @relation("TechSpecialization") // Áreas que puede atender
+  experienceLevel   ExperienceLevel? // Solo para Técnicos
+  techStatus        TechStatus?      // Disponibilidad del técnico
+  specializations   Area[]           @relation("TechSpecialization")
 
-  // --- Relación Inversa (Si es admin de empresa) ---
   managedCompany    Company?         @relation("MainAdmin")
 }
