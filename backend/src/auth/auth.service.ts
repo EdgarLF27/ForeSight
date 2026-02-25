@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +15,8 @@ export class AuthService {
       },
     });
 
-    if (user && user.password === pass) {
+    // COMPARACIÓN: Usamos bcrypt.compare para validar contra el hash
+    if (user && (await bcrypt.compare(pass, user.password))) {
       // Si coinciden, devolvemos el usuario (sin la contraseña por seguridad)
       const { password, ...result } = user;
       return result;

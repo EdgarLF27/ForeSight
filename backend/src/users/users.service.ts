@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UserRole, CompanyStatus, UserStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -16,7 +17,8 @@ export class UsersService {
       experienceLevel
     } = data;
 
-    const hashedPassword = password; 
+    // ENCRIPTACIÓN: Generamos un hash de la contraseña (10 rondas de salt)
+    const hashedPassword = await bcrypt.hash(password, 10); 
 
     if (role === UserRole.COMPANY_ADMIN) {
       return this.prisma.$transaction(async (tx) => {
