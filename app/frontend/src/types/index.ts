@@ -5,9 +5,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: UserRole;
   avatar?: string;
+  phone?: string;
   companyId?: string;
   createdAt: string;
   updatedAt: string;
@@ -18,6 +18,10 @@ export interface Company {
   id: string;
   name: string;
   description?: string;
+  taxId?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
   inviteCode: string;
   ownerId: string;
   createdAt: string;
@@ -54,36 +58,10 @@ export interface Comment {
   createdAt: string;
 }
 
-// Tipos de notificación
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  read: boolean;
-  type: 'TICKET_CREATED' | 'TICKET_UPDATED' | 'TICKET_ASSIGNED' | 'COMMENT_ADDED';
-  relatedId?: string;
-  createdAt: string;
-}
-
 // Estado de autenticación
 export interface AuthState {
   user: User | null;
   company: Company | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-}
-
-// Props comunes
-export interface DashboardStats {
-  totalTickets: number;
-  openTickets: number;
-  inProgressTickets: number;
-  resolvedTickets: number;
-}
-
-export interface TicketWithDetails extends Ticket {
-  createdByName: string;
-  assignedToName?: string;
-  commentsCount: number;
 }

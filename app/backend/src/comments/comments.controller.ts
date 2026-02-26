@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Delete,
   Body,
   Param,
   UseGuards,
@@ -18,23 +17,15 @@ export class CommentsController {
   constructor(private commentsService: CommentsService) {}
 
   @Get('ticket/:ticketId')
-  async findByTicket(@Param('ticketId') ticketId: string, @Request() req) {
-    const companyId = req.user.companyId;
-    return this.commentsService.findByTicket(ticketId, companyId);
+  async findByTicket(@Param('ticketId') ticketId: string) {
+    return this.commentsService.findByTicket(ticketId);
   }
 
   @Post()
   async create(@Body() createDto: CreateCommentDto, @Request() req) {
-    const companyId = req.user.companyId;
     return this.commentsService.create({
       ...createDto,
       userId: req.user.userId,
-    }, companyId);
-  }
-
-  @Delete(':id')
-  async delete(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.companyId;
-    return this.commentsService.delete(id, req.user.userId, companyId);
+    });
   }
 }

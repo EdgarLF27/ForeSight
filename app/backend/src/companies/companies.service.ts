@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,26 +10,10 @@ export class CompaniesService {
       where: { id },
       include: {
         owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            avatar: true,
-          },
-        },
-        _count: {
-          select: {
-            members: true,
-            tickets: true,
-          },
+          select: { id: true, firstName: true, lastName: true, avatar: true, role: true },
         },
       },
     });
@@ -44,24 +28,25 @@ export class CompaniesService {
   async findByInviteCode(inviteCode: string) {
     const company = await this.prisma.company.findUnique({
       where: { inviteCode: inviteCode.toUpperCase() },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-      },
     });
 
     if (!company) {
-      throw new NotFoundException('Código de invitación inválido');
+      throw new NotFoundException('Código de invitación no válido');
     }
 
     return company;
   }
 
-  async regenerateInviteCode(companyId: string, userId: string) {
-    // Verify user is the owner
+  async update(id: string, data: any) {
+    return this.prisma.company.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async regenerateInviteCode(id: string, userId: string) {
     const company = await this.prisma.company.findUnique({
-      where: { id: companyId },
+      where: { id },
     });
 
     if (!company) {
@@ -69,36 +54,23 @@ export class CompaniesService {
     }
 
     if (company.ownerId !== userId) {
-      throw new ForbiddenException('Solo el dueño puede regenerar el código');
+      throw new UnauthorizedException('No tienes permiso para realizar esta acción');
     }
 
-    const newCode = this.generateInviteCode();
+    const inviteCode = this.generateInviteCode();
 
-    const updated = await this.prisma.company.update({
-      where: { id: companyId },
-      data: { inviteCode: newCode },
+    return this.prisma.company.update({
+      where: { id },
+      data: { inviteCode },
     });
-
-    return { inviteCode: updated.inviteCode };
   }
 
   async getStats(companyId: string) {
-    const [
-      totalTickets,
-      openTickets,
-      inProgressTickets,
-      resolvedTickets,
-      totalMembers,
-    ] = await Promise.all([
+    const [totalTickets, openTickets, inProgressTickets, resolvedTickets, totalMembers] = await Promise.all([
       this.prisma.ticket.count({ where: { companyId } }),
       this.prisma.ticket.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.ticket.count({ where: { companyId, status: 'IN_PROGRESS' } }),
-      this.prisma.ticket.count({ 
-        where: { 
-          companyId, 
-          OR: [{ status: 'RESOLVED' }, { status: 'CLOSED' }] 
-        } 
-      }),
+      this.prisma.ticket.count({ where: { companyId, status: 'RESOLVED' } }),
       this.prisma.user.count({ where: { companyId } }),
     ]);
 

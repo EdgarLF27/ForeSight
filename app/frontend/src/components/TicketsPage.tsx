@@ -77,7 +77,6 @@ export function TicketsPage({
     assignedTo: '',
   });
 
-  // Filtrar y ordenar tickets
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          ticket.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -113,13 +112,12 @@ export function TicketsPage({
     setIsCreateDialogOpen(false);
   };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#202124]">Tickets</h1>
@@ -179,7 +177,7 @@ export function TicketsPage({
                     >
                       <option value="">Sin asignar</option>
                       {teamMembers.map(member => (
-                        <option key={member.id} value={member.id}>{member.name}</option>
+                        <option key={member.id} value={member.id}>{member.firstName} {member.lastName}</option>
                       ))}
                     </select>
                   </div>
@@ -202,7 +200,6 @@ export function TicketsPage({
         </Dialog>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -259,7 +256,6 @@ export function TicketsPage({
         </CardContent>
       </Card>
 
-      {/* Tickets Table */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -318,9 +314,9 @@ export function TicketsPage({
                           {assignee ? (
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 bg-[#1a73e8] rounded-full flex items-center justify-center text-white text-xs">
-                                {getInitials(assignee.name)}
+                                {getInitials(assignee.firstName, assignee.lastName)}
                               </div>
-                              <span className="text-sm text-[#202124]">{assignee.name}</span>
+                              <span className="text-sm text-[#202124]">{assignee.firstName} {assignee.lastName}</span>
                             </div>
                           ) : (
                             <span className="text-sm text-[#80868b]">Sin asignar</span>
@@ -371,7 +367,6 @@ export function TicketsPage({
         </CardContent>
       </Card>
 
-      {/* Results count */}
       <p className="text-sm text-[#5f6368]">
         Mostrando {filteredTickets.length} de {tickets.length} tickets
       </p>
