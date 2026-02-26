@@ -24,8 +24,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps) {
   const [formData, setFormData] = useState({
-    firstName: user.firstName,
-    lastName: user.lastName,
+    name: user.name,
     email: user.email,
   });
   const [notifications, setNotifications] = useState({
@@ -36,8 +35,8 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
   });
   const [saved, setSaved] = useState(false);
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleSave = () => {
@@ -68,7 +67,7 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
             <div className="relative">
               <Avatar className="h-20 w-20">
                 <AvatarFallback className="bg-gradient-to-br from-[#1a73e8] to-[#1557b0] text-white text-2xl">
-                  {getInitials(user.firstName, user.lastName)}
+                  {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
               <button className="absolute bottom-0 right-0 w-8 h-8 bg-[#1a73e8] rounded-full flex items-center justify-center text-white hover:bg-[#1557b0] transition-colors">
@@ -86,23 +85,12 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
             <div>
               <label className="text-sm font-medium text-[#202124] flex items-center gap-2 mb-2">
                 <User className="h-4 w-4 text-[#5f6368]" />
-                Nombre
+                Nombre completo
               </label>
               <Input
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Tu nombre"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#202124] flex items-center gap-2 mb-2">
-                <User className="h-4 w-4 text-[#5f6368]" />
-                Apellido
-              </label>
-              <Input
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                placeholder="Tu apellido"
               />
             </div>
             <div>

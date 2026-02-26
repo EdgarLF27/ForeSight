@@ -44,8 +44,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        name: user.name,
         role: user.role,
         avatar: user.avatar,
         companyId: user.companyId,
@@ -57,16 +56,11 @@ export class AuthService {
   async register(data: {
     email: string;
     password: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     role: UserRole;
-    phone?: string;
     companyName?: string;
-    companyTaxId?: string;
-    companyAddress?: string;
-    companyPhone?: string;
-    companyEmail?: string;
   }) {
+    // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -75,48 +69,49 @@ export class AuthService {
       throw new ConflictException('El correo ya está registrado');
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Crear el usuario con su nombre y apellido
-      const user = await tx.user.create({
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        password: hashedPassword,
+        name: data.name,
+        role: data.role,
+      },
+      include: { company: true },
+    });
+
+    // If EMPRESA, create company
+    if (data.role === UserRole.EMPRESA && data.companyName) {
+      const inviteCode = this.generateInviteCode();
+      
+      const company = await this.prisma.company.create({
         data: {
-          email: data.email,
-          password: hashedPassword,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          role: data.role,
-          phone: data.phone,
+          name: data.companyName,
+          inviteCode,
+          ownerId: user.id,
         },
       });
 
-      // 2. Si es rol EMPRESA, crear la organización completa
-      if (data.role === UserRole.EMPRESA && data.companyName) {
-        const inviteCode = this.generateInviteCode();
-        
-        const company = await tx.company.create({
-          data: {
-            name: data.companyName,
-            taxId: data.companyTaxId || 'PENDIENTE',
-            address: data.companyAddress || 'PENDIENTE',
-            phone: data.companyPhone,
-            email: data.companyEmail,
-            inviteCode,
-            ownerId: user.id,
-          },
-        });
+      // Update user with company
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { companyId: company.id },
+      });
 
-        const updatedUser = await tx.user.update({
-          where: { id: user.id },
-          data: { companyId: company.id },
-          include: { company: true },
-        });
+      const updatedUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: { company: true },
+      });
 
-        return this.login(updatedUser);
-      }
+      const { password: _, ...result } = updatedUser;
+      return this.login(result);
+    }
 
-      return this.login(user);
-    });
+    const { password: _, ...result } = user;
+    return this.login(result);
   }
 
   async joinCompany(userId: string, inviteCode: string) {

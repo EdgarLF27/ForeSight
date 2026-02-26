@@ -44,8 +44,9 @@ export class TicketsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.ticketsService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const companyId = req.user.companyId;
+    return this.ticketsService.findOne(id, companyId);
   }
 
   @Post()
@@ -67,12 +68,15 @@ export class TicketsController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateTicketDto,
+    @Request() req,
   ) {
-    return this.ticketsService.update(id, updateDto);
+    const companyId = req.user.companyId;
+    return this.ticketsService.update(id, updateDto, companyId);
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return this.ticketsService.remove(id);
+  async delete(@Param('id') id: string, @Request() req) {
+    const companyId = req.user.companyId;
+    return this.ticketsService.delete(id, companyId);
   }
 }

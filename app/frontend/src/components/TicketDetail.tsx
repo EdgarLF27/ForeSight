@@ -71,8 +71,8 @@ export function TicketDetail({
   const assignee = teamMembers.find(m => m.id === ticket.assignedTo);
   const creator = teamMembers.find(m => m.id === ticket.createdBy) || currentUser;
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -162,8 +162,7 @@ export function TicketDetail({
                     <div key={comment.id} className="flex gap-3">
                       <Avatar className="h-8 w-8 flex-shrink-0">
                         <AvatarFallback className="bg-[#1a73e8] text-white text-xs">
-                          {/* We don't have firstName/lastName in Comment type yet, assuming userName is still there or needs update */}
-                          {comment.userName.slice(0, 2).toUpperCase()}
+                          {getInitials(comment.userName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
@@ -184,7 +183,7 @@ export function TicketDetail({
               <form onSubmit={handleSubmitComment} className="flex gap-3">
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarFallback className="bg-[#1a73e8] text-white text-xs">
-                    {getInitials(currentUser.firstName, currentUser.lastName)}
+                    {getInitials(currentUser.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 flex gap-2">
@@ -210,6 +209,7 @@ export function TicketDetail({
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* Status Card */}
           <Card>
             <CardContent className="p-4 space-y-4">
               <div>
@@ -233,6 +233,7 @@ export function TicketDetail({
             </CardContent>
           </Card>
 
+          {/* People Card */}
           <Card>
             <CardContent className="p-4 space-y-4">
               <div>
@@ -243,10 +244,10 @@ export function TicketDetail({
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-[#34a853] text-white text-xs">
-                      {getInitials(creator.firstName, creator.lastName)}
+                      {getInitials(creator.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm text-[#202124]">{creator.firstName} {creator.lastName}</span>
+                  <span className="text-sm text-[#202124]">{creator.name}</span>
                 </div>
               </div>
 
@@ -267,7 +268,7 @@ export function TicketDetail({
                       <SelectItem value="">Sin asignar</SelectItem>
                       {teamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id}>
-                          {member.firstName} {member.lastName}
+                          {member.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -278,10 +279,10 @@ export function TicketDetail({
                       <>
                         <Avatar className="h-6 w-6">
                           <AvatarFallback className="bg-[#1a73e8] text-white text-xs">
-                            {getInitials(assignee.firstName, assignee.lastName)}
+                            {getInitials(assignee.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm text-[#202124]">{assignee.firstName} {assignee.lastName}</span>
+                        <span className="text-sm text-[#202124]">{assignee.name}</span>
                       </>
                     ) : (
                       <span className="text-sm text-[#5f6368]">Sin asignar</span>
@@ -292,6 +293,7 @@ export function TicketDetail({
             </CardContent>
           </Card>
 
+          {/* Dates Card */}
           <Card>
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm">

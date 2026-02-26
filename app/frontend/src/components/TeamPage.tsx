@@ -35,11 +35,10 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
   const [copied, setCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState(company.inviteCode);
 
-  const filteredMembers = teamMembers.filter(member => {
-    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase()) ||
-           member.email.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredMembers = teamMembers.filter(member => 
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(inviteCode);
@@ -54,8 +53,8 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   return (
@@ -177,13 +176,13 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
                         ? 'bg-gradient-to-br from-[#34a853] to-[#2e7d32]' 
                         : 'bg-gradient-to-br from-[#1a73e8] to-[#1557b0]'
                     }`}>
-                      {getInitials(member.firstName, member.lastName)}
+                      {getInitials(member.name)}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-[#202124]">{member.firstName} {member.lastName}</p>
+                      <p className="font-medium text-[#202124]">{member.name}</p>
                       {member.id === user.id && (
                         <Badge variant="secondary" className="text-xs">Tú</Badge>
                       )}

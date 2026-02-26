@@ -13,8 +13,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         role: true,
         avatar: true,
         companyId: true,
@@ -45,8 +44,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         role: true,
         avatar: true,
         companyId: true,
@@ -57,7 +55,7 @@ export class UsersService {
     return users;
   }
 
-  async update(id: string, data: { firstName?: string; lastName?: string; email?: string; avatar?: string }) {
+  async update(id: string, data: { name?: string; email?: string; avatar?: string }) {
     const user = await this.prisma.user.update({
       where: { id },
       data,

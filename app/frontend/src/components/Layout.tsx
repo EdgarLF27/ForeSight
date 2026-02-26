@@ -42,16 +42,9 @@ const navItems = [
 export function Layout({ children, user, company, onLogout, currentPage, onPageChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Función segura para obtener iniciales
-  const getInitials = (firstName: string = '', lastName: string = '') => {
-    const f = firstName ? firstName[0] : '';
-    const l = lastName ? lastName[0] : '';
-    return (f + l).toUpperCase() || 'U'; // 'U' de Usuario si no hay nada
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
-
-  const firstName = user?.firstName || 'Usuario';
-  const lastName = user?.lastName || '';
-  const fullName = `${firstName} ${lastName}`.trim();
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -70,11 +63,11 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
             </Button>
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#6B9E8A] rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#1a73e8] to-[#1557b0] rounded-lg flex items-center justify-center">
                 <Ticket className="h-5 w-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-medium text-[#202124]">ForeSight</h1>
+                <h1 className="text-xl font-medium text-[#202124]">TicketClass</h1>
                 {company && (
                   <p className="text-xs text-[#5f6368] flex items-center gap-1">
                     <Building2 className="h-3 w-3" />
@@ -96,20 +89,20 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 px-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-[#6B9E8A] text-white text-sm">
-                      {getInitials(user?.firstName, user?.lastName)}
+                    <AvatarFallback className="bg-[#1a73e8] text-white text-sm">
+                      {getInitials(user.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline text-sm text-[#202124]">{fullName}</span>
+                  <span className="hidden sm:inline text-sm text-[#202124]">{user.name}</span>
                   <ChevronDown className="h-4 w-4 text-[#5f6368]" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
-                  <p className="text-sm font-medium text-[#202124]">{fullName}</p>
-                  <p className="text-xs text-[#5f6368]">{user?.email}</p>
+                  <p className="text-sm font-medium text-[#202124]">{user.name}</p>
+                  <p className="text-xs text-[#5f6368]">{user.email}</p>
                   <Badge variant="secondary" className="mt-1 text-xs">
-                    {user?.role === 'EMPRESA' ? 'Administrador' : 'Empleado'}
+                    {user.role === 'EMPRESA' ? 'Administrador' : 'Empleado'}
                   </Badge>
                 </div>
                 <DropdownMenuSeparator />
@@ -139,7 +132,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
             const isActive = currentPage === item.id;
             
             // Ocultar "Equipo" para empleados
-            if (item.id === 'team' && user?.role === 'EMPLEADO') return null;
+            if (item.id === 'team' && user.role === 'EMPLEADO') return null;
             
             return (
               <button
@@ -150,7 +143,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive 
-                    ? 'bg-[#e8f0fe] text-[#6B9E8A]' 
+                    ? 'bg-[#e8f0fe] text-[#1a73e8]' 
                     : 'text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#202124]'
                 }`}
               >
@@ -163,14 +156,14 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
 
         {/* Company Info Card */}
         {company && (
-          <div className="absolute bottom-4 left-4 right-4 p-4 bg-gradient-to-br from-[#6B9E8A] to-[#4A7A68] rounded-xl text-white shadow-sm">
+          <div className="absolute bottom-4 left-4 right-4 p-4 bg-gradient-to-br from-[#1a73e8] to-[#1557b0] rounded-xl text-white">
             <div className="flex items-center gap-2 mb-2">
               <Building2 className="h-4 w-4" />
               <span className="text-xs font-medium opacity-90">Tu empresa</span>
             </div>
             <p className="text-sm font-medium truncate">{company.name}</p>
-            {user?.role === 'EMPRESA' && (
-              <p className="text-xs opacity-75 mt-1 font-mono">Código: {company.inviteCode}</p>
+            {user.role === 'EMPRESA' && (
+              <p className="text-xs opacity-75 mt-1">Código: {company.inviteCode}</p>
             )}
           </div>
         )}

@@ -6,41 +6,17 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   password: string;
 
   @IsString()
-  @MinLength(1, { message: 'El nombre es obligatorio' })
-  firstName: string;
-
-  @IsString()
-  @MinLength(1, { message: 'El apellido es obligatorio' })
-  lastName: string;
+  @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
+  name: string;
 
   @IsEnum(UserRole, { message: 'El rol debe ser EMPRESA o EMPLEADO' })
   role: UserRole;
 
   @IsOptional()
   @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsString()
   companyName?: string;
-
-  @IsOptional()
-  @IsString()
-  companyTaxId?: string;
-
-  @IsOptional()
-  @IsString()
-  companyAddress?: string;
-
-  @IsOptional()
-  @IsString()
-  companyPhone?: string;
-
-  @IsOptional()
-  @IsEmail()
-  companyEmail?: string;
 }

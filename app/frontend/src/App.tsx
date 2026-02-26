@@ -58,8 +58,14 @@ function App() {
     return await login(email, password);
   };
 
-  const handleRegister = async (data: any): Promise<boolean> => {
-    return await register(data);
+  const handleRegister = async (
+    name: string, 
+    email: string, 
+    password: string, 
+    role: UserRole, 
+    companyName?: string
+  ): Promise<boolean> => {
+    return await register(name, email, password, role, companyName);
   };
 
   const handleJoinCompany = async (code: string): Promise<boolean> => {
