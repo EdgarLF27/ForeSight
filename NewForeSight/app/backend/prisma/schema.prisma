@@ -7,91 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole @default(EMPLEADO)
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id])
-
-  ownedCompany Company? @relation("CompanyOwner")
-
-  createdTickets Ticket[] @relation("TicketCreator")
-  assignedTickets Ticket[] @relation("TicketAssignee")
-  comments       Comment[]
-
-  @@map("users")
-}
-
-model Company {
-  id          String @id @default(uuid())
-  name        String
-  description String?
-  inviteCode  String @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  ownerId String @unique
-  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
-
-  members User[]
-  tickets Ticket[]
-
-  @@map("companies")
-}
-
-model Ticket {
-  id          String       @id @default(uuid())
-  title       String
-  description String
-  status      TicketStatus @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  category    String       @default("General")
-  attachments String[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  createdById String
-  createdBy   User   @relation("TicketCreator", fields: [createdById], references: [id])
-
-  assignedToId String?
-  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
-
-  comments Comment[]
-
-  @@map("tickets")
-}
-
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  createdAt DateTime @default(now())
-
-  // Relations
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@map("comments")
-}
+// ---------------- ENUMS ----------------
 
 enum UserRole {
-  EMPRESA
-  EMPLEADO
+  COMPANY_ADMIN // Administrador de Empresa (Dueño)
+  EMPLOYEE      // Empleado normal
+  SUPPORT_TECH  // Técnico de Soporte
 }
 
 enum TicketStatus {
@@ -106,4 +27,106 @@ enum TicketPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+  EXPERT
+}
+
+// ---------------- MODELOS ----------------
+
+model User {
+  id_user       String   @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  password      String
+  role          UserRole @default(EMPLOYEE)
+  phone         String?
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // --- Relación con Empresa ---
+  id_company_fk String?
+  company       Company? @relation("CompanyMembers", fields: [id_company_fk], references: [id_company])
+
+  // --- Propiedad de Empresa (Para el Admin) ---
+  managedCompany Company? @relation("CompanyOwner")
+
+  // --- Campos Específicos de TÉCNICO ---
+  experienceLevel ExperienceLevel?
+  
+  // --- Relaciones de Tickets ---
+  createdTickets  Ticket[] @relation("TicketCreator")
+  assignedTickets Ticket[] @relation("TicketAssignee")
+  comments        Comment[]
+
+  @@map("users")
+}
+
+model Company {
+  id_company    String   @id @default(uuid())
+  legalName     String   // Razón Social
+  taxId         String   @unique // CUIT / RFC
+  address       String   // Domicilio
+  phone         String   // Teléfono corporativo
+  email         String   // Email corporativo
+  inviteCode    String   @unique // Código tipo Classroom
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // --- Dueño (Relación 1 a 1 con el Admin) ---
+  ownerId       String   @unique
+  owner         User     @relation("CompanyOwner", fields: [ownerId], references: [id_user])
+
+  // --- Relaciones ---
+  members       User[]   @relation("CompanyMembers")
+  tickets       Ticket[]
+
+  @@map("companies")
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  title       String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  category    String         @default("General")
+  attachments String[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // --- Relaciones ---
+  companyId   String
+  company     Company        @relation(fields: [companyId], references: [id_company], onDelete: Cascade)
+
+  createdById String
+  createdBy   User           @relation("TicketCreator", fields: [createdById], references: [id_user])
+
+  assignedToId String?
+  assignedTo   User?          @relation("TicketAssignee", fields: [assignedToId], references: [id_user])
+
+  comments    Comment[]
+
+  @@map("tickets")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // --- Relaciones ---
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id_user])
+
+  @@map("comments")
 }

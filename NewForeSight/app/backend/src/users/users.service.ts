@@ -6,17 +6,18 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(companyId?: string) {
-    const where = companyId ? { companyId } : {};
+    const where = companyId ? { id_company_fk: companyId } : {};
     
     const users = await this.prisma.user.findMany({
       where,
       select: {
-        id: true,
+        id_user: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
         avatar: true,
-        companyId: true,
+        id_company_fk: true,
         createdAt: true,
       },
     });
@@ -26,7 +27,7 @@ export class UsersService {
 
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id_user: id },
       include: { company: true },
     });
 
@@ -38,16 +39,17 @@ export class UsersService {
     return result;
   }
 
-  async findByCompany(companyId: string) {
+  async findByCompany(id_company_fk: string) {
     const users = await this.prisma.user.findMany({
-      where: { companyId },
+      where: { id_company_fk },
       select: {
-        id: true,
+        id_user: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
         avatar: true,
-        companyId: true,
+        id_company_fk: true,
         createdAt: true,
       },
     });
@@ -55,9 +57,9 @@ export class UsersService {
     return users;
   }
 
-  async update(id: string, data: { name?: string; email?: string; avatar?: string }) {
+  async update(id: string, data: any) {
     const user = await this.prisma.user.update({
-      where: { id },
+      where: { id_user: id },
       data,
       include: { company: true },
     });

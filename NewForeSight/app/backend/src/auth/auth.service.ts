@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -11,56 +12,43 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string) {
+  async validateUser(email: string, pass: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: { company: true },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+    if (user && (await bcrypt.compare(pass, user.password))) {
+      const { password, ...result } = user;
+      return result;
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    const { password: _, ...result } = user;
-    return result;
+    
+    throw new UnauthorizedException('Credenciales inválidas');
   }
 
   async login(user: any) {
     const payload = { 
-      sub: user.id, 
+      sub: user.id_user, 
       email: user.email, 
       role: user.role,
-      companyId: user.companyId 
+      id_company_fk: user.id_company_fk 
     };
 
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user.id,
+        id_user: user.id_user,
         email: user.email,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
-        avatar: user.avatar,
-        companyId: user.companyId,
+        id_company_fk: user.id_company_fk,
         company: user.company,
       },
     };
   }
 
-  async register(data: {
-    email: string;
-    password: string;
-    name: string;
-    role: UserRole;
-    companyName?: string;
-  }) {
-    // Check if user exists
+  async register(data: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -69,49 +57,65 @@ export class AuthService {
       throw new ConflictException('El correo ya está registrado');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Create user
+    // LÓGICA DE REGISTRO PARA EMPRESA (ADMIN)
+    if (data.role === UserRole.COMPANY_ADMIN) {
+      return this.prisma.$transaction(async (tx) => {
+        // 1. Crear al usuario primero (él será el dueño)
+        const user = await tx.user.create({
+          data: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            password: hashedPassword,
+            role: UserRole.COMPANY_ADMIN,
+            phone: data.phone,
+          },
+        });
+
+        // 2. Generar código tipo Classroom
+        const inviteCode = 'FS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // 3. Crear la empresa vinculada al usuario
+        const company = await tx.company.create({
+          data: {
+            legalName: data.companyName,
+            taxId: data.companyTaxId,
+            address: data.companyAddress,
+            phone: data.companyPhone,
+            email: data.companyEmail,
+            inviteCode: inviteCode,
+            ownerId: user.id_user,
+          },
+        });
+
+        // 4. Vincular al usuario con su nueva empresa
+        const updatedUser = await tx.user.update({
+          where: { id_user: user.id_user },
+          data: { id_company_fk: company.id_company },
+          include: { company: true },
+        });
+
+        return this.login(updatedUser);
+      });
+    }
+
+    // LÓGICA PARA EMPLEADOS / TÉCNICOS
     const user = await this.prisma.user.create({
       data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
         email: data.email,
         password: hashedPassword,
-        name: data.name,
         role: data.role,
+        phone: data.phone,
+        experienceLevel: data.experienceLevel,
       },
       include: { company: true },
     });
 
-    // If EMPRESA, create company
-    if (data.role === UserRole.EMPRESA && data.companyName) {
-      const inviteCode = this.generateInviteCode();
-      
-      const company = await this.prisma.company.create({
-        data: {
-          name: data.companyName,
-          inviteCode,
-          ownerId: user.id,
-        },
-      });
-
-      // Update user with company
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { companyId: company.id },
-      });
-
-      const updatedUser = await this.prisma.user.findUnique({
-        where: { id: user.id },
-        include: { company: true },
-      });
-
-      const { password: _, ...result } = updatedUser;
-      return this.login(result);
-    }
-
-    const { password: _, ...result } = user;
-    return this.login(result);
+    return this.login(user);
   }
 
   async joinCompany(userId: string, inviteCode: string) {
@@ -124,24 +128,15 @@ export class AuthService {
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: { companyId: company.id },
+      where: { id_user: userId },
+      data: { id_company_fk: company.id_company },
       include: { company: true },
     });
 
-    const { password: _, ...result } = updatedUser;
+    const { password, ...result } = updatedUser;
     return {
       message: 'Te has unido a la empresa exitosamente',
       user: result,
     };
-  }
-
-  private generateInviteCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
   }
 }

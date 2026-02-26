@@ -1,22 +1,54 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, Matches } from 'class-validator';
+import { UserRole, ExperienceLevel } from '@prisma/client';
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'El correo electrónico no es válido' })
+  @IsString()
+  @IsNotEmpty({ message: 'El nombre es obligatorio' })
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'El apellido es obligatorio' })
+  lastName: string;
+
+  @IsEmail({}, { message: 'El email no tiene un formato válido' })
   email: string;
 
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   password: string;
 
-  @IsString()
-  @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
-  name: string;
-
-  @IsEnum(UserRole, { message: 'El rol debe ser EMPRESA o EMPLEADO' })
+  @IsEnum(UserRole, { message: 'El rol no es válido' })
   role: UserRole;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
+  @Matches(/^\+?[0-9\s-]{7,15}$/, { message: 'Formato de teléfono inválido' })
+  phone?: string;
+
+  // Campos de Empresa (Solo para COMPANY_ADMIN)
+  @IsString()
+  @IsOptional()
   companyName?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[0-9A-Z-]+$/, { message: 'Formato de ID Fiscal inválido' })
+  companyTaxId?: string;
+
+  @IsString()
+  @IsOptional()
+  companyAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  companyPhone?: string;
+
+  @IsEmail({}, { message: 'Email corporativo inválido' })
+  @IsOptional()
+  companyEmail?: string;
+
+  // Campos para Técnicos
+  @IsEnum(ExperienceLevel, { message: 'Nivel de experiencia no válido' })
+  @IsOptional()
+  experienceLevel?: ExperienceLevel;
 }
