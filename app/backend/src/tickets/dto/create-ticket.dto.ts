@@ -7,7 +7,7 @@ export class CreateTicketDto {
   title: string;
 
   @IsString()
-  @MinLength(10, { message: 'La descripción debe tener al menos 10 caracteres' })
+  @MinLength(5, { message: 'La descripción debe tener al menos 5 caracteres' })
   description: string;
 
   @IsEnum(TicketPriority, { message: 'Prioridad inválida' })

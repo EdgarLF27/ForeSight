@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,7 +26,7 @@ interface DashboardEmployeeProps {
   user: User;
   company: Company | null;
   tickets: TicketType[];
-  onCreateTicket: (ticket: Omit<TicketType, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onCreateTicket: (ticket: any) => void;
   onViewTicket: (ticket: TicketType) => void;
   onJoinCompany: (code: string) => boolean;
 }
@@ -135,12 +136,12 @@ export function DashboardEmployee({
   const handleCreateTicket = () => {
     if (!newTicket.title || !newTicket.description || !company) return;
 
+    // Solo enviamos los campos que el DTO del backend espera
     onCreateTicket({
-      ...newTicket,
-      status: 'OPEN',
-      createdBy: user.id,
-      companyId: company.id,
-      attachments: [],
+      title: newTicket.title,
+      description: newTicket.description,
+      priority: newTicket.priority,
+      category: newTicket.category,
     });
 
     setNewTicket({
@@ -170,6 +171,9 @@ export function DashboardEmployee({
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Crear nuevo ticket</DialogTitle>
+              <DialogDescription>
+                Describe el problema que estás experimentando para que nuestro equipo pueda ayudarte a resolverlo lo antes posible.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
