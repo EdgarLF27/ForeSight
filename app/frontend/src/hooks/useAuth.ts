@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { authApi, usersApi } from '@/services/api';
 import type { User, Company, UserRole, AuthState } from '@/types';
-import { api } from '@/lib/api';
 
-const TOKEN_KEY = 'ticketclass_token';
+const AUTH_STORAGE_KEY = 'foresight_auth';
 
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
@@ -12,36 +12,47 @@ export function useAuth() {
     isLoading: true,
   });
 
-  // Verificar sesión existente al cargar la aplicación
-  useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    
-    if (token) {
-      api.get('/auth/me')
-        .then(user => {
-          setState({
-            user,
-            company: user.company || null,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        })
-        .catch(() => {
-          localStorage.removeItem(TOKEN_KEY);
-          setState(prev => ({ ...prev, isLoading: false }));
-        });
-    } else {
+  const loadStoredAuth = useCallback(async () => {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
+    try {
+      const { token, user } = JSON.parse(stored);
+      // Configurar el token en la instancia de axios
+      authApi.setToken(token);
+      
+      setState({
+        user,
+        company: user.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  useEffect(() => {
+    loadStoredAuth();
+  }, [loadStoredAuth]);
+
+  const login = async (email: string, pass: string) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { access_token, user } = response;
+      const { data } = await authApi.login({ email, password: pass });
+      const { access_token, user } = data; // Cambiado token a access_token para coincidir con el backend
       
-      localStorage.setItem(TOKEN_KEY, access_token);
+      const authData = { token: access_token, user };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       
+      // También guardamos el token suelto para que el interceptor lo encuentre fácil
+      localStorage.setItem('token', access_token);
+      
+      authApi.setToken(access_token);
+
       setState({
         user,
         company: user.company || null,
@@ -50,79 +61,86 @@ export function useAuth() {
       });
       return true;
     } catch (error) {
-      console.error('Error al iniciar sesión:', error);
+      console.error("Login hook error:", error);
       return false;
     }
-  }, []);
+  };
 
-  const register = useCallback(async (
-    name: string, 
-    email: string, 
-    password: string, 
-    role: UserRole, 
-    companyName?: string
-  ): Promise<boolean> => {
-    try {
-      const response = await api.post('/auth/register', { name, email, password, role, companyName });
-      const { access_token, user } = response;
-      
-      localStorage.setItem(TOKEN_KEY, access_token);
-      
-      setState({
-        user,
-        company: user.company || null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      return true;
-    } catch (error) {
-      console.error('Error al registrarse:', error);
-      return false;
-    }
-  }, []);
-
-  const joinCompany = useCallback(async (inviteCode: string): Promise<boolean> => {
-    try {
-      const response = await api.post('/auth/join-company', { inviteCode });
-      const { user } = response;
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        company: user.company || null,
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Error al unirse a la empresa:', error);
-      return false;
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+  const logout = () => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem('token');
+    authApi.setToken(null);
     setState({
       user: null,
       company: null,
       isAuthenticated: false,
       isLoading: false,
     });
-  }, []);
+  };
 
-  const updateUser = useCallback(async (updates: Partial<User>) => {
+  const register = async (name: string, email: string, pass: string, role: UserRole, companyName?: string) => {
     try {
-      const updatedUser = await api.put('/users/me', updates);
-      setState(prev => ({ ...prev, user: updatedUser }));
+      await usersApi.register({ name, email, password: pass, role, companyName });
+      return true;
     } catch (error) {
-      console.error('Error al actualizar el usuario:', error);
+      return false;
     }
-  }, []);
+  };
+
+  const joinCompany = async (inviteCode: string) => {
+    if (!state.user) return false;
+    try {
+      const { data } = await usersApi.linkCompany({ userId: state.user.id, inviteCode });
+      
+      const newState = {
+        ...state,
+        user: data,
+        company: data.company,
+      };
+      
+      setState(newState);
+      
+      // Actualizar localStorage
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const authData = JSON.parse(stored);
+        authData.user = data;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      }
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const updateUser = async (updates: { name?: string; email?: string; avatar?: string }) => {
+    try {
+      const { data } = await usersApi.updateMe(updates);
+      
+      setState(prev => ({
+        ...prev,
+        user: { ...prev.user, ...data },
+      }));
+
+      // Actualizar localStorage
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const authData = JSON.parse(stored);
+        authData.user = { ...authData.user, ...data };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
 
   return {
     ...state,
     login,
-    register,
     logout,
+    register,
     joinCompany,
     updateUser,
   };

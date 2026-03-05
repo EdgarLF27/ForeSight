@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle } from 'lucide-react';
+import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,9 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UserRole } from '@/types';
 
 interface AuthPageProps {
-  onLogin: (email: string, password: string) => boolean;
-  onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => boolean;
-  onJoinCompany: (code: string) => boolean;
+  onLogin: (email: string, password: string) => Promise<boolean>;
+  onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
+  onJoinCompany: (code: string) => Promise<boolean>;
 }
 
 export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) {
@@ -17,6 +17,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Form states
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -29,7 +30,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
   });
   const [joinCode, setJoinCode] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -38,13 +39,20 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
       return;
     }
 
-    const success = onLogin(loginData.email, loginData.password);
-    if (!success) {
-      setError('Correo o contraseña incorrectos');
+    setIsLoading(true);
+    try {
+      const success = await onLogin(loginData.email, loginData.password);
+      if (!success) {
+        setError('Correo o contraseña incorrectos');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al intentar iniciar sesión');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -58,20 +66,30 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
       return;
     }
 
-    const success = onRegister(
-      registerData.name,
-      registerData.email,
-      registerData.password,
-      registerData.role,
-      registerData.companyName
-    );
-    
-    if (!success) {
-      setError('El correo ya está registrado');
+    setIsLoading(true);
+    try {
+      const success = await onRegister(
+        registerData.name,
+        registerData.email,
+        registerData.password,
+        registerData.role,
+        registerData.companyName
+      );
+      
+      if (success) {
+        setSuccess('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
+        setActiveTab('login');
+      } else {
+        setError('El correo ya está registrado');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al registrar la cuenta');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleJoinCompany = (e: React.FormEvent) => {
+  const handleJoinCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -81,12 +99,19 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
       return;
     }
 
-    const success = onJoinCompany(joinCode);
-    if (success) {
-      setSuccess('¡Te has unido a la empresa exitosamente!');
-      setJoinCode('');
-    } else {
-      setError('Código de invitación inválido');
+    setIsLoading(true);
+    try {
+      const success = await onJoinCompany(joinCode);
+      if (success) {
+        setSuccess('¡Te has unido a la empresa exitosamente!');
+        setJoinCode('');
+      } else {
+        setError('Código de invitación inválido');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al intentar unirte');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -170,8 +195,14 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                 </div>
 
                 {error && activeTab === 'login' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm">
+                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
                     {error}
+                  </div>
+                )}
+
+                {success && activeTab === 'login' && (
+                  <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
+                    {success}
                   </div>
                 )}
 
@@ -185,6 +216,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       className="mt-1"
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -197,11 +229,13 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                         placeholder="••••••••"
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        disabled={isLoading}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f6368]"
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -211,17 +245,21 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
+                    disabled={isLoading}
                   >
-                    Iniciar sesión
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Iniciando sesión...
+                      </>
+                    ) : (
+                      <>
+                        Iniciar sesión
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </form>
-
-                <div className="mt-4 p-3 bg-[#e8f0fe] rounded-lg">
-                  <p className="text-xs text-[#1a73e8] font-medium">Cuentas de demo:</p>
-                  <p className="text-xs text-[#5f6368] mt-1">Admin: admin@techsolutions.com / password123</p>
-                  <p className="text-xs text-[#5f6368]">Empleado: juan@techsolutions.com / password123</p>
-                </div>
               </div>
             </TabsContent>
 
@@ -234,7 +272,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                 </div>
 
                 {error && activeTab === 'register' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm">
+                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
                     {error}
                   </div>
                 )}
@@ -244,6 +282,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                     <button
                       type="button"
                       onClick={() => setRegisterData({ ...registerData, role: 'EMPRESA' })}
+                      disabled={isLoading}
                       className={`p-4 rounded-xl border-2 transition-all ${
                         registerData.role === 'EMPRESA'
                           ? 'border-[#1a73e8] bg-[#e8f0fe]'
@@ -261,6 +300,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                     <button
                       type="button"
                       onClick={() => setRegisterData({ ...registerData, role: 'EMPLEADO' })}
+                      disabled={isLoading}
                       className={`p-4 rounded-xl border-2 transition-all ${
                         registerData.role === 'EMPLEADO'
                           ? 'border-[#1a73e8] bg-[#e8f0fe]'
@@ -285,6 +325,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                         value={registerData.companyName}
                         onChange={(e) => setRegisterData({ ...registerData, companyName: e.target.value })}
                         className="mt-1"
+                        disabled={isLoading}
                       />
                     </div>
                   )}
@@ -297,6 +338,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       value={registerData.name}
                       onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                       className="mt-1"
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -309,6 +351,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       value={registerData.email}
                       onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                       className="mt-1"
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -321,15 +364,26 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       value={registerData.password}
                       onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                       className="mt-1"
+                      disabled={isLoading}
                     />
                   </div>
 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
+                    disabled={isLoading}
                   >
-                    Crear cuenta
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creando cuenta...
+                      </>
+                    ) : (
+                      <>
+                        Crear cuenta
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </form>
               </div>
@@ -344,13 +398,13 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                 </div>
 
                 {error && activeTab === 'join' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm">
+                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
                     {error}
                   </div>
                 )}
 
-                {success && (
-                  <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm">
+                {success && activeTab === 'join' && (
+                  <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
                     {success}
                   </div>
                 )}
@@ -365,6 +419,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                       className="mt-1 text-center text-2xl tracking-widest font-mono uppercase"
                       maxLength={6}
+                      disabled={isLoading}
                     />
                     <p className="text-xs text-[#5f6368] mt-2 text-center">
                       Solicita el código a tu administrador
@@ -374,9 +429,19 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#34a853] hover:bg-[#2e7d32]"
+                    disabled={isLoading}
                   >
-                    Unirse a la empresa
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uniéndote...
+                      </>
+                    ) : (
+                      <>
+                        Unirse a la empresa
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </form>
 
@@ -386,6 +451,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                     <button 
                       onClick={() => setActiveTab('register')} 
                       className="text-[#1a73e8] font-medium hover:underline"
+                      disabled={isLoading}
                     >
                       Crea una cuenta
                     </button>

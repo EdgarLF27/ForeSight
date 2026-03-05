@@ -10,7 +10,7 @@ export class CompaniesController {
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
     // Verify user belongs to this company
-    if (req.user.companyId !== id) {
+    if (req.user.user.companyId !== id) {
       throw new ForbiddenException('No tienes acceso a esta empresa');
     }
     return this.companiesService.findOne(id);
@@ -18,7 +18,7 @@ export class CompaniesController {
 
   @Get(':id/stats')
   async getStats(@Param('id') id: string, @Request() req) {
-    if (req.user.companyId !== id) {
+    if (req.user.user.companyId !== id) {
       throw new ForbiddenException('No tienes acceso a esta empresa');
     }
     return this.companiesService.getStats(id);

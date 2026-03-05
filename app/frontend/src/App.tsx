@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTickets, useComments, useTeam } from '@/hooks/useTickets';
+import { useTickets } from '@/hooks/useTickets';
+import { useComments } from '@/hooks/useComments';
+import { useTeam } from '@/hooks/useTeam';
 import { Layout } from '@/components/Layout';
 import { AuthPage } from '@/components/AuthPage';
 import { DashboardAdmin } from '@/components/DashboardAdmin';
@@ -34,24 +36,43 @@ function App() {
     tickets, 
     createTicket, 
     updateTicket, 
-    refresh: refreshTickets 
-  } = useTickets(company?.id);
+    loadTickets 
+  } = useTickets();
 
   const { 
     tickets: myTickets,
-  } = useTickets(company?.id, user?.id);
+    loadTickets: loadMyTickets
+  } = useTickets();
 
   const { 
     comments, 
     addComment, 
+    loadComments
   } = useComments(selectedTicket?.id);
 
   const { 
-    getTeamMembers, 
+    members: teamMembers, 
+    loadMembers,
     regenerateInviteCode 
   } = useTeam(company?.id);
 
-  const teamMembers = getTeamMembers();
+  // Cargar datos iniciales
+  useEffect(() => {
+    if (isAuthenticated && company?.id) {
+      loadTickets();
+      loadMembers();
+      if (user?.id) {
+        loadMyTickets(true);
+      }
+    }
+  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets]);
+
+  // Cargar comentarios cuando se selecciona un ticket
+  useEffect(() => {
+    if (selectedTicket) {
+      loadComments();
+    }
+  }, [selectedTicket, loadComments]);
 
   // Handlers
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
@@ -72,8 +93,8 @@ function App() {
     return await joinCompany(code);
   };
 
-  const handleCreateTicket = async (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
-    await createTicket(ticketData);
+  const handleCreateTicket = (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
+    createTicket(ticketData);
   };
 
   const handleViewTicket = (ticket: Ticket) => {
@@ -82,36 +103,32 @@ function App() {
 
   const handleBackFromTicket = () => {
     setSelectedTicket(null);
-    refreshTickets();
+    loadTickets();
   };
 
-  const handleUpdateTicketStatus = async (status: Ticket['status']) => {
+  const handleUpdateTicketStatus = (status: Ticket['status']) => {
     if (selectedTicket) {
-      const success = await updateTicket(selectedTicket.id, { status });
-      if (success) {
-        setSelectedTicket({ ...selectedTicket, status });
-      }
+      updateTicket(selectedTicket.id, { status });
+      setSelectedTicket({ ...selectedTicket, status });
     }
   };
 
-  const handleAssignTicket = async (userId: string) => {
+  const handleAssignTicket = (userId: string) => {
     if (selectedTicket) {
-      const success = await updateTicket(selectedTicket.id, { assignedToId: userId });
-      if (success) {
-        setSelectedTicket({ ...selectedTicket, assignedTo: userId });
-      }
+      updateTicket(selectedTicket.id, { assignedToId: userId });
+      setSelectedTicket({ ...selectedTicket, assignedToId: userId });
     }
   };
 
-  const handleAddComment = async (content: string) => {
+  const handleAddComment = (content: string) => {
     if (user && selectedTicket) {
-      await addComment(content);
+      addComment(content);
     }
   };
 
-  const handleRegenerateCode = async () => {
+  const handleRegenerateCode = () => {
     if (company) {
-      return await regenerateInviteCode(company.id);
+      return regenerateInviteCode();
     }
     return null;
   };

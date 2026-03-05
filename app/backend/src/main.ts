@@ -9,7 +9,19 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: configService.get("FRONTEND_URL", "http://localhost:5173"),
+    origin: (origin, callback) => {
+      const allowedOrigins = configService
+        .get("FRONTEND_URL", "http://localhost:5173,http://localhost:5174")
+        .split(",");
+      
+      // Si no hay origin (como en peticiones locales de servidor a servidor) 
+      // o el origin está en la lista de permitidos
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 

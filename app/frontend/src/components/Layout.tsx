@@ -42,8 +42,15 @@ const navItems = [
 export function Layout({ children, user, company, onLogout, currentPage, onPageChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .filter(n => n.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
