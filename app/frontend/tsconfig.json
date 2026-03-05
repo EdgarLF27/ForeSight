@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿{
   "compilerOptions": {
     "target": "ESNext",
@@ -15,11 +16,29 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+=======
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ],
+  "compilerOptions": {
+>>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
+<<<<<<< HEAD
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
+=======
+  }
+}
+>>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
