@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTickets, useComments, useTeam } from '@/hooks/useTickets';
+import { useTickets } from '@/hooks/useTickets';
+import { useComments } from '@/hooks/useComments';
+import { useTeam } from '@/hooks/useTeam';
 import { Layout } from '@/components/Layout';
 import { AuthPage } from '@/components/AuthPage';
 import { DashboardAdmin } from '@/components/DashboardAdmin';
@@ -73,22 +75,22 @@ function App() {
   }, [selectedTicket, loadComments]);
 
   // Handlers
-  const handleLogin = (email: string, password: string): boolean => {
-    return login(email, password);
+  const handleLogin = async (email: string, password: string): Promise<boolean> => {
+    return await login(email, password);
   };
 
-  const handleRegister = (
+  const handleRegister = async (
     name: string, 
     email: string, 
     password: string, 
     role: UserRole, 
     companyName?: string
-  ): boolean => {
-    return register(name, email, password, role, companyName);
+  ): Promise<boolean> => {
+    return await register(name, email, password, role, companyName);
   };
 
-  const handleJoinCompany = (code: string): boolean => {
-    return joinCompany(code);
+  const handleJoinCompany = async (code: string): Promise<boolean> => {
+    return await joinCompany(code);
   };
 
   const handleCreateTicket = (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {

@@ -1,16 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-<<<<<<< HEAD
 import { authApi, usersApi } from '@/services/api';
 import type { User, Company, UserRole, AuthState } from '@/types';
 
-const TOKEN_KEY = 'token';
-const USER_KEY = 'user';
-=======
-import type { User, Company, UserRole, AuthState } from '@/types';
-import { api } from '@/lib/api';
-
-const TOKEN_KEY = 'ticketclass_token';
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
+const AUTH_STORAGE_KEY = 'foresight_auth';
 
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
@@ -20,88 +12,47 @@ export function useAuth() {
     isLoading: true,
   });
 
-<<<<<<< HEAD
-  // Check for existing session on mount
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const savedUser = localStorage.getItem(USER_KEY);
+  const loadStoredAuth = useCallback(async () => {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
 
-      if (token && savedUser) {
-        try {
-          // Verify token is still valid
-          const { data } = await usersApi.getMe();
-          const user = data;
-          
-=======
-  // Verificar sesión existente al cargar la aplicación
-  useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    
-    if (token) {
-      api.get('/auth/me')
-        .then(user => {
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
-          setState({
-            user,
-            company: user.company || null,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-<<<<<<< HEAD
-        } catch (error) {
-          // Token invalid, clear storage
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          setState({
-            user: null,
-            company: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
-      } else {
-        setState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    initAuth();
-=======
-        })
-        .catch(() => {
-          localStorage.removeItem(TOKEN_KEY);
-          setState(prev => ({ ...prev, isLoading: false }));
-        });
-    } else {
+    try {
+      const { token, user } = JSON.parse(stored);
+      // Configurar el token en la instancia de axios
+      authApi.setToken(token);
+      
+      setState({
+        user,
+        company: user.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
       setState(prev => ({ ...prev, isLoading: false }));
     }
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  useEffect(() => {
+    loadStoredAuth();
+  }, [loadStoredAuth]);
+
+  const login = async (email: string, pass: string) => {
     try {
-<<<<<<< HEAD
-      const { data } = await authApi.login(email, password);
+      const { data } = await authApi.login({ email, password: pass });
+      const { access_token, user } = data; // Cambiado token a access_token para coincidir con el backend
       
-      localStorage.setItem(TOKEN_KEY, data.access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      const authData = { token: access_token, user };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       
-      setState({
-        user: data.user,
-        company: data.user.company || null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      // También guardamos el token suelto para que el interceptor lo encuentre fácil
+      localStorage.setItem('token', access_token);
       
-      return true;
-    } catch (error: any) {
-      console.error('Login error:', error.response?.data?.message || error.message);
-=======
-      const response = await api.post('/auth/login', { email, password });
-      const { access_token, user } = response;
-      
-      localStorage.setItem(TOKEN_KEY, access_token);
-      
+      authApi.setToken(access_token);
+
       setState({
         user,
         company: user.company || null,
@@ -110,151 +61,86 @@ export function useAuth() {
       });
       return true;
     } catch (error) {
-      console.error('Error al iniciar sesión:', error);
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
+      console.error("Login hook error:", error);
       return false;
     }
-  }, []);
+  };
 
-  const register = useCallback(async (
-<<<<<<< HEAD
-    name: string,
-    email: string,
-    password: string,
-    role: UserRole,
-    companyName?: string
-  ): Promise<boolean> => {
-    try {
-      const { data } = await authApi.register({
-        name,
-        email,
-        password,
-        role,
-        companyName,
-      });
-      
-      localStorage.setItem(TOKEN_KEY, data.access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      
-      setState({
-        user: data.user,
-        company: data.user.company || null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Register error:', error.response?.data?.message || error.message);
-=======
-    name: string, 
-    email: string, 
-    password: string, 
-    role: UserRole, 
-    companyName?: string
-  ): Promise<boolean> => {
-    try {
-      const response = await api.post('/auth/register', { name, email, password, role, companyName });
-      const { access_token, user } = response;
-      
-      localStorage.setItem(TOKEN_KEY, access_token);
-      
-      setState({
-        user,
-        company: user.company || null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      return true;
-    } catch (error) {
-      console.error('Error al registrarse:', error);
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
-      return false;
-    }
-  }, []);
-
-  const joinCompany = useCallback(async (inviteCode: string): Promise<boolean> => {
-    try {
-<<<<<<< HEAD
-      const { data } = await authApi.joinCompany(inviteCode);
-      
-      // Update user with new company
-      const updatedUser = { ...state.user!, companyId: data.user.companyId, company: data.user.company };
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-      
-      setState(prev => ({
-        ...prev,
-        user: updatedUser,
-        company: data.user.company,
-      }));
-      
-      return true;
-    } catch (error: any) {
-      console.error('Join company error:', error.response?.data?.message || error.message);
-      return false;
-    }
-  }, [state.user]);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-=======
-      const response = await api.post('/auth/join-company', { inviteCode });
-      const { user } = response;
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        company: user.company || null,
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Error al unirse a la empresa:', error);
-      return false;
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
+  const logout = () => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem('token');
+    authApi.setToken(null);
     setState({
       user: null,
       company: null,
       isAuthenticated: false,
       isLoading: false,
     });
-  }, []);
+  };
 
-  const updateUser = useCallback(async (updates: Partial<User>) => {
+  const register = async (name: string, email: string, pass: string, role: UserRole, companyName?: string) => {
     try {
-<<<<<<< HEAD
-      const { data } = await usersApi.updateMe(updates);
-      
-      const updatedUser = { ...state.user!, ...data };
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-      
-      setState(prev => ({ ...prev, user: updatedUser }));
+      await usersApi.register({ name, email, password: pass, role, companyName });
       return true;
     } catch (error) {
-      console.error('Update user error:', error);
       return false;
     }
-  }, [state.user]);
-=======
-      const updatedUser = await api.put('/users/me', updates);
-      setState(prev => ({ ...prev, user: updatedUser }));
+  };
+
+  const joinCompany = async (inviteCode: string) => {
+    if (!state.user) return false;
+    try {
+      const { data } = await usersApi.linkCompany({ userId: state.user.id, inviteCode });
+      
+      const newState = {
+        ...state,
+        user: data,
+        company: data.company,
+      };
+      
+      setState(newState);
+      
+      // Actualizar localStorage
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const authData = JSON.parse(stored);
+        authData.user = data;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      }
+      
+      return true;
     } catch (error) {
-      console.error('Error al actualizar el usuario:', error);
+      return false;
     }
-  }, []);
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
+  };
+
+  const updateUser = async (updates: { name?: string; email?: string; avatar?: string }) => {
+    try {
+      const { data } = await usersApi.updateMe(updates);
+      
+      setState(prev => ({
+        ...prev,
+        user: { ...prev.user, ...data },
+      }));
+
+      // Actualizar localStorage
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const authData = JSON.parse(stored);
+        authData.user = { ...authData.user, ...data };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
 
   return {
     ...state,
     login,
-    register,
     logout,
+    register,
     joinCompany,
     updateUser,
   };

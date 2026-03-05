@@ -1,17 +1,10 @@
-<<<<<<< HEAD
-﻿/** @type {import('tailwindcss').Config} */
+/** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-=======
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: ["class"],
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
   theme: {
     extend: {
       colors: {
@@ -29,13 +22,8 @@ module.exports = {
           foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-<<<<<<< HEAD
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
-=======
-          DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
-          foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -53,13 +41,6 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-<<<<<<< HEAD
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-=======
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -99,13 +80,8 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "caret-blink": "caret-blink 1.25s ease-out infinite",
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b
       },
     },
   },
   plugins: [require("tailwindcss-animate")],
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 6f3429e07b8309fafef7c06f473605b95ac0d78b

@@ -60,7 +60,6 @@ export class AuthService {
     role: UserRole;
     companyName?: string;
   }) {
-    // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -69,10 +68,9 @@ export class AuthService {
       throw new ConflictException('El correo ya está registrado');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Create user
+    // Creamos el usuario usando los campos reales: 'name', 'email', 'password', 'role'
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
@@ -83,7 +81,6 @@ export class AuthService {
       include: { company: true },
     });
 
-    // If EMPRESA, create company
     if (data.role === UserRole.EMPRESA && data.companyName) {
       const inviteCode = this.generateInviteCode();
       
@@ -95,7 +92,6 @@ export class AuthService {
         },
       });
 
-      // Update user with company
       await this.prisma.user.update({
         where: { id: user.id },
         data: { companyId: company.id },
