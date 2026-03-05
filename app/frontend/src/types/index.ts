@@ -36,7 +36,7 @@ export interface Ticket {
   priority: TicketPriority;
   category: string;
   createdBy: string;
-  assignedTo?: string;
+  assignedToId?: string;
   companyId: string;
   attachments: string[];
   createdAt: string;

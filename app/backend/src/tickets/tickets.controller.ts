@@ -22,7 +22,7 @@ export class TicketsController {
 
   @Get()
   async findAll(@Request() req, @Query('myTickets') myTickets?: string) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     
     if (!companyId) {
       return [];
@@ -34,7 +34,7 @@ export class TicketsController {
 
   @Get('stats')
   async getStats(@Request() req) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     
     if (!companyId) {
       return { total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0 };
@@ -45,13 +45,13 @@ export class TicketsController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     return this.ticketsService.findOne(id, companyId);
   }
 
   @Post()
   async create(@Body() createDto: CreateTicketDto, @Request() req) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     
     if (!companyId) {
       return { error: 'Debes pertenecer a una empresa para crear tickets' };
@@ -70,13 +70,13 @@ export class TicketsController {
     @Body() updateDto: UpdateTicketDto,
     @Request() req,
   ) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     return this.ticketsService.update(id, updateDto, companyId);
   }
 
   @Delete(':id')
   async delete(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.companyId;
+    const companyId = req.user.user.companyId;
     return this.ticketsService.delete(id, companyId);
   }
 }

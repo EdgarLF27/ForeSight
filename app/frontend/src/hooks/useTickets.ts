@@ -1,77 +1,74 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ticketsApi, commentsApi, companiesApi, usersApi } from '@/services/api';
 import type { Ticket, Comment, TicketStatus } from '@/types';
-import { api } from '@/lib/api';
 
-export function useTickets(companyId?: string, userId?: string) {
+export function useTickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadTickets = useCallback(async () => {
-    if (!companyId) return;
-    
-    setIsLoading(true);
+  const loadTickets = useCallback(async (myTickets = false) => {
     try {
-      const query = userId ? '?myTickets=true' : '';
-      const response = await api.get(`/tickets${query}`);
-      setTickets(response);
-    } catch (error) {
-      console.error('Error al cargar los tickets:', error);
+      setIsLoading(true);
+      setError(null);
+      const { data } = await ticketsApi.getAll(myTickets);
+      setTickets(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar tickets');
     } finally {
       setIsLoading(false);
     }
-  }, [companyId, userId]);
+  }, []);
 
-  useEffect(() => {
-    loadTickets();
-  }, [loadTickets]);
-
-  const createTicket = useCallback(async (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>): Promise<Ticket | null> => {
+  const createTicket = useCallback(async (ticketData: any): Promise<Ticket | null> => {
     try {
-      const response = await api.post('/tickets', ticketData);
-      setTickets(prev => [response, ...prev]);
-      return response;
-    } catch (error) {
-      console.error('Error al crear el ticket:', error);
+      const { data } = await ticketsApi.create(ticketData);
+      setTickets(prev => [data, ...prev]);
+      return data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al crear ticket');
       return null;
     }
   }, []);
 
-  const updateTicket = useCallback(async (ticketId: string, updates: Partial<Ticket>): Promise<boolean> => {
+  const updateTicket = useCallback(async (ticketId: string, updates: any): Promise<boolean> => {
     try {
-      const response = await api.put(`/tickets/${ticketId}`, updates);
-      setTickets(prev => prev.map(t => t.id === ticketId ? response : t));
+      const { data } = await ticketsApi.update(ticketId, updates);
+      setTickets(prev => prev.map(t => t.id === ticketId ? data : t));
       return true;
-    } catch (error) {
-      console.error('Error al actualizar el ticket:', error);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al actualizar ticket');
       return false;
     }
   }, []);
 
   const deleteTicket = useCallback(async (ticketId: string): Promise<boolean> => {
     try {
-      await api.delete(`/tickets/${ticketId}`);
+      await ticketsApi.delete(ticketId);
       setTickets(prev => prev.filter(t => t.id !== ticketId));
       return true;
-    } catch (error) {
-      console.error('Error al eliminar el ticket:', error);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al eliminar ticket');
       return false;
     }
   }, []);
 
   const getTicketById = useCallback(async (ticketId: string): Promise<Ticket | null> => {
     try {
-      return await api.get(`/tickets/${ticketId}`);
-    } catch (error) {
-      console.error('Error al obtener el ticket:', error);
+      const { data } = await ticketsApi.getById(ticketId);
+      return data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al obtener ticket');
       return null;
     }
   }, []);
 
   const getStats = useCallback(async () => {
     try {
-      return await api.get('/tickets/stats');
-    } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
+      const { data } = await ticketsApi.getStats();
+      return data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al obtener estadísticas');
       return null;
     }
   }, []);
@@ -79,84 +76,85 @@ export function useTickets(companyId?: string, userId?: string) {
   return {
     tickets,
     isLoading,
+    error,
+    loadTickets,
     createTicket,
     updateTicket,
     deleteTicket,
     getTicketById,
     getStats,
-    refresh: loadTickets,
   };
 }
 
 export function useComments(ticketId?: string) {
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadComments = useCallback(async () => {
     if (!ticketId) return;
     try {
-      const response = await api.get(`/comments/ticket/${ticketId}`);
-      setComments(response);
-    } catch (error) {
-      console.error('Error al cargar comentarios:', error);
+      setIsLoading(true);
+      const { data } = await commentsApi.getByTicket(ticketId);
+      setComments(data);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [ticketId]);
-
-  useEffect(() => {
-    loadComments();
-  }, [loadComments]);
 
   const addComment = useCallback(async (content: string): Promise<Comment | null> => {
     if (!ticketId) return null;
     try {
-      const response = await api.post('/comments', { content, ticketId });
-      setComments(prev => [...prev, response]);
-      return response;
-    } catch (error) {
-      console.error('Error al añadir comentario:', error);
+      const { data } = await commentsApi.create({ content, ticketId });
+      setComments(prev => [...prev, data]);
+      return data;
+    } catch (err) {
+      console.error('Error adding comment:', err);
       return null;
     }
   }, [ticketId]);
 
   return {
     comments,
+    isLoading,
+    loadComments,
     addComment,
-    refresh: loadComments,
   };
 }
 
 export function useTeam(companyId?: string) {
-  const getTeamMembers = useCallback(async () => {
-    if (!companyId) return [];
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadMembers = useCallback(async () => {
+    if (!companyId) return;
     try {
-      return await api.get(`/users?companyId=${companyId}`);
-    } catch (error) {
-      console.error('Error al obtener miembros del equipo:', error);
-      return [];
+      setIsLoading(true);
+      const { data } = await usersApi.getAll(companyId);
+      setMembers(data);
+    } catch (err) {
+      console.error('Error loading team members:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [companyId]);
 
-  const getCompanyById = useCallback(async (id: string) => {
+  const regenerateInviteCode = useCallback(async (): Promise<string | null> => {
+    if (!companyId) return null;
     try {
-      return await api.get(`/companies/${id}`);
-    } catch (error) {
-      console.error('Error al obtener la empresa:', error);
+      const { data } = await companiesApi.regenerateCode(companyId);
+      return data.inviteCode;
+    } catch (err) {
+      console.error('Error regenerating code:', err);
       return null;
     }
-  }, []);
-
-  const regenerateInviteCode = useCallback(async (companyId: string): Promise<string | null> => {
-    try {
-      const response = await api.post(`/companies/${companyId}/regenerate-code`, {});
-      return response.inviteCode;
-    } catch (error) {
-      console.error('Error al regenerar el código:', error);
-      return null;
-    }
-  }, []);
+  }, [companyId]);
 
   return {
-    getTeamMembers,
-    getCompanyById,
+    members,
+    isLoading,
+    loadMembers,
     regenerateInviteCode,
   };
 }
