@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+
 
 @Injectable()
 export class AuthService {
@@ -14,7 +14,14 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { company: true },
+      include: { 
+        company: true,
+        role: {
+          include: {
+            permissions: true
+          }
+        }
+      },
     });
 
     if (!user) {
@@ -32,10 +39,12 @@ export class AuthService {
   }
 
   async login(user: any) {
+    const permissions = user.role?.permissions?.map(p => p.name) || [];
     const payload = { 
       sub: user.id, 
       email: user.email, 
-      role: user.role,
+      role: user.role?.name,
+      permissions,
       companyId: user.companyId 
     };
 
@@ -49,17 +58,12 @@ export class AuthService {
         avatar: user.avatar,
         companyId: user.companyId,
         company: user.company,
+        permissions
       },
     };
   }
 
-  async register(data: {
-    email: string;
-    password: string;
-    name: string;
-    role: UserRole;
-    companyName?: string;
-  }) {
+  async register(data: any) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -70,18 +74,38 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Creamos el usuario usando los campos reales: 'name', 'email', 'password', 'role'
+    // Determinamos qué rol asignar (siempre buscamos roles de sistema primero)
+    let roleName = 'Empleado'; 
+    if (data.companyName || data.role === 'EMPRESA') {
+      roleName = 'Administrador';
+    }
+
+    const role = await this.prisma.role.findFirst({
+      where: { name: roleName, isSystem: true }
+    });
+
+    if (!role && roleName === 'Administrador') {
+      // Caso de emergencia: si por alguna razón no existe el rol de sistema, 
+      // lo buscamos por nombre sin filtrar por isSystem o lanzamos error claro.
+      throw new Error('El rol de Administrador del sistema no existe. Por favor, ejecuta las semillas (seeds).');
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
         password: hashedPassword,
         name: data.name,
-        role: data.role,
+        roleId: role?.id,
       },
-      include: { company: true },
+      include: { 
+        company: true,
+        role: {
+          include: { permissions: true }
+        }
+      },
     });
 
-    if (data.role === UserRole.EMPRESA && data.companyName) {
+    if (data.companyName) {
       const inviteCode = this.generateInviteCode();
       
       const company = await this.prisma.company.create({
@@ -92,14 +116,15 @@ export class AuthService {
         },
       });
 
-      await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.update({
         where: { id: user.id },
         data: { companyId: company.id },
-      });
-
-      const updatedUser = await this.prisma.user.findUnique({
-        where: { id: user.id },
-        include: { company: true },
+        include: { 
+          company: true,
+          role: {
+            include: { permissions: true }
+          }
+        }
       });
 
       const { password: _, ...result } = updatedUser;

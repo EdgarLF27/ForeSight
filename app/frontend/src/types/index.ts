@@ -35,7 +35,10 @@ export interface Ticket {
   status: TicketStatus;
   priority: TicketPriority;
   category: string;
-  createdBy: string;
+  createdBy: {
+    id: string;
+    name: string;
+  };
   assignedToId?: string;
   companyId: string;
   attachments: string[];

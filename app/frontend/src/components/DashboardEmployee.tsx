@@ -20,15 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Ticket as TicketType, User, Company } from '@/types';
+import type { Ticket as TicketType, Company } from '@/types';
 
 interface DashboardEmployeeProps {
-  user: User;
   company: Company | null;
   tickets: TicketType[];
   onCreateTicket: (ticket: any) => void;
   onViewTicket: (ticket: TicketType) => void;
-  onJoinCompany: (code: string) => boolean;
+  onJoinCompany: (code: string) => Promise<boolean>;
 }
 
 const statusConfig = {
@@ -46,7 +45,6 @@ const priorityConfig = {
 };
 
 export function DashboardEmployee({ 
-  user, 
   company, 
   tickets, 
   onCreateTicket, 
@@ -102,13 +100,13 @@ export function DashboardEmployee({
                 />
                 <Button 
                   className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
-                  onClick={() => {
+                  onClick={async () => {
                     setJoinError('');
                     if (!joinCode) {
                       setJoinError('Por favor ingresa un código');
                       return;
                     }
-                    const success = onJoinCompany(joinCode);
+                    const success = await onJoinCompany(joinCode);
                     if (success) {
                       setJoinSuccess(true);
                     } else {

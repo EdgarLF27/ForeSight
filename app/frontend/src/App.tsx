@@ -10,10 +10,12 @@ import { DashboardEmployee } from '@/components/DashboardEmployee';
 import { TicketDetail } from '@/components/TicketDetail';
 import { TicketsPage } from '@/components/TicketsPage';
 import { TeamPage } from '@/components/TeamPage';
+import { RolesPage } from '@/components/RolesPage';
 import { SettingsPage } from '@/components/SettingsPage';
+import { Toaster } from '@/components/ui/sonner';
 import type { Ticket, UserRole } from '@/types';
 
-type Page = 'dashboard' | 'tickets' | 'team' | 'settings';
+type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'settings';
 
 function App() {
   const { 
@@ -48,12 +50,13 @@ function App() {
     comments, 
     addComment, 
     loadComments
-  } = useComments(selectedTicket?.id);
+  } = useComments();
 
   const { 
     members: teamMembers, 
     loadMembers,
-    regenerateInviteCode 
+    regenerateInviteCode,
+    changeUserRole
   } = useTeam(company?.id);
 
   // Cargar datos iniciales
@@ -65,12 +68,12 @@ function App() {
         loadMyTickets(true);
       }
     }
-  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets]);
+  }, [isAuthenticated, company?.id, user?.id]);
 
   // Cargar comentarios cuando se selecciona un ticket
   useEffect(() => {
     if (selectedTicket) {
-      loadComments();
+      loadComments(selectedTicket.id);
     }
   }, [selectedTicket, loadComments]);
 
@@ -122,13 +125,13 @@ function App() {
 
   const handleAddComment = (content: string) => {
     if (user && selectedTicket) {
-      addComment(content);
+      addComment(selectedTicket.id, content);
     }
   };
 
-  const handleRegenerateCode = () => {
+  const handleRegenerateCode = async () => {
     if (company) {
-      return regenerateInviteCode();
+      return await regenerateInviteCode();
     }
     return null;
   };
@@ -182,24 +185,22 @@ function App() {
 
   // Renderizar página actual
   const renderPage = () => {
+    const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
+    
     switch (currentPage) {
       case 'dashboard':
-        if (user.role === 'EMPRESA') {
+        if (isAdmin) {
           return (
             <DashboardAdmin
-              user={user}
               company={company!}
               tickets={tickets}
-              teamMembers={teamMembers}
               onCreateTicket={handleCreateTicket}
-              onUpdateTicket={updateTicket}
               onViewTicket={handleViewTicket}
             />
           );
         }
         return (
           <DashboardEmployee
-            user={user}
             company={company}
             tickets={myTickets}
             onCreateTicket={handleCreateTicket}
@@ -211,8 +212,7 @@ function App() {
       case 'tickets':
         return (
           <TicketsPage
-            user={user}
-            tickets={user.role === 'EMPRESA' ? tickets : myTickets}
+            tickets={isAdmin ? tickets : myTickets}
             teamMembers={teamMembers}
             onCreateTicket={handleCreateTicket}
             onViewTicket={handleViewTicket}
@@ -221,15 +221,22 @@ function App() {
         );
 
       case 'team':
-        if (user.role === 'EMPRESA' && company) {
+        if (isAdmin && company) {
           return (
             <TeamPage
               user={user}
               company={company}
               teamMembers={teamMembers}
               onRegenerateCode={handleRegenerateCode}
+              onChangeRole={changeUserRole}
             />
           );
+        }
+        return null;
+
+      case 'roles':
+        if (isAdmin) {
+          return <RolesPage />;
         }
         return null;
 
@@ -248,15 +255,18 @@ function App() {
   };
 
   return (
-    <Layout 
-      user={user} 
-      company={company} 
-      onLogout={logout}
-      currentPage={currentPage}
-      onPageChange={setCurrentPage}
-    >
-      {renderPage()}
-    </Layout>
+    <>
+      <Layout 
+        user={user} 
+        company={company} 
+        onLogout={logout}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      >
+        {renderPage()}
+      </Layout>
+      <Toaster position="top-right" richColors />
+    </>
   );
 }
 

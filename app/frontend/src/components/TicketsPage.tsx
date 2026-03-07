@@ -3,10 +3,7 @@ import {
   Plus, 
   Search, 
   Filter, 
-  ArrowRight,
-  Clock,
-  CheckCircle,
-  AlertCircle
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +20,10 @@ import type { Ticket } from '@/types';
 
 interface TicketsPageProps {
   tickets: Ticket[];
+  teamMembers: any[];
   onCreateTicket: (ticket: any) => void;
   onViewTicket: (ticket: Ticket) => void;
+  onUpdateTicket: (ticketId: string, updates: any) => void;
 }
 
 const statusConfig = {
@@ -175,7 +174,7 @@ export function TicketsPage({ tickets, onCreateTicket, onViewTicket }: TicketsPa
                     {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
                   </td>
                   <td className="px-6 py-4 text-sm text-[#5f6368]">
-                    {ticket.createdBy.name}
+                    {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <ArrowRight className="h-4 w-4 text-[#dadce0] group-hover:text-[#1a73e8] transition-colors ml-auto" />
