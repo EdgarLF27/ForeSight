@@ -53,6 +53,17 @@ export function useTickets() {
     }
   }, []);
 
+  const claimTicket = useCallback(async (ticketId: string): Promise<boolean> => {
+    try {
+      const { data } = await ticketsApi.claim(ticketId);
+      setTickets(prev => prev.map(t => t.id === ticketId ? data : t));
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al reclamar ticket');
+      return false;
+    }
+  }, []);
+
   const getTicketById = useCallback(async (ticketId: string): Promise<Ticket | null> => {
     try {
       const { data } = await ticketsApi.getById(ticketId);
@@ -81,6 +92,7 @@ export function useTickets() {
     createTicket,
     updateTicket,
     deleteTicket,
+    claimTicket,
     getTicketById,
     getStats,
   };

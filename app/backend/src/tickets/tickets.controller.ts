@@ -21,15 +21,23 @@ export class TicketsController {
   constructor(private ticketsService: TicketsService) {}
 
   @Get()
-  async findAll(@Request() req, @Query('myTickets') myTickets?: string) {
+  async findAll(@Request() req) {
     const companyId = req.user.user.companyId;
     
     if (!companyId) {
       return [];
     }
 
-    const userId = myTickets === 'true' ? req.user.userId : undefined;
-    return this.ticketsService.findAll(companyId, userId);
+    // Pasamos el usuario completo para que el servicio maneje la visibilidad por rol
+    return this.ticketsService.findAll(companyId, req.user.user);
+  }
+
+  @Put(':id/claim')
+  async claim(@Param('id') id: string, @Request() req) {
+    const companyId = req.user.user.companyId;
+    const userId = req.user.userId;
+    
+    return this.ticketsService.claim(id, userId, companyId);
   }
 
   @Get('stats')

@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 // IDs fijos para roles de sistema para evitar duplicados
 const ADMIN_ROLE_ID = 'system-admin-role-fixed';
 const EMPLOYEE_ROLE_ID = 'system-employee-role-fixed';
+const TECHNICIAN_ROLE_ID = 'system-technician-role-fixed';
 
 async function main() {
   console.log('🌱 Seeding database...');
@@ -21,6 +22,7 @@ async function main() {
     { name: 'tickets:edit', module: 'tickets', description: 'Editar tickets' },
     { name: 'tickets:delete', module: 'tickets', description: 'Eliminar tickets' },
     { name: 'tickets:assign', module: 'tickets', description: 'Asignar tickets' },
+    { name: 'tickets:claim', module: 'tickets', description: 'Reclamar tickets' },
     { name: 'users:view', module: 'users', description: 'Ver usuarios' },
     { name: 'users:edit', module: 'users', description: 'Editar usuarios' },
   ];
@@ -62,7 +64,7 @@ async function main() {
       name: 'Empleado',
       isSystem: true,
       permissions: {
-        set: permissions.filter(p => p.name.startsWith('tickets:') && p.name !== 'tickets:delete').map(p => ({ id: p.id })),
+        set: permissions.filter(p => p.name.startsWith('tickets:') && p.name !== 'tickets:delete' && p.name !== 'tickets:claim').map(p => ({ id: p.id })),
       },
     },
     create: {
@@ -71,7 +73,33 @@ async function main() {
       description: 'Acceso limitado a tickets propios',
       isSystem: true,
       permissions: {
-        connect: permissions.filter(p => p.name.startsWith('tickets:') && p.name !== 'tickets:delete').map(p => ({ id: p.id })),
+        connect: permissions.filter(p => p.name.startsWith('tickets:') && p.name !== 'tickets:delete' && p.name !== 'tickets:claim').map(p => ({ id: p.id })),
+      },
+    },
+  });
+
+  const technicianRole = await prisma.role.upsert({
+    where: { id: TECHNICIAN_ROLE_ID },
+    update: {
+      name: 'Técnico',
+      isSystem: true,
+      permissions: {
+        set: permissions.filter(p => 
+          (p.name.startsWith('tickets:') && p.name !== 'tickets:delete' && p.name !== 'tickets:create') || 
+          p.name === 'users:view'
+        ).map(p => ({ id: p.id })),
+      },
+    },
+    create: {
+      id: TECHNICIAN_ROLE_ID,
+      name: 'Técnico',
+      description: 'Puede ver y reclamar tickets abiertos',
+      isSystem: true,
+      permissions: {
+        connect: permissions.filter(p => 
+          (p.name.startsWith('tickets:') && p.name !== 'tickets:delete' && p.name !== 'tickets:create') || 
+          p.name === 'users:view'
+        ).map(p => ({ id: p.id })),
       },
     },
   });

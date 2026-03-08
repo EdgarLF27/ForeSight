@@ -38,6 +38,7 @@ interface TicketDetailProps {
   onBack: () => void;
   onUpdateStatus: (status: TicketStatus) => void;
   onAssign: (userId: string) => void;
+  onClaim?: () => void;
   onAddComment: (content: string) => void;
 }
 
@@ -63,6 +64,7 @@ export function TicketDetail({
   onBack,
   onUpdateStatus,
   onAssign,
+  onClaim,
   onAddComment,
 }: TicketDetailProps) {
   const [newComment, setNewComment] = useState('');
@@ -70,6 +72,10 @@ export function TicketDetail({
   const priority = priorityConfig[ticket.priority];
   const assignee = teamMembers.find(m => m.id === ticket.assignedToId);
   const creator = typeof ticket.createdBy === 'object' ? ticket.createdBy : { id: ticket.createdBy as string, name: 'Usuario' };
+
+  const isOwner = currentUser.role?.name === 'Administrador' || currentUser.role === 'EMPRESA';
+  const isTechnician = currentUser.role?.name === 'Técnico';
+  const isAssignedToMe = ticket.assignedToId === currentUser.id;
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -103,7 +109,16 @@ export function TicketDetail({
         
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {currentUser.role === 'EMPRESA' && (
+          {isTechnician && !ticket.assignedToId && onClaim && (
+            <Button 
+              onClick={onClaim}
+              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white"
+            >
+              Reclamar Ticket
+            </Button>
+          )}
+
+          {(isOwner || isAssignedToMe) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
