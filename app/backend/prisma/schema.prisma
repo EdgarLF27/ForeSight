@@ -12,7 +12,6 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      UserRole @default(EMPLEADO)
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -21,6 +20,9 @@ model User {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
+  roleId    String?
+  role      Role?    @relation(fields: [roleId], references: [id])
+
   ownedCompany Company? @relation("CompanyOwner")
 
   createdTickets Ticket[] @relation("TicketCreator")
@@ -28,6 +30,37 @@ model User {
   comments       Comment[]
 
   @@map("users")
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  isSystem    Boolean      @default(false) // Roles base (Admin, Empleado) creados por defecto
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  companyId   String?
+  company     Company?     @relation(fields: [companyId], references: [id])
+
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g., "tickets:create"
+  description String?
+  module      String   // Para agrupar (tickets, users, etc.)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  roles       Role[]   @relation("RolePermissions")
+
+  @@map("permissions")
 }
 
 model Company {
@@ -43,6 +76,7 @@ model Company {
   owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
 
   members User[]
+  roles   Role[]
   tickets Ticket[]
 
   @@map("companies")

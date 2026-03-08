@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { 
   Ticket, 
   Plus, 
-  Users, 
   Building2, 
   BarChart3,
   Clock,
@@ -21,13 +20,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Ticket as TicketType, User, Company } from '@/types';
+import type { Ticket as TicketType, Company } from '@/types';
 
 interface DashboardAdminProps {
-  user: User;
   company: Company | null;
   tickets: TicketType[];
   onCreateTicket: (ticket: any) => void;
+  onUpdateTicket: (ticketId: string, updates: any) => void;
   onViewTicket: (ticket: TicketType) => void;
 }
 
@@ -39,7 +38,6 @@ const statusConfig = {
 };
 
 export function DashboardAdmin({ 
-  user, 
   company, 
   tickets, 
   onCreateTicket, 
@@ -164,7 +162,7 @@ export function DashboardAdmin({
                     <div>
                       <p className="text-sm font-medium text-[#202124] group-hover:text-[#1a73e8] transition-colors">{ticket.title}</p>
                       <p className="text-xs text-[#5f6368]">
-                        {new Date(ticket.createdAt).toLocaleDateString('es-ES')} • {ticket.createdBy.name}
+                        {new Date(ticket.createdAt).toLocaleDateString('es-ES')} • {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
                       </p>
                     </div>
                   </div>

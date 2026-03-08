@@ -68,8 +68,8 @@ export function TicketDetail({
   const [newComment, setNewComment] = useState('');
   const status = statusConfig[ticket.status];
   const priority = priorityConfig[ticket.priority];
-  const assignee = teamMembers.find(m => m.id === ticket.assignedTo);
-  const creator = teamMembers.find(m => m.id === ticket.createdBy) || currentUser;
+  const assignee = teamMembers.find(m => m.id === ticket.assignedToId);
+  const creator = typeof ticket.createdBy === 'object' ? ticket.createdBy : { id: ticket.createdBy as string, name: 'Usuario' };
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -112,7 +112,7 @@ export function TicketDetail({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onUpdateStatus('OPEN')}>
-                  <AlertIcon className="h-4 w-4 mr-2 text-[#ea4335]" />
+                  <Clock className="h-4 w-4 mr-2 text-[#ea4335]" />
                   Marcar como Abierto
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onUpdateStatus('IN_PROGRESS')}>
@@ -258,7 +258,7 @@ export function TicketDetail({
                 </label>
                 {currentUser.role === 'EMPRESA' ? (
                   <Select 
-                    value={ticket.assignedTo || ''} 
+                    value={ticket.assignedToId || ''} 
                     onValueChange={onAssign}
                   >
                     <SelectTrigger className="w-full">
@@ -315,13 +315,5 @@ export function TicketDetail({
         </div>
       </div>
     </div>
-  );
-}
-
-function AlertIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-    </svg>
   );
 }

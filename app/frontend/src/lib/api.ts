@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 async function request(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('ticketclass_token');
+  const token = localStorage.getItem('token');
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -26,5 +26,6 @@ export const api = {
   get: (endpoint: string) => request(endpoint, { method: 'GET' }),
   post: (endpoint: string, body: any) => request(endpoint, { method: 'POST', body: JSON.stringify(body) }),
   put: (endpoint: string, body: any) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+  patch: (endpoint: string, body: any) => request(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (endpoint: string) => request(endpoint, { method: 'DELETE' }),
 };

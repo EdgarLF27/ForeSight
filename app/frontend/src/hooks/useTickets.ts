@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ticketsApi, commentsApi, companiesApi, usersApi } from '@/services/api';
-import type { Ticket, Comment, TicketStatus } from '@/types';
+import { useState, useCallback } from 'react';
+import { ticketsApi } from '@/services/api';
+import type { Ticket } from '@/types';
 
 export function useTickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);

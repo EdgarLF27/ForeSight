@@ -34,7 +34,7 @@ export function useComments() {
   const deleteComment = useCallback(async (commentId: string): Promise<boolean> => {
     try {
       await commentsApi.delete(commentId);
-      setComments(prev => prev.filter(c => t.id !== commentId));
+      setComments(prev => prev.filter(c => c.id !== commentId));
       return true;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al eliminar comentario');

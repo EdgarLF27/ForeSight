@@ -21,19 +21,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { useRoles } from '@/hooks/useRoles';
 import type { User, Company } from '@/types';
 
 interface TeamPageProps {
   user: User;
   company: Company;
   teamMembers: User[];
-  onRegenerateCode: () => string | null;
+  onRegenerateCode: () => Promise<string | null>;
+  onChangeRole: (userId: string, roleId: string) => Promise<boolean>;
 }
 
-export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamPageProps) {
+export function TeamPage({ user, company, teamMembers, onRegenerateCode, onChangeRole }: TeamPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState(company.inviteCode);
+  
+  // Estado para el cambio de rol
+  const { roles } = useRoles();
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [newRoleId, setNewRoleId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredMembers = teamMembers.filter(member => 
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -46,20 +70,56 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRegenerateCode = () => {
-    const newCode = onRegenerateCode();
+  const handleRegenerateCode = async () => {
+    const newCode = await onRegenerateCode();
     if (newCode) {
       setInviteCode(newCode);
+      toast.success('Código regenerado');
+    }
+  };
+
+  const handleOpenRoleDialog = (member: User) => {
+    setSelectedMember(member);
+    const currentRoleId = typeof member.role === 'object' ? member.role.id : '';
+    setNewRoleId(currentRoleId);
+    setIsRoleDialogOpen(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedMember || !newRoleId) return;
+    
+    setIsSaving(true);
+    const success = await onChangeRole(selectedMember.id, newRoleId);
+    setIsSaving(false);
+    
+    if (success) {
+      toast.success('Rol actualizado', {
+        description: `El rol de ${selectedMember.name} ha sido actualizado.`
+      });
+      setIsRoleDialogOpen(false);
+    } else {
+      toast.error('Error', {
+        description: 'No se pudo actualizar el rol.'
+      });
     }
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const isAdmin = (u: User) => {
+    return typeof u.role === 'object' ? u.role?.name === 'Administrador' : u.role === 'EMPRESA';
+  };
+
+  const getRoleName = (u: User) => {
+    if (typeof u.role === 'object') return u.role?.name || 'Sin rol';
+    return u.role === 'EMPRESA' ? 'Administrador' : 'Empleado';
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ... (resto del componente Header, Stats, List) ... */}
       <div>
         <h1 className="text-2xl font-semibold text-[#202124]">Equipo</h1>
         <p className="text-[#5f6368]">Gestiona los miembros de {company.name}</p>
@@ -120,7 +180,7 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
             </div>
             <div>
               <p className="text-2xl font-semibold text-[#202124]">
-                {teamMembers.filter(m => m.role === 'EMPRESA').length}
+                {teamMembers.filter(m => isAdmin(m)).length}
               </p>
               <p className="text-sm text-[#5f6368]">Administradores</p>
             </div>
@@ -133,7 +193,7 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
             </div>
             <div>
               <p className="text-2xl font-semibold text-[#202124]">
-                {teamMembers.filter(m => m.role === 'EMPLEADO').length}
+                {teamMembers.filter(m => !isAdmin(m)).length}
               </p>
               <p className="text-sm text-[#5f6368]">Empleados</p>
             </div>
@@ -172,7 +232,7 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
                 >
                   <Avatar className="h-12 w-12">
                     <AvatarFallback className={`text-white ${
-                      member.role === 'EMPRESA' 
+                      isAdmin(member) 
                         ? 'bg-gradient-to-br from-[#34a853] to-[#2e7d32]' 
                         : 'bg-gradient-to-br from-[#1a73e8] to-[#1557b0]'
                     }`}>
@@ -196,11 +256,11 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
                     </p>
                   </div>
 
-                  <Badge variant={member.role === 'EMPRESA' ? 'default' : 'secondary'}>
-                    {member.role === 'EMPRESA' ? 'Administrador' : 'Empleado'}
+                  <Badge variant={isAdmin(member) ? 'default' : 'secondary'}>
+                    {getRoleName(member)}
                   </Badge>
 
-                  {user.role === 'EMPRESA' && member.id !== company.ownerId && (
+                  {(user.role === 'EMPRESA' || isAdmin(user)) && member.id !== company.ownerId && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -208,7 +268,9 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Cambiar rol</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenRoleDialog(member)}>
+                          Cambiar rol
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="text-[#ea4335]">
                           Eliminar del equipo
                         </DropdownMenuItem>
@@ -221,6 +283,56 @@ export function TeamPage({ user, company, teamMembers, onRegenerateCode }: TeamP
           </div>
         </CardContent>
       </Card>
+
+      {/* Role Selection Dialog */}
+      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Cambiar rol de usuario</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-slate-200 text-slate-600">
+                  {selectedMember ? getInitials(selectedMember.name) : ''}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{selectedMember?.name}</p>
+                <p className="text-xs text-slate-500">{selectedMember?.email}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Seleccionar nuevo rol</label>
+              <Select value={newRoleId} onValueChange={setNewRoleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name} {role.isSystem ? '(Sistema)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveRole} 
+              disabled={isSaving || !newRoleId}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isSaving ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

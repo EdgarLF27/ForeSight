@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authApi, usersApi } from '@/services/api';
-import type { User, Company, UserRole, AuthState } from '@/types';
+import type { UserRole, AuthState } from '@/types';
 
 const AUTH_STORAGE_KEY = 'foresight_auth';
 
@@ -33,8 +33,8 @@ export function useAuth() {
     } catch (error) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       setState(prev => ({ ...prev, isLoading: false }));
+      return;
     }
-  }, []);
 
   useEffect(() => {
     loadStoredAuth();
@@ -43,12 +43,10 @@ export function useAuth() {
   const login = async (email: string, pass: string) => {
     try {
       const { data } = await authApi.login({ email, password: pass });
-      const { access_token, user } = data; // Cambiado token a access_token para coincidir con el backend
+      const { access_token, user } = data;
       
       const authData = { token: access_token, user };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-      
-      // También guardamos el token suelto para que el interceptor lo encuentre fácil
       localStorage.setItem('token', access_token);
       
       authApi.setToken(access_token);
@@ -59,7 +57,6 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
-      return true;
     } catch (error) {
       console.error("Login hook error:", error);
       return false;
@@ -80,7 +77,21 @@ export function useAuth() {
 
   const register = async (name: string, email: string, pass: string, role: UserRole, companyName?: string) => {
     try {
-      await usersApi.register({ name, email, password: pass, role, companyName });
+      const { data } = await authApi.register({ name, email, password: pass, role, companyName });
+      const { access_token, user } = data;
+      
+      const authData = { token: access_token, user };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      localStorage.setItem('token', access_token);
+      
+      authApi.setToken(access_token);
+
+      setState({
+        user,
+        company: user.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
       return true;
     } catch (error) {
       return false;
@@ -90,21 +101,20 @@ export function useAuth() {
   const joinCompany = async (inviteCode: string) => {
     if (!state.user) return false;
     try {
-      const { data } = await usersApi.linkCompany({ userId: state.user.id, inviteCode });
+      const { data } = await authApi.joinCompany(inviteCode);
+      const { user } = data;
       
-      const newState = {
-        ...state,
-        user: data,
-        company: data.company,
-      };
-      
-      setState(newState);
+      setState(prev => ({
+        ...prev,
+        user,
+        company: user.company,
+      }));
       
       // Actualizar localStorage
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const authData = JSON.parse(stored);
-        authData.user = data;
+        authData.user = user;
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       }
       

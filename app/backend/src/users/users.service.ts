@@ -10,18 +10,10 @@ export class UsersService {
     
     const users = await this.prisma.user.findMany({
       where,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-        companyId: true,
-        createdAt: true,
-      },
+      include: { role: true },
     });
 
-    return users;
+    return users.map(({ password, ...u }) => u);
   }
 
   async findOne(id: string) {
@@ -41,25 +33,43 @@ export class UsersService {
   async findByCompany(companyId: string) {
     const users = await this.prisma.user.findMany({
       where: { companyId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-        companyId: true,
-        createdAt: true,
-      },
+      include: { role: true },
     });
 
-    return users;
+    return users.map(({ password, ...u }) => u);
   }
 
   async update(id: string, data: { name?: string; email?: string; avatar?: string }) {
     const user = await this.prisma.user.update({
       where: { id },
       data,
-      include: { company: true },
+      include: { company: true, role: true },
+    });
+
+    const { password, ...result } = user;
+    return result;
+  }
+
+  async updateRole(id: string, roleId: string, companyId: string) {
+    // Verificar que el rol existe y pertenece a la empresa (o es de sistema)
+    const role = await this.prisma.role.findFirst({
+      where: {
+        id: roleId,
+        OR: [
+          { companyId },
+          { isSystem: true }
+        ]
+      }
+    });
+
+    if (!role) {
+      throw new NotFoundException('El rol especificado no existe o no pertenece a tu empresa');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { roleId },
+      include: { role: true }
     });
 
     const { password, ...result } = user;

@@ -9,7 +9,8 @@ import {
   LogOut,
   Bell,
   ChevronDown,
-  Building2
+  Building2,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +37,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'tickets', label: 'Tickets', icon: Ticket },
   { id: 'team', label: 'Equipo', icon: Users },
+  { id: 'roles', label: 'Roles', icon: Shield },
   { id: 'settings', label: 'Configuración', icon: Settings },
 ];
 
@@ -109,7 +111,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
                   <p className="text-sm font-medium text-[#202124]">{user.name}</p>
                   <p className="text-xs text-[#5f6368]">{user.email}</p>
                   <Badge variant="secondary" className="mt-1 text-xs">
-                    {user.role === 'EMPRESA' ? 'Administrador' : 'Empleado'}
+                    {typeof user.role === 'object' ? user.role?.name : (user.role === 'EMPRESA' ? 'Administrador' : user.role)}
                   </Badge>
                 </div>
                 <DropdownMenuSeparator />
@@ -138,8 +140,10 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             
-            // Ocultar "Equipo" para empleados
-            if (item.id === 'team' && user.role === 'EMPLEADO') return null;
+            const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
+            
+            // Ocultar "Equipo" y "Roles" para empleados
+            if ((item.id === 'team' || item.id === 'roles') && !isAdmin) return null;
             
             return (
               <button
