@@ -38,6 +38,7 @@ function App() {
     tickets, 
     createTicket, 
     updateTicket, 
+    claimTicket,
     loadTickets 
   } = useTickets();
 
@@ -59,6 +60,9 @@ function App() {
     changeUserRole
   } = useTeam(company?.id);
 
+  const isAdmin = user?.role === 'Administrador' || (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'EMPRESA';
+  const isTechnician = (typeof user?.role === 'object' && user?.role?.name === 'Técnico');
+
   // Cargar datos iniciales
   useEffect(() => {
     if (isAuthenticated && company?.id) {
@@ -68,7 +72,7 @@ function App() {
         loadMyTickets(true);
       }
     }
-  }, [isAuthenticated, company?.id, user?.id]);
+  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets]);
 
   // Cargar comentarios cuando se selecciona un ticket
   useEffect(() => {
@@ -120,6 +124,19 @@ function App() {
     if (selectedTicket) {
       updateTicket(selectedTicket.id, { assignedToId: userId });
       setSelectedTicket({ ...selectedTicket, assignedToId: userId });
+    }
+  };
+
+  const handleClaimTicket = async () => {
+    if (selectedTicket) {
+      const success = await claimTicket(selectedTicket.id);
+      if (success && user) {
+        setSelectedTicket({ 
+          ...selectedTicket, 
+          assignedToId: user.id,
+          status: 'IN_PROGRESS' 
+        });
+      }
     }
   };
 
@@ -177,6 +194,7 @@ function App() {
           onBack={handleBackFromTicket}
           onUpdateStatus={handleUpdateTicketStatus}
           onAssign={handleAssignTicket}
+          onClaim={handleClaimTicket}
           onAddComment={handleAddComment}
         />
       </Layout>
@@ -189,7 +207,7 @@ function App() {
     
     switch (currentPage) {
       case 'dashboard':
-        if (isAdmin) {
+        if (isAdmin || isTechnician) {
           return (
             <DashboardAdmin
               company={company!}
@@ -212,7 +230,7 @@ function App() {
       case 'tickets':
         return (
           <TicketsPage
-            tickets={isAdmin ? tickets : myTickets}
+            tickets={(isAdmin || isTechnician) ? tickets : myTickets}
             teamMembers={teamMembers}
             onCreateTicket={handleCreateTicket}
             onViewTicket={handleViewTicket}

@@ -110,6 +110,8 @@ export const ticketsApi = {
   
   update: (id: string, data: any) => api.put(`/tickets/${id}`, data),
   
+  claim: (id: string) => api.put(`/tickets/${id}/claim`),
+  
   delete: (id: string) => api.delete(`/tickets/${id}`),
 };
 
