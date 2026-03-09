@@ -112,8 +112,11 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
               <p className="font-medium text-[#202124]">Rol</p>
               <p className="text-sm text-[#5f6368]">Tu rol en la plataforma</p>
             </div>
-            <Badge variant={user.role === 'EMPRESA' ? 'default' : 'secondary'} className="text-sm">
-              {user.role === 'EMPRESA' ? 'Administrador' : 'Empleado'}
+            <Badge 
+              variant={(user.role as any)?.name === 'Administrador' || (user.role as any)?.name === 'Dueño' ? 'default' : 'secondary'} 
+              className="text-sm px-3 py-1"
+            >
+              {(user.role as any)?.name || 'Sin rol asignado'}
             </Badge>
           </div>
 

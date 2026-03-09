@@ -146,7 +146,7 @@ function App() {
     }
   };
 
-  const handleRegenerateCode = async () => {
+  const handleRegenerateCode = () => {
     if (company) {
       return await regenerateInviteCode();
     }
@@ -203,6 +203,8 @@ function App() {
 
   // Renderizar página actual
   const renderPage = () => {
+    const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
+    
     switch (currentPage) {
       case 'dashboard':
         if (isAdmin || isTechnician) {
