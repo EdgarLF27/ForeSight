@@ -28,6 +28,15 @@ export interface Company {
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
+export interface Area {
+  id: string;
+  name: string;
+  description?: string;
+  companyId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -35,6 +44,11 @@ export interface Ticket {
   status: TicketStatus;
   priority: TicketPriority;
   category: string;
+  areaId?: string;
+  area?: {
+    id: string;
+    name: string;
+  };
   createdBy: {
     id: string;
     name: string;
@@ -51,8 +65,14 @@ export interface Comment {
   id: string;
   ticketId: string;
   userId: string;
-  userName: string;
-  userAvatar?: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+    role?: {
+      name: string;
+    } | string;
+  };
   content: string;
   createdAt: string;
 }
@@ -89,4 +109,42 @@ export interface TicketWithDetails extends Ticket {
   createdByName: string;
   assignedToName?: string;
   commentsCount: number;
+}
+
+// Tipos de reuniones
+export type MeetingStatus = 'PROPOSED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledAt: string;
+  duration: number;
+  type: string;
+  status: MeetingStatus;
+  ticketId: string;
+  ticket?: {
+    title: string;
+  };
+  technicianId: string;
+  technician?: {
+    name: string;
+    avatar?: string;
+  };
+  employeeId: string;
+  employee?: {
+    name: string;
+    avatar?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
 }

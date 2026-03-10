@@ -22,12 +22,17 @@ export function useTickets() {
 
   const createTicket = useCallback(async (ticketData: any): Promise<Ticket | null> => {
     try {
+      setIsLoading(true);
+      setError(null);
       const { data } = await ticketsApi.create(ticketData);
       setTickets(prev => [data, ...prev]);
       return data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear ticket');
-      return null;
+      const message = err.response?.data?.message || 'Error al crear ticket';
+      setError(message);
+      throw err; // Relanzamos para que App.tsx lo capture
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -49,6 +54,17 @@ export function useTickets() {
       return true;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al eliminar ticket');
+      return false;
+    }
+  }, []);
+
+  const claimTicket = useCallback(async (ticketId: string): Promise<boolean> => {
+    try {
+      const { data } = await ticketsApi.claim(ticketId);
+      setTickets(prev => prev.map(t => t.id === ticketId ? data : t));
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al reclamar ticket');
       return false;
     }
   }, []);
@@ -81,6 +97,7 @@ export function useTickets() {
     createTicket,
     updateTicket,
     deleteTicket,
+    claimTicket,
     getTicketById,
     getStats,
   };

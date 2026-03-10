@@ -6,13 +6,30 @@ import { TicketStatus, TicketPriority } from '@prisma/client';
 export class TicketsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(companyId: string, userId?: string) {
+  async findAll(companyId: string, user: any) {
+    const { id: userId, role, permissions } = user;
+    const isAdmin = role?.name === 'Administrador';
+    const isTechnician = role?.name === 'Técnico';
+
     const where: any = { companyId };
     
-    if (userId) {
+    // Lógica de visibilidad
+    if (isAdmin) {
+      // Admin ve todo en su empresa (no hay filtros adicionales)
+    } else if (isTechnician) {
+      // Técnico ve: 1. Lo que tiene asignado, 2. Tickets abiertos sin asignar
+      where.OR = [
+        { assignedToId: userId },
+        { 
+          assignedToId: null,
+          status: 'OPEN'
+        }
+      ];
+    } else {
+      // Empleado (u otros) solo ven lo que crearon o se les asignó
       where.OR = [
         { createdById: userId },
-        { assignedToId: userId },
+        { assignedToId: userId }
       ];
     }
 
@@ -35,6 +52,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             comments: true,
@@ -47,6 +70,41 @@ export class TicketsService {
     });
 
     return tickets;
+  }
+
+  async claim(ticketId: string, userId: string, companyId: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket no encontrado');
+    }
+
+    if (ticket.companyId !== companyId) {
+      throw new ForbiddenException('No tienes acceso a este ticket');
+    }
+
+    if (ticket.assignedToId) {
+      throw new ForbiddenException('Este ticket ya ha sido reclamado');
+    }
+
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignedToId: userId,
+        status: 'IN_PROGRESS',
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
   }
 
   async findOne(id: string, userCompanyId?: string) {
@@ -67,6 +125,12 @@ export class TicketsService {
             name: true,
             email: true,
             avatar: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         company: {
@@ -106,21 +170,30 @@ export class TicketsService {
   async create(data: {
     title: string;
     description: string;
-    priority: TicketPriority;
+    priority: any;
     category?: string;
     companyId: string;
     createdById: string;
     assignedToId?: string;
+    areaId?: string;
   }) {
+    // Validar prioridad para Prisma Enum
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+    const priority = validPriorities.includes(data.priority) ? data.priority : 'MEDIUM';
+
+    // Limpiar areaId si viene vacío
+    const areaId = (data.areaId && data.areaId.trim() !== '') ? data.areaId : null;
+
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
-        priority: data.priority,
-        category: data.category,
+        priority: priority,
+        category: data.category || 'General',
         companyId: data.companyId,
         createdById: data.createdById,
         assignedToId: data.assignedToId,
+        areaId: areaId,
       },
       include: {
         createdBy: {
@@ -139,6 +212,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -154,6 +233,7 @@ export class TicketsService {
       priority?: TicketPriority;
       category?: string;
       assignedToId?: string | null;
+      areaId?: string;
     },
     userCompanyId?: string,
   ) {
@@ -187,6 +267,12 @@ export class TicketsService {
             name: true,
             email: true,
             avatar: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

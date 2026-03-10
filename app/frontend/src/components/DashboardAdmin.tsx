@@ -6,7 +6,8 @@ import {
   BarChart3,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,12 +21,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Ticket as TicketType, Company } from '@/types';
+import type { Ticket as TicketType, Company, Area } from '@/types';
+
+import { toast } from 'sonner';
 
 interface DashboardAdminProps {
   company: Company | null;
   tickets: TicketType[];
-  onCreateTicket: (ticket: any) => void;
+  areas: Area[];
+  onCreateTicket: (ticket: any) => Promise<boolean>;
   onUpdateTicket: (ticketId: string, updates: any) => void;
   onViewTicket: (ticket: TicketType) => void;
 }
@@ -40,6 +44,7 @@ const statusConfig = {
 export function DashboardAdmin({ 
   company, 
   tickets, 
+  areas,
   onCreateTicket, 
   onViewTicket 
 }: DashboardAdminProps) {
@@ -49,6 +54,7 @@ export function DashboardAdmin({
     description: '',
     priority: 'MEDIUM' as const,
     category: 'General',
+    areaId: '',
   });
 
   const stats = {
@@ -58,23 +64,32 @@ export function DashboardAdmin({
     resolved: tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length,
   };
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = async () => {
     if (!newTicket.title || !newTicket.description) return;
 
-    onCreateTicket({
+    // Solo enviamos exactamente lo que el DTO espera
+    const ticketPayload: any = {
       title: newTicket.title,
       description: newTicket.description,
       priority: newTicket.priority,
-      category: newTicket.category,
-    });
+    };
 
-    setNewTicket({
-      title: '',
-      description: '',
-      priority: 'MEDIUM',
-      category: 'General',
-    });
-    setIsCreateDialogOpen(false);
+    if (newTicket.category) ticketPayload.category = newTicket.category;
+    if (newTicket.areaId) ticketPayload.areaId = newTicket.areaId;
+
+    const success = await onCreateTicket(ticketPayload);
+
+    if (success) {
+      toast.success('Ticket creado correctamente');
+      setNewTicket({
+        title: '',
+        description: '',
+        priority: 'MEDIUM',
+        category: 'General',
+        areaId: '',
+      });
+      setIsCreateDialogOpen(false);
+    }
   };
 
   return (
@@ -116,6 +131,34 @@ export function DashboardAdmin({
                   onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
                   className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8] min-h-[100px] resize-none"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-[#202124]">Área (opcional)</label>
+                  <select
+                    value={newTicket.areaId}
+                    onChange={(e) => setNewTicket({ ...newTicket, areaId: e.target.value })}
+                    className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                  >
+                    <option value="">Selecciona un área</option>
+                    {areas.map(area => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#202124]">Prioridad</label>
+                  <select
+                    value={newTicket.priority}
+                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
+                    className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                  >
+                    <option value="LOW">Baja</option>
+                    <option value="MEDIUM">Media</option>
+                    <option value="HIGH">Alta</option>
+                    <option value="URGENT">Urgente</option>
+                  </select>
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -161,9 +204,20 @@ export function DashboardAdmin({
                     <div className={`w-2 h-2 rounded-full ${statusConfig[ticket.status].color}`} />
                     <div>
                       <p className="text-sm font-medium text-[#202124] group-hover:text-[#1a73e8] transition-colors">{ticket.title}</p>
-                      <p className="text-xs text-[#5f6368]">
-                        {new Date(ticket.createdAt).toLocaleDateString('es-ES')} • {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-[#5f6368]">
+                        <span>{new Date(ticket.createdAt).toLocaleDateString('es-ES')}</span>
+                        <span>•</span>
+                        <span>{typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}</span>
+                        {ticket.area && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-0.5 text-[#1a73e8]">
+                              <MapPin className="h-3 w-3" />
+                              {ticket.area.name}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <Badge className={`${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor} border-0 text-xs`}>

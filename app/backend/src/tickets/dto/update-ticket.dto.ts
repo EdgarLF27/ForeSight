@@ -27,4 +27,8 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsString()
   assignedToId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  areaId?: string;
 }
