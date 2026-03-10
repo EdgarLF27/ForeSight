@@ -21,7 +21,6 @@ export function useAuth() {
 
     try {
       const { token, user } = JSON.parse(stored);
-      // Configurar el token en la instancia de axios
       authApi.setToken(token);
       
       setState({
@@ -33,8 +32,8 @@ export function useAuth() {
     } catch (error) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       setState(prev => ({ ...prev, isLoading: false }));
-      return;
     }
+  }, []);
 
   useEffect(() => {
     loadStoredAuth();
@@ -57,6 +56,7 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+      return true;
     } catch (error) {
       console.error("Login hook error:", error);
       return false;

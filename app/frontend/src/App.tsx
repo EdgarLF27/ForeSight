@@ -129,7 +129,7 @@ function App() {
     }
   };
 
-  const handleRegenerateCode = () => {
+  const handleRegenerateCode = async () => {
     if (company) {
       return await regenerateInviteCode();
     }
