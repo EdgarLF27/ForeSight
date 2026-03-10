@@ -52,6 +52,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             comments: true,
@@ -121,6 +127,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         company: {
           select: {
             id: true,
@@ -158,21 +170,30 @@ export class TicketsService {
   async create(data: {
     title: string;
     description: string;
-    priority: TicketPriority;
+    priority: any;
     category?: string;
     companyId: string;
     createdById: string;
     assignedToId?: string;
+    areaId?: string;
   }) {
+    // Validar prioridad para Prisma Enum
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+    const priority = validPriorities.includes(data.priority) ? data.priority : 'MEDIUM';
+
+    // Limpiar areaId si viene vacío
+    const areaId = (data.areaId && data.areaId.trim() !== '') ? data.areaId : null;
+
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
-        priority: data.priority,
-        category: data.category,
+        priority: priority,
+        category: data.category || 'General',
         companyId: data.companyId,
         createdById: data.createdById,
         assignedToId: data.assignedToId,
+        areaId: areaId,
       },
       include: {
         createdBy: {
@@ -191,6 +212,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -206,6 +233,7 @@ export class TicketsService {
       priority?: TicketPriority;
       category?: string;
       assignedToId?: string | null;
+      areaId?: string;
     },
     userCompanyId?: string,
   ) {
@@ -239,6 +267,12 @@ export class TicketsService {
             name: true,
             email: true,
             avatar: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

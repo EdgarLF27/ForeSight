@@ -6,7 +6,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Building2,
-  ArrowRight
+  ArrowRight,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,12 +21,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Ticket as TicketType, Company } from '@/types';
+import type { Ticket as TicketType, Company, Area } from '@/types';
+import { toast } from 'sonner';
 
 interface DashboardEmployeeProps {
   company: Company | null;
   tickets: TicketType[];
-  onCreateTicket: (ticket: any) => void;
+  areas: Area[];
+  onCreateTicket: (ticket: any) => Promise<boolean>;
   onViewTicket: (ticket: TicketType) => void;
   onJoinCompany: (code: string) => Promise<boolean>;
 }
@@ -47,6 +50,7 @@ const priorityConfig = {
 export function DashboardEmployee({ 
   company, 
   tickets, 
+  areas,
   onCreateTicket, 
   onViewTicket,
   onJoinCompany 
@@ -61,6 +65,7 @@ export function DashboardEmployee({
     description: '',
     priority: 'MEDIUM' as const,
     category: 'General',
+    areaId: '',
   });
 
   // Si el usuario no tiene empresa, mostrar pantalla de unión
@@ -131,24 +136,32 @@ export function DashboardEmployee({
     RESOLVED: tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED'),
   };
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = async () => {
     if (!newTicket.title || !newTicket.description || !company) return;
 
-    // Solo enviamos los campos que el DTO del backend espera
-    onCreateTicket({
+    // Solo enviamos exactamente lo que el DTO espera
+    const ticketPayload: any = {
       title: newTicket.title,
       description: newTicket.description,
       priority: newTicket.priority,
-      category: newTicket.category,
-    });
+    };
 
-    setNewTicket({
-      title: '',
-      description: '',
-      priority: 'MEDIUM',
-      category: 'General',
-    });
-    setIsCreateDialogOpen(false);
+    if (newTicket.category) ticketPayload.category = newTicket.category;
+    if (newTicket.areaId) ticketPayload.areaId = newTicket.areaId;
+
+    const success = await onCreateTicket(ticketPayload);
+
+    if (success) {
+      toast.success('Ticket creado correctamente');
+      setNewTicket({
+        title: '',
+        description: '',
+        priority: 'MEDIUM',
+        category: 'General',
+        areaId: '',
+      });
+      setIsCreateDialogOpen(false);
+    }
   };
 
   return (
@@ -192,18 +205,33 @@ export function DashboardEmployee({
                   className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8] min-h-[100px] resize-none"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium text-[#202124]">Prioridad</label>
-                <select
-                  value={newTicket.priority}
-                  onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
-                  className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-                >
-                  <option value="LOW">Baja</option>
-                  <option value="MEDIUM">Media</option>
-                  <option value="HIGH">Alta</option>
-                  <option value="URGENT">Urgente</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-[#202124]">Área (opcional)</label>
+                  <select
+                    value={newTicket.areaId}
+                    onChange={(e) => setNewTicket({ ...newTicket, areaId: e.target.value })}
+                    className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                  >
+                    <option value="">Selecciona un área</option>
+                    {areas.map(area => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#202124]">Prioridad</label>
+                  <select
+                    value={newTicket.priority}
+                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
+                    className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                  >
+                    <option value="LOW">Baja</option>
+                    <option value="MEDIUM">Media</option>
+                    <option value="HIGH">Alta</option>
+                    <option value="URGENT">Urgente</option>
+                  </select>
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -331,7 +359,15 @@ function TicketCard({ ticket, onClick }: { ticket: TicketType; onClick: () => vo
       <h3 className="font-medium text-[#202124] group-hover:text-[#1a73e8] transition-colors text-sm mb-1 line-clamp-2">
         {ticket.title}
       </h3>
-      <p className="text-xs text-[#5f6368] line-clamp-2 mb-3">{ticket.description}</p>
+      <p className="text-xs text-[#5f6368] line-clamp-2 mb-2">{ticket.description}</p>
+      
+      {ticket.area && (
+        <div className="flex items-center gap-1 text-[10px] text-[#1a73e8] mb-3">
+          <MapPin className="h-3 w-3" />
+          <span className="font-medium">{ticket.area.name}</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-xs text-[#80868b]">
         <span>{new Date(ticket.createdAt).toLocaleDateString('es-ES')}</span>
         <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />

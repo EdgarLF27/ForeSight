@@ -35,6 +35,7 @@ export function useAuth() {
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
+  }, []);
 
   useEffect(() => {
     loadStoredAuth();

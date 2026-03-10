@@ -27,6 +27,11 @@ export class CommentsService {
             id: true,
             name: true,
             avatar: true,
+            role: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
@@ -68,6 +73,11 @@ export class CommentsService {
             id: true,
             name: true,
             avatar: true,
+            role: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },

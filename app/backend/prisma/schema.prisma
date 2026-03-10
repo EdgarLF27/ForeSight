@@ -28,6 +28,10 @@ model User {
   createdTickets Ticket[] @relation("TicketCreator")
   assignedTickets Ticket[] @relation("TicketAssignee")
   comments       Comment[]
+  
+  technicianMeetings Meeting[] @relation("TechnicianMeetings")
+  employeeMeetings   Meeting[] @relation("EmployeeMeetings")
+  notifications      Notification[]
 
   @@map("users")
 }
@@ -36,7 +40,7 @@ model Role {
   id          String       @id @default(uuid())
   name        String
   description String?
-  isSystem    Boolean      @default(false) // Roles base (Admin, Empleado) creados por defecto
+  isSystem    Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -52,9 +56,9 @@ model Role {
 
 model Permission {
   id          String   @id @default(uuid())
-  name        String   @unique // e.g., "tickets:create"
+  name        String   @unique
   description String?
-  module      String   // Para agrupar (tickets, users, etc.)
+  module      String
   createdAt   DateTime @default(now())
 
   // Relations
@@ -78,8 +82,25 @@ model Company {
   members User[]
   roles   Role[]
   tickets Ticket[]
+  areas   Area[]
 
   @@map("companies")
+}
+
+model Area {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  tickets Ticket[]
+
+  @@map("areas")
 }
 
 model Ticket {
@@ -103,9 +124,52 @@ model Ticket {
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
 
+  areaId String?
+  area   Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
+
+  meetings Meeting[]
   comments Comment[]
 
   @@map("tickets")
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  scheduledAt DateTime
+  duration    Int      @default(60)
+  type        String
+  status      MeetingStatus @default(PROPOSED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  technicianId String
+  technician   User @relation("TechnicianMeetings", fields: [technicianId], references: [id])
+
+  employeeId String
+  employee   User @relation("EmployeeMeetings", fields: [employeeId], references: [id])
+
+  @@map("meetings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 model Comment {
@@ -121,6 +185,14 @@ model Comment {
   user   User   @relation(fields: [userId], references: [id])
 
   @@map("comments")
+}
+
+enum MeetingStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
 }
 
 enum UserRole {

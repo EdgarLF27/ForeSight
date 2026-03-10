@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Clock, 
@@ -8,13 +8,20 @@ import {
   Send,
   CheckCircle,
   PlayCircle,
-  XCircle
+  XCircle,
+  MapPin,
+  Video,
+  CalendarPlus,
+  Check,
+  X,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +35,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Ticket, Comment, User, TicketStatus } from '@/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { useMeetings } from '@/hooks/useMeetings';
+import type { Ticket, Comment, User, TicketStatus, Meeting } from '@/types';
 
 interface TicketDetailProps {
   ticket: Ticket;
@@ -68,6 +90,23 @@ export function TicketDetail({
   onAddComment,
 }: TicketDetailProps) {
   const [newComment, setNewComment] = useState('');
+  const { meetings, loadMeetingsByTicket, createProposal, updateStatus } = useMeetings();
+  
+  // Estados para el diálogo de reunión
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [meetingData, setMeetingData] = useState({
+    title: `Reunión: ${ticket.title}`,
+    description: '',
+    date: '',
+    time: '',
+    type: 'VIRTUAL',
+    duration: 60
+  });
+
+  useEffect(() => {
+    loadMeetingsByTicket(ticket.id);
+  }, [ticket.id, loadMeetingsByTicket]);
+
   const status = statusConfig[ticket.status];
   const priority = priorityConfig[ticket.priority];
   const assignee = teamMembers.find(m => m.id === ticket.assignedToId);
@@ -77,8 +116,9 @@ export function TicketDetail({
   const isTechnician = currentUser.role?.name === 'Técnico';
   const isAssignedToMe = ticket.assignedToId === currentUser.id;
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (name?: any) => {
+    if (typeof name !== 'string' || !name.trim()) return '??';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -86,6 +126,25 @@ export function TicketDetail({
     if (!newComment.trim()) return;
     onAddComment(newComment);
     setNewComment('');
+  };
+
+  const handleCreateMeeting = async () => {
+    if (!meetingData.date || !meetingData.time) {
+      return;
+    }
+    const scheduledAt = new Date(`${meetingData.date}T${meetingData.time}`).toISOString();
+    const success = await createProposal({
+      title: meetingData.title,
+      description: meetingData.description,
+      scheduledAt,
+      type: meetingData.type,
+      duration: Number(meetingData.duration),
+      ticketId: ticket.id
+    });
+
+    if (success) {
+      setIsMeetingDialogOpen(false);
+    }
   };
 
   return (
@@ -109,6 +168,16 @@ export function TicketDetail({
         
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {isTechnician && isAssignedToMe && (
+            <Button 
+              onClick={() => setIsMeetingDialogOpen(true)}
+              className="bg-[#34a853] hover:bg-[#2d8a46] text-white"
+            >
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Proponer Reunión
+            </Button>
+          )}
+
           {isTechnician && !ticket.assignedToId && onClaim && (
             <Button 
               onClick={onClaim}
@@ -159,30 +228,45 @@ export function TicketDetail({
             </CardContent>
           </Card>
 
-          {/* Comments */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-sm font-medium text-[#5f6368] mb-4 flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
+          {/* Tabs: Comments & Meetings */}
+          <Tabs defaultValue="comments" className="w-full">
+            <TabsList className="bg-transparent border-b border-[#dadce0] w-full justify-start rounded-none h-auto p-0 gap-6">
+              <TabsTrigger 
+                value="comments" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium"
+              >
                 Comentarios ({comments.length})
-              </h2>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="meetings" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium"
+              >
+                Reuniones ({meetings.length})
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="space-y-4 mb-6">
+            <TabsContent value="comments" className="mt-6 space-y-6">
+              <div className="space-y-4">
                 {comments.length === 0 ? (
                   <p className="text-center text-[#5f6368] py-4">
-                    No hay comentarios aún. Sé el primero en comentar.
+                    No hay comentarios aún.
                   </p>
                 ) : (
                   comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3">
                       <Avatar className="h-8 w-8 flex-shrink-0">
                         <AvatarFallback className="bg-[#1a73e8] text-white text-xs">
-                          {getInitials(comment.userName)}
+                          {getInitials(comment.user?.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm text-[#202124]">{comment.userName}</span>
+                          <span className="font-medium text-sm text-[#202124]">{comment.user?.name || 'Usuario'}</span>
+                          {comment.user?.role && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 bg-[#f1f3f4] text-[#5f6368] border-0">
+                              {typeof comment.user.role === 'object' ? comment.user.role.name : comment.user.role}
+                            </Badge>
+                          )}
                           <span className="text-xs text-[#80868b]">
                             {new Date(comment.createdAt).toLocaleString('es-ES')}
                           </span>
@@ -218,12 +302,89 @@ export function TicketDetail({
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </TabsContent>
+
+            <TabsContent value="meetings" className="mt-6">
+              <div className="space-y-4">
+                {meetings.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-[#dadce0]">
+                    <CalendarIcon className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
+                    <p className="text-[#5f6368]">No se han programado reuniones para este ticket.</p>
+                    {isTechnician && isAssignedToMe && (
+                      <Button 
+                        variant="link" 
+                        onClick={() => setIsMeetingDialogOpen(true)}
+                        className="text-[#1a73e8] mt-2"
+                      >
+                        Proponer la primera reunión
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  meetings.map((m) => (
+                    <Card key={m.id} className="overflow-hidden border-[#dadce0]">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex gap-3">
+                            <div className={`p-2 rounded-lg ${m.type === 'VIRTUAL' ? 'bg-[#e8f0fe]' : 'bg-[#e6f4ea]'}`}>
+                              {m.type === 'VIRTUAL' ? <Video className="h-5 w-5 text-[#1a73e8]" /> : <MapPin className="h-5 w-5 text-[#34a853]" />}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-[#202124]">{m.title}</h3>
+                              <div className="flex items-center gap-3 mt-1 text-sm text-[#5f6368]">
+                                <span className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3.5 w-3.5" />
+                                  {new Date(m.scheduledAt).toLocaleDateString('es-ES')}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {new Date(m.scheduledAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Badge variant="secondary" className="text-[10px] py-0 h-4 uppercase">{m.status}</Badge>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Empleado acepta/rechaza */}
+                          {m.status === 'PROPOSED' && ticket.createdBy.id === currentUser.id && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-[#ea4335] hover:bg-[#fce8e6]"
+                                onClick={() => updateStatus(m.id, 'REJECTED')}
+                              >
+                                <X className="h-4 w-4 mr-1" /> Rechazar
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="bg-[#34a853] hover:bg-[#2d8a46] text-white"
+                                onClick={() => updateStatus(m.id, 'ACCEPTED')}
+                              >
+                                <Check className="h-4 w-4 mr-1" /> Aceptar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {m.description && (
+                          <p className="mt-3 text-sm text-[#5f6368] border-t border-gray-100 pt-3">
+                            {m.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* ... resto del sidebar ... */}
           {/* Status Card */}
           <Card>
             <CardContent className="p-4 space-y-4">
@@ -245,6 +406,16 @@ export function TicketDetail({
                 <label className="text-xs text-[#5f6368] block mb-1">Categoría</label>
                 <p className="text-sm text-[#202124]">{ticket.category}</p>
               </div>
+
+              {ticket.area && (
+                <div>
+                  <label className="text-xs text-[#5f6368] block mb-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    Área
+                  </label>
+                  <p className="text-sm text-[#1a73e8] font-medium">{ticket.area.name}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -294,10 +465,10 @@ export function TicketDetail({
                       <>
                         <Avatar className="h-6 w-6">
                           <AvatarFallback className="bg-[#1a73e8] text-white text-xs">
-                            {getInitials(assignee.name)}
+                            {getInitials(assignee?.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm text-[#202124]">{assignee.name}</span>
+                        <span className="text-sm text-[#202124]">{assignee?.name}</span>
                       </>
                     ) : (
                       <span className="text-sm text-[#5f6368]">Sin asignar</span>
@@ -329,6 +500,97 @@ export function TicketDetail({
           </Card>
         </div>
       </div>
+
+      {/* Meeting Proposal Dialog */}
+      <Dialog open={isMeetingDialogOpen} onOpenChange={setIsMeetingDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-[#34a853]" />
+              Proponer Reunión
+            </DialogTitle>
+            <DialogDescription>
+              Propón una fecha y hora para revisar este ticket con el empleado.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Título de la reunión</label>
+              <Input 
+                value={meetingData.title}
+                onChange={(e) => setMeetingData({ ...meetingData, title: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fecha</label>
+                <Input 
+                  type="date"
+                  value={meetingData.date}
+                  onChange={(e) => setMeetingData({ ...meetingData, date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Hora</label>
+                <Input 
+                  type="time"
+                  value={meetingData.time}
+                  onChange={(e) => setMeetingData({ ...meetingData, time: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo</label>
+                <select
+                  className="w-full h-10 px-3 py-2 text-sm border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                  value={meetingData.type}
+                  onChange={(e) => setMeetingData({ ...meetingData, type: e.target.value })}
+                >
+                  <option value="VIRTUAL">Virtual (Meet/Teams)</option>
+                  <option value="PRESENCIAL">Presencial</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Duración (min)</label>
+                <Input 
+                  type="number"
+                  min="15"
+                  step="15"
+                  value={meetingData.duration}
+                  onChange={(e) => setMeetingData({ ...meetingData, duration: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Observaciones (opcional)</label>
+              <Textarea 
+                placeholder="Ej: Necesitaremos revisar el acceso al servidor..."
+                value={meetingData.description}
+                onChange={(e) => setMeetingData({ ...meetingData, description: e.target.value })}
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMeetingDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-[#34a853] hover:bg-[#2d8a46] text-white"
+              onClick={handleCreateMeeting}
+              disabled={!meetingData.date || !meetingData.time}
+            >
+              Enviar Propuesta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
