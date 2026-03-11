@@ -7,67 +7,47 @@ import { MeetingStatus } from '@prisma/client';
 export class MeetingsService {
   constructor(private prisma: PrismaService) {}
 
-  async createProposal(technicianId: string, dto: CreateMeetingDto) {
-    const { ticketId, scheduledAt, duration = 60 } = dto;
-    const startTime = new Date(scheduledAt);
-    const endTime = new Date(startTime.getTime() + duration * 60000);
-
-    // 1. Verificar existencia del ticket y obtener al empleado
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: ticketId },
-      include: { createdBy: true },
-    });
-
-    if (!ticket) {
-      throw new NotFoundException('Ticket no encontrado');
-    }
-
-    // 2. Validar disponibilidad del técnico (traslapes)
-    const technicianOverlap = await this.prisma.meeting.findFirst({
+  private async checkOverlap(technicianId: string, startTime: Date, endTime: Date, excludeMeetingId?: string) {
+    const allMeetings = await this.prisma.meeting.findMany({
       where: {
         technicianId,
         status: { in: ['PROPOSED', 'ACCEPTED'] },
-        OR: [
-          {
-            scheduledAt: {
-              gte: startTime,
-              lt: endTime,
-            },
-          },
-          {
-            // Caso donde una reunión existente empieza antes pero termina después del inicio de la nueva
-            scheduledAt: { lte: startTime },
-            // Necesitamos calcular el fin de la existente, pero en SQL directo es más complejo sin RAW.
-            // Para simplificar esta lógica de agenda:
-          }
-        ],
-      },
-    });
-
-    // Lógica de traslape más precisa (Simplificada para MVP)
-    const allTechnicianMeetings = await this.prisma.meeting.findMany({
-      where: {
-        technicianId,
-        status: { in: ['PROPOSED', 'ACCEPTED'] },
+        id: excludeMeetingId ? { not: excludeMeetingId } : undefined,
         scheduledAt: {
-          gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Ultimas 24h
-          lte: new Date(startTime.getTime() + 24 * 60 * 60 * 1000), // Proximas 24h
+          gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Ventana de 24h para optimizar
+          lte: new Date(startTime.getTime() + 24 * 60 * 60 * 1000),
         }
       }
     });
 
-    for (const m of allTechnicianMeetings) {
+    for (const m of allMeetings) {
       const mStart = new Date(m.scheduledAt).getTime();
       const mEnd = mStart + m.duration * 60000;
       const newStart = startTime.getTime();
       const newEnd = endTime.getTime();
 
       if ((newStart >= mStart && newStart < mEnd) || (newEnd > mStart && newEnd <= mEnd) || (newStart <= mStart && newEnd >= mEnd)) {
-        throw new ConflictException('Ya tienes una reunión programada en este horario');
+        throw new ConflictException(`Conflicto de horario: Ya tienes la reunión "${m.title}" programada de ${new Date(mStart).toLocaleTimeString()} a ${new Date(mEnd).toLocaleTimeString()}`);
       }
     }
+  }
 
-    // 3. Crear la reunión
+  async createProposal(technicianId: string, dto: CreateMeetingDto) {
+    const { ticketId, scheduledAt, duration = 60 } = dto;
+    const startTime = new Date(scheduledAt);
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+
+    // 1. Verificar ticket
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    // 2. Validar traslapes
+    await this.checkOverlap(technicianId, startTime, endTime);
+
+    // 3. Crear reunión
     const meeting = await this.prisma.meeting.create({
       data: {
         title: dto.title,
@@ -82,16 +62,12 @@ export class MeetingsService {
         lastProposedById: technicianId,
       },
       include: {
-        employee: {
-          select: { name: true, email: true }
-        },
-        technician: {
-          select: { name: true }
-        }
+        employee: { select: { name: true, email: true } },
+        technician: { select: { name: true } }
       }
-    }) as any; // Cast a any para evitar errores de tipado de Prisma en compilación rápida
+    }) as any;
 
-    // 4. Crear notificación para el empleado
+    // 4. Notificar
     await this.prisma.notification.create({
       data: {
         userId: ticket.createdById,
@@ -112,14 +88,19 @@ export class MeetingsService {
 
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
 
-    // Verificar que el usuario es parte de la reunión
     if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
       throw new ForbiddenException('No tienes permiso para reprogramar esta reunión');
     }
 
     const startTime = new Date(scheduledAt);
-    
-    // Actualizar la reunión
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+
+    // PASO DE MAESTRO: Validar traslapes también al reprogramar, excluyendo la reunión actual
+    // Si el usuario es el técnico, validamos su agenda
+    if (userId === meeting.technicianId) {
+        await this.checkOverlap(userId, startTime, endTime, id);
+    }
+
     const updatedMeeting = await this.prisma.meeting.update({
       where: { id },
       data: {
@@ -130,7 +111,6 @@ export class MeetingsService {
       }
     });
 
-    // Notificar a la otra parte
     const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
     const proposerName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
 
@@ -181,18 +161,9 @@ export class MeetingsService {
 
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
 
-    // Validaciones de permiso para aceptar/rechazar
     if (status === 'ACCEPTED' || status === 'REJECTED') {
       if (meeting.lastProposedById === userId) {
         throw new ForbiddenException('No puedes aceptar tu propia propuesta. Espera a que la otra parte responda.');
-      }
-      
-      if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
-        throw new ForbiddenException('No eres parte de esta reunión.');
-      }
-    } else if (status === 'CANCELLED') {
-      if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
-        throw new ForbiddenException('No tienes permiso para cancelar esta reunión.');
       }
     }
 
