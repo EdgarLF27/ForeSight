@@ -159,6 +159,8 @@ model Meeting {
   employeeId String
   employee   User @relation("EmployeeMeetings", fields: [employeeId], references: [id])
 
+  lastProposedById String?
+
   @@map("meetings")
 }
 

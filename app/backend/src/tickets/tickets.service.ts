@@ -107,6 +107,44 @@ export class TicketsService {
     });
   }
 
+  async unclaim(ticketId: string, userId: string, companyId: string, user: any) {
+    const ticketData = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticketData) {
+      throw new NotFoundException('Ticket no encontrado');
+    }
+
+    if (ticketData.companyId !== companyId) {
+      throw new ForbiddenException('No tienes acceso a este ticket');
+    }
+
+    const isAdmin = user.role?.name === 'Administrador';
+    
+    // Solo puede des-reclamar si es el asignado o es administrador
+    if (ticketData.assignedToId !== userId && !isAdmin) {
+      throw new ForbiddenException('No puedes liberar un ticket que no tienes asignado');
+    }
+
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignedToId: null,
+        status: 'OPEN',
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string, userCompanyId?: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },

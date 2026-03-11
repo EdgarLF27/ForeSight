@@ -149,6 +149,8 @@ export const meetingsApi = {
     ticketId: string;
   }) => api.post('/meetings', data),
   updateStatus: (id: string, status: string) => api.put(`/meetings/${id}/status`, { status }),
+  repropose: (id: string, data: { scheduledAt: string; duration?: number }) =>
+    api.put(`/meetings/${id}/repropose`, data),
 };
 
 export const notificationsApi = {

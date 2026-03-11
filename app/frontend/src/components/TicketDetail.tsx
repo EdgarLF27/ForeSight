@@ -90,10 +90,11 @@ export function TicketDetail({
   onAddComment,
 }: TicketDetailProps) {
   const [newComment, setNewComment] = useState('');
-  const { meetings, loadMeetingsByTicket, createProposal, updateStatus } = useMeetings();
+  const { meetings, loadMeetingsByTicket, createProposal, updateStatus, repropose } = useMeetings();
   
   // Estados para el diálogo de reunión
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [reproposingMeetingId, setReproposingMeetingId] = useState<string | null>(null);
   const [meetingData, setMeetingData] = useState({
     title: `Reunión: ${ticket.title}`,
     description: '',
@@ -128,23 +129,50 @@ export function TicketDetail({
     setNewComment('');
   };
 
-  const handleCreateMeeting = async () => {
+  const handleCreateOrReproposeMeeting = async () => {
     if (!meetingData.date || !meetingData.time) {
       return;
     }
     const scheduledAt = new Date(`${meetingData.date}T${meetingData.time}`).toISOString();
-    const success = await createProposal({
-      title: meetingData.title,
-      description: meetingData.description,
-      scheduledAt,
-      type: meetingData.type,
-      duration: Number(meetingData.duration),
-      ticketId: ticket.id
-    });
+    
+    let success = false;
+    if (reproposingMeetingId) {
+      success = await repropose(reproposingMeetingId, {
+        scheduledAt,
+        duration: Number(meetingData.duration)
+      });
+    } else {
+      success = await createProposal({
+        title: meetingData.title,
+        description: meetingData.description,
+        scheduledAt,
+        type: meetingData.type,
+        duration: Number(meetingData.duration),
+        ticketId: ticket.id
+      });
+    }
 
     if (success) {
       setIsMeetingDialogOpen(false);
+      setReproposingMeetingId(null);
     }
+  };
+
+  const openReproposeDialog = (meeting: Meeting) => {
+    const d = new Date(meeting.scheduledAt);
+    const date = d.toISOString().split('T')[0];
+    const time = d.toTimeString().split(' ')[0].slice(0, 5);
+
+    setMeetingData({
+      title: meeting.title,
+      description: meeting.description || '',
+      date,
+      time,
+      type: meeting.type,
+      duration: meeting.duration
+    });
+    setReproposingMeetingId(meeting.id);
+    setIsMeetingDialogOpen(true);
   };
 
   return (
@@ -170,7 +198,18 @@ export function TicketDetail({
         <div className="flex items-center gap-2">
           {isTechnician && isAssignedToMe && (
             <Button 
-              onClick={() => setIsMeetingDialogOpen(true)}
+              onClick={() => {
+                setReproposingMeetingId(null);
+                setMeetingData({
+                  title: `Reunión: ${ticket.title}`,
+                  description: '',
+                  date: '',
+                  time: '',
+                  type: 'VIRTUAL',
+                  duration: 60
+                });
+                setIsMeetingDialogOpen(true);
+              }}
               className="bg-[#34a853] hover:bg-[#2d8a46] text-white"
             >
               <CalendarPlus className="h-4 w-4 mr-2" />
@@ -344,16 +383,29 @@ export function TicketDetail({
                                   <Badge variant="secondary" className="text-[10px] py-0 h-4 uppercase">{m.status}</Badge>
                                 </span>
                               </div>
+                              {m.lastProposedById === currentUser.id && m.status === 'PROPOSED' && (
+                                <p className="text-[11px] text-[#f9ab00] mt-1 font-medium italic">
+                                  Esperando respuesta de la otra parte...
+                                </p>
+                              )}
                             </div>
                           </div>
                           
-                          {/* Empleado acepta/rechaza */}
-                          {m.status === 'PROPOSED' && ticket.createdBy.id === currentUser.id && (
-                            <div className="flex gap-2">
+                          {/* Acciones de negociación */}
+                          {m.status === 'PROPOSED' && m.lastProposedById !== currentUser.id && (
+                            <div className="flex flex-wrap gap-2 justify-end">
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="text-[#ea4335] hover:bg-[#fce8e6]"
+                                className="text-[#5f6368] border-[#dadce0]"
+                                onClick={() => openReproposeDialog(m)}
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-1" /> Proponer otro horario
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-[#ea4335] hover:bg-[#fce8e6] border-[#ea4335]"
                                 onClick={() => updateStatus(m.id, 'REJECTED')}
                               >
                                 <X className="h-4 w-4 mr-1" /> Rechazar
@@ -507,21 +559,25 @@ export function TicketDetail({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarPlus className="h-5 w-5 text-[#34a853]" />
-              Proponer Reunión
+              {reproposingMeetingId ? 'Proponer otro horario' : 'Proponer Reunión'}
             </DialogTitle>
             <DialogDescription>
-              Propón una fecha y hora para revisar este ticket con el empleado.
+              {reproposingMeetingId 
+                ? 'Sugiere un nuevo horario para esta reunión.' 
+                : 'Propón una fecha y hora para revisar este ticket con el empleado.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Título de la reunión</label>
-              <Input 
-                value={meetingData.title}
-                onChange={(e) => setMeetingData({ ...meetingData, title: e.target.value })}
-              />
-            </div>
+            {!reproposingMeetingId && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Título de la reunión</label>
+                <Input 
+                  value={meetingData.title}
+                  onChange={(e) => setMeetingData({ ...meetingData, title: e.target.value })}
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -543,17 +599,19 @@ export function TicketDetail({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo</label>
-                <select
-                  className="w-full h-10 px-3 py-2 text-sm border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-                  value={meetingData.type}
-                  onChange={(e) => setMeetingData({ ...meetingData, type: e.target.value })}
-                >
-                  <option value="VIRTUAL">Virtual (Meet/Teams)</option>
-                  <option value="PRESENCIAL">Presencial</option>
-                </select>
-              </div>
+              {!reproposingMeetingId && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo</label>
+                  <select
+                    className="w-full h-10 px-3 py-2 text-sm border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                    value={meetingData.type}
+                    onChange={(e) => setMeetingData({ ...meetingData, type: e.target.value })}
+                  >
+                    <option value="VIRTUAL">Virtual (Meet/Teams)</option>
+                    <option value="PRESENCIAL">Presencial</option>
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Duración (min)</label>
                 <Input 
@@ -566,15 +624,17 @@ export function TicketDetail({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Observaciones (opcional)</label>
-              <Textarea 
-                placeholder="Ej: Necesitaremos revisar el acceso al servidor..."
-                value={meetingData.description}
-                onChange={(e) => setMeetingData({ ...meetingData, description: e.target.value })}
-                className="min-h-[80px]"
-              />
-            </div>
+            {!reproposingMeetingId && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Observaciones (opcional)</label>
+                <Textarea 
+                  placeholder="Ej: Necesitaremos revisar el acceso al servidor..."
+                  value={meetingData.description}
+                  onChange={(e) => setMeetingData({ ...meetingData, description: e.target.value })}
+                  className="min-h-[80px]"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -583,10 +643,10 @@ export function TicketDetail({
             </Button>
             <Button 
               className="bg-[#34a853] hover:bg-[#2d8a46] text-white"
-              onClick={handleCreateMeeting}
+              onClick={handleCreateOrReproposeMeeting}
               disabled={!meetingData.date || !meetingData.time}
             >
-              Enviar Propuesta
+              {reproposingMeetingId ? 'Enviar Nueva Propuesta' : 'Enviar Propuesta'}
             </Button>
           </DialogFooter>
         </DialogContent>

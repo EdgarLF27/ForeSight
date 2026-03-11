@@ -50,8 +50,25 @@ export function useMeetings() {
       toast.success(`Reunión ${status.toLowerCase()}`);
       return true;
     } catch (err: any) {
-      toast.error('Error al actualizar estado de la reunión');
+      const message = err.response?.data?.message || 'Error al actualizar estado';
+      toast.error(Array.isArray(message) ? message[0] : message);
       return false;
+    }
+  }, []);
+
+  const repropose = useCallback(async (id: string, data: { scheduledAt: string; duration?: number }) => {
+    try {
+      setIsLoading(true);
+      const { data: updatedMeeting } = await meetingsApi.repropose(id, data);
+      setMeetings(prev => prev.map(m => m.id === id ? { ...m, ...updatedMeeting } : m));
+      toast.success('Nueva propuesta de horario enviada');
+      return true;
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Error al enviar nueva propuesta';
+      toast.error(Array.isArray(message) ? message[0] : message);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -62,5 +79,6 @@ export function useMeetings() {
     loadMeetingsByTicket,
     createProposal,
     updateStatus,
+    repropose,
   };
 }
