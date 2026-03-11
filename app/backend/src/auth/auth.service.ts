@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,6 +15,7 @@ export class AuthService {
       where: { email },
       include: { 
         company: true,
+        area: true, // INCLUIMOS EL ÁREA
         role: {
           include: {
             permissions: true
@@ -55,6 +55,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        area: user.area, // INCLUIMOS EL OBJETO ÁREA COMPLETO
         avatar: user.avatar,
         companyId: user.companyId,
         company: user.company,
@@ -74,7 +75,6 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Determinamos qué rol asignar (siempre buscamos roles de sistema primero)
     let roleName = 'Empleado'; 
     if (data.companyName || data.role === 'EMPRESA') {
       roleName = 'Administrador';
@@ -83,12 +83,6 @@ export class AuthService {
     const role = await this.prisma.role.findFirst({
       where: { name: roleName, isSystem: true }
     });
-
-    if (!role && roleName === 'Administrador') {
-      // Caso de emergencia: si por alguna razón no existe el rol de sistema, 
-      // lo buscamos por nombre sin filtrar por isSystem o lanzamos error claro.
-      throw new Error('El rol de Administrador del sistema no existe. Por favor, ejecuta las semillas (seeds).');
-    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -99,6 +93,7 @@ export class AuthService {
       },
       include: { 
         company: true,
+        area: true, // INCLUIMOS ÁREA
         role: {
           include: { permissions: true }
         }
@@ -121,6 +116,7 @@ export class AuthService {
         data: { companyId: company.id },
         include: { 
           company: true,
+          area: true, // INCLUIMOS ÁREA
           role: {
             include: { permissions: true }
           }
@@ -147,7 +143,10 @@ export class AuthService {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { companyId: company.id },
-      include: { company: true },
+      include: { 
+        company: true,
+        area: true // INCLUIMOS EL ÁREA TRAS UNIRSE
+      },
     });
 
     const { password: _, ...result } = updatedUser;

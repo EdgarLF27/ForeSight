@@ -6,7 +6,8 @@ import {
   Bell, 
   Lock,
   Save,
-  Camera
+  Camera,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,8 +36,15 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
   });
   const [saved, setSaved] = useState(false);
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .filter(n => n.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const handleSave = () => {
@@ -46,7 +54,7 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-[#202124]">Configuración</h1>
@@ -107,17 +115,39 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[#202124]">Rol</p>
-              <p className="text-sm text-[#5f6368]">Tu rol en la plataforma</p>
+          {/* Rol y Área */}
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-[#202124]">Rol asignado</p>
+                <p className="text-sm text-[#5f6368]">Tus permisos actuales</p>
+              </div>
+              <Badge 
+                variant={(user.role as any)?.name === 'Administrador' || (user.role as any)?.name === 'Dueño' ? 'default' : 'secondary'} 
+                className="text-sm px-3 py-1"
+              >
+                {(user.role as any)?.name || 'Sin rol'}
+              </Badge>
             </div>
-            <Badge 
-              variant={(user.role as any)?.name === 'Administrador' || (user.role as any)?.name === 'Dueño' ? 'default' : 'secondary'} 
-              className="text-sm px-3 py-1"
-            >
-              {(user.role as any)?.name || 'Sin rol asignado'}
-            </Badge>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-[#202124]">Área de Trabajo</p>
+                <p className="text-sm text-[#5f6368]">Departamento vinculado</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {(user as any).area ? (
+                  <div className="flex items-center gap-2 text-[#1a73e8] bg-[#e8f0fe] px-3 py-1 rounded-full text-sm font-medium">
+                    <MapPin className="h-3 w-3" />
+                    {(user as any).area.name}
+                  </div>
+                ) : (
+                  <span className="text-xs text-[#5f6368] italic bg-gray-100 px-3 py-1 rounded-full">
+                    No asignada
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end">
@@ -126,7 +156,7 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
               className="bg-[#1a73e8] hover:bg-[#1557b0]"
             >
               <Save className="h-4 w-4 mr-2" />
-              {saved ? 'Guardado!' : 'Guardar cambios'}
+              {saved ? '¡Guardado!' : 'Guardar cambios'}
             </Button>
           </div>
         </CardContent>
@@ -156,14 +186,6 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
                 <Input value={company.inviteCode} disabled className="font-mono" />
               </div>
             </div>
-            {company.description && (
-              <div>
-                <label className="text-sm font-medium text-[#202124] mb-2 block">
-                  Descripción
-                </label>
-                <p className="text-[#5f6368]">{company.description}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
@@ -190,31 +212,11 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
           <div className="flex items-center justify-between py-2">
             <div>
               <p className="font-medium text-[#202124]">Actualizaciones de tickets</p>
-              <p className="text-sm text-[#5f6368]">Notificaciones cuando cambie el estado de un ticket</p>
+              <p className="text-sm text-[#5f6368]">Notificaciones sobre cambios de estado</p>
             </div>
             <Switch 
               checked={notifications.ticketUpdates}
               onCheckedChange={(v) => setNotifications({ ...notifications, ticketUpdates: v })}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <p className="font-medium text-[#202124]">Nuevos comentarios</p>
-              <p className="text-sm text-[#5f6368]">Notificaciones cuando alguien comente en tus tickets</p>
-            </div>
-            <Switch 
-              checked={notifications.newComments}
-              onCheckedChange={(v) => setNotifications({ ...notifications, newComments: v })}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <p className="font-medium text-[#202124]">Actividad del equipo</p>
-              <p className="text-sm text-[#5f6368]">Notificaciones sobre nuevos miembros y cambios</p>
-            </div>
-            <Switch 
-              checked={notifications.teamActivity}
-              onCheckedChange={(v) => setNotifications({ ...notifications, teamActivity: v })}
             />
           </div>
         </CardContent>
@@ -229,30 +231,15 @@ export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-[#202124] mb-2 block">
-              Contraseña actual
-            </label>
-            <Input type="password" placeholder="••••••••" />
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="md:col-span-2">
               <label className="text-sm font-medium text-[#202124] mb-2 block">
-                Nueva contraseña
+                Cambiar contraseña
               </label>
-              <Input type="password" placeholder="••••••••" />
+              <Button variant="outline" className="w-full sm:w-auto">
+                Enviar enlace de restablecimiento
+              </Button>
             </div>
-            <div>
-              <label className="text-sm font-medium text-[#202124] mb-2 block">
-                Confirmar contraseña
-              </label>
-              <Input type="password" placeholder="••••••••" />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button variant="outline">
-              Cambiar contraseña
-            </Button>
           </div>
         </CardContent>
       </Card>

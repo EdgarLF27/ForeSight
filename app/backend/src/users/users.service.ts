@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class UsersService {
     
     const users = await this.prisma.user.findMany({
       where,
-      include: { role: true },
+      include: { role: true, area: true },
     });
 
     return users.map(({ password, ...u }) => u);
@@ -19,7 +19,7 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: { company: true },
+      include: { company: true, role: true, area: true },
     });
 
     if (!user) {
@@ -33,17 +33,17 @@ export class UsersService {
   async findByCompany(companyId: string) {
     const users = await this.prisma.user.findMany({
       where: { companyId },
-      include: { role: true },
+      include: { role: true, area: true },
     });
 
     return users.map(({ password, ...u }) => u);
   }
 
-  async update(id: string, data: { name?: string; email?: string; avatar?: string }) {
+  async update(id: string, data: { name?: string; email?: string; avatar?: string; isActive?: boolean }) {
     const user = await this.prisma.user.update({
       where: { id },
       data,
-      include: { company: true, role: true },
+      include: { company: true, role: true, area: true },
     });
 
     const { password, ...result } = user;
@@ -51,20 +51,30 @@ export class UsersService {
   }
 
   async updateArea(id: string, areaId: string | null, companyId: string) {
+    // 1. Verificar que el usuario a editar existe y PERTENECE A LA EMPRESA
+    const userToUpdate = await this.prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!userToUpdate) throw new NotFoundException('Usuario no encontrado');
+    
+    // BLOQUEO MULTI-EMPRESA: No puedes editar empleados de otros
+    if (userToUpdate.companyId !== companyId) {
+      throw new ForbiddenException('No tienes permiso para editar este usuario');
+    }
+
+    // 2. Si se asigna un área, verificar que existe y es de la empresa
     if (areaId) {
-      // Verificar que el área existe y pertenece a la empresa
       const area = await this.prisma.area.findFirst({
-        where: {
-          id: areaId,
-          companyId
-        }
+        where: { id: areaId, companyId }
       });
 
       if (!area) {
-        throw new NotFoundException('El área especificada no existe o no pertenece a tu empresa');
+        throw new NotFoundException('El área especificada no es válida para tu organización');
       }
     }
 
+    // 3. Ejecutar la actualización
     const user = await this.prisma.user.update({
       where: { id },
       data: { areaId },
@@ -76,20 +86,21 @@ export class UsersService {
   }
 
   async updateRole(id: string, roleId: string, companyId: string) {
-    // Verificar que el rol existe y pertenece a la empresa (o es de sistema)
+    // 1. Verificar pertenencia a la empresa
+    const userToUpdate = await this.prisma.user.findUnique({ where: { id } });
+    if (!userToUpdate || userToUpdate.companyId !== companyId) {
+      throw new ForbiddenException('No puedes cambiar el rol de este usuario');
+    }
+
+    // 2. Verificar que el rol existe y es accesible
     const role = await this.prisma.role.findFirst({
       where: {
         id: roleId,
-        OR: [
-          { companyId },
-          { isSystem: true }
-        ]
+        OR: [{ companyId }, { isSystem: true }]
       }
     });
 
-    if (!role) {
-      throw new NotFoundException('El rol especificado no existe o no pertenece a tu empresa');
-    }
+    if (!role) throw new NotFoundException('Rol no válido');
 
     const user = await this.prisma.user.update({
       where: { id },
