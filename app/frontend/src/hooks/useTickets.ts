@@ -22,12 +22,17 @@ export function useTickets() {
 
   const createTicket = useCallback(async (ticketData: any): Promise<Ticket | null> => {
     try {
+      setIsLoading(true);
+      setError(null);
       const { data } = await ticketsApi.create(ticketData);
       setTickets(prev => [data, ...prev]);
       return data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear ticket');
-      return null;
+      const message = err.response?.data?.message || 'Error al crear ticket';
+      setError(message);
+      throw err; // Relanzamos para que App.tsx lo capture
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 

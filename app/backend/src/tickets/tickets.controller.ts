@@ -40,6 +40,14 @@ export class TicketsController {
     return this.ticketsService.claim(id, userId, companyId);
   }
 
+  @Put(':id/unclaim')
+  async unclaim(@Param('id') id: string, @Request() req) {
+    const companyId = req.user.user.companyId;
+    const userId = req.user.userId;
+    
+    return this.ticketsService.unclaim(id, userId, companyId, req.user.user);
+  }
+
   @Get('stats')
   async getStats(@Request() req) {
     const companyId = req.user.user.companyId;
@@ -59,6 +67,8 @@ export class TicketsController {
 
   @Post()
   async create(@Body() createDto: CreateTicketDto, @Request() req) {
+    // Registro de depuración para confirmar que el controlador recibe los datos
+    console.log('Creando ticket con datos:', JSON.stringify(createDto));
     const companyId = req.user.user.companyId;
     
     if (!companyId) {

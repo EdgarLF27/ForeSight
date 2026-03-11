@@ -75,8 +75,11 @@ export const usersApi = {
   updateMe: (data: { name?: string; email?: string; avatar?: string }) =>
     api.put('/users/me', data),
 
-  updateRole: (id: string, roleId: string) =>
+  updateUserRole: (id: string, roleId: string) => 
     api.patch(`/users/${id}/role`, { roleId }),
+
+  updateUserArea: (id: string, areaId: string | null) => 
+    api.patch(`/users/${id}/area`, { areaId }),
 };
 
 // Companies API
@@ -106,6 +109,7 @@ export const ticketsApi = {
     priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     category?: string;
     assignedToId?: string;
+    areaId?: string;
   }) => api.post('/tickets', data),
   
   update: (id: string, data: any) => api.put(`/tickets/${id}`, data),
@@ -124,6 +128,35 @@ export const commentsApi = {
     api.post('/comments', data),
   
   delete: (id: string) => api.delete(`/comments/${id}`),
+};
+
+export const areasApi = {
+  getAll: () => api.get('/areas'),
+  create: (data: { name: string; description?: string }) => api.post('/areas', data),
+  update: (id: string, data: { name: string; description?: string }) => api.put(`/areas/${id}`, data),
+  delete: (id: string) => api.delete(`/areas/${id}`),
+};
+
+export const meetingsApi = {
+  getByTicket: (ticketId: string) => api.get(`/meetings/ticket/${ticketId}`),
+  getMyMeetings: () => api.get('/meetings/my-meetings'),
+  createProposal: (data: {
+    title: string;
+    description?: string;
+    scheduledAt: string;
+    duration?: number;
+    type: string;
+    ticketId: string;
+  }) => api.post('/meetings', data),
+  updateStatus: (id: string, status: string) => api.put(`/meetings/${id}/status`, { status }),
+  repropose: (id: string, data: { scheduledAt: string; duration?: number }) =>
+    api.put(`/meetings/${id}/repropose`, data),
+};
+
+export const notificationsApi = {
+  getAll: () => api.get('/notifications'),
+  markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/mark-all-read'),
 };
 
 export default api;

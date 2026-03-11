@@ -52,6 +52,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             comments: true,
@@ -101,6 +107,44 @@ export class TicketsService {
     });
   }
 
+  async unclaim(ticketId: string, userId: string, companyId: string, user: any) {
+    const ticketData = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticketData) {
+      throw new NotFoundException('Ticket no encontrado');
+    }
+
+    if (ticketData.companyId !== companyId) {
+      throw new ForbiddenException('No tienes acceso a este ticket');
+    }
+
+    const isAdmin = user.role?.name === 'Administrador';
+    
+    // Solo puede des-reclamar si es el asignado o es administrador
+    if (ticketData.assignedToId !== userId && !isAdmin) {
+      throw new ForbiddenException('No puedes liberar un ticket que no tienes asignado');
+    }
+
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignedToId: null,
+        status: 'OPEN',
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string, userCompanyId?: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
@@ -119,6 +163,12 @@ export class TicketsService {
             name: true,
             email: true,
             avatar: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         company: {
@@ -158,21 +208,30 @@ export class TicketsService {
   async create(data: {
     title: string;
     description: string;
-    priority: TicketPriority;
+    priority: any;
     category?: string;
     companyId: string;
     createdById: string;
     assignedToId?: string;
+    areaId?: string;
   }) {
+    // Validar prioridad para Prisma Enum
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+    const priority = validPriorities.includes(data.priority) ? data.priority : 'MEDIUM';
+
+    // Limpiar areaId si viene vacío
+    const areaId = (data.areaId && data.areaId.trim() !== '') ? data.areaId : null;
+
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
-        priority: data.priority,
-        category: data.category,
+        priority: priority,
+        category: data.category || 'General',
         companyId: data.companyId,
         createdById: data.createdById,
         assignedToId: data.assignedToId,
+        areaId: areaId,
       },
       include: {
         createdBy: {
@@ -191,6 +250,12 @@ export class TicketsService {
             avatar: true,
           },
         },
+        area: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -206,6 +271,7 @@ export class TicketsService {
       priority?: TicketPriority;
       category?: string;
       assignedToId?: string | null;
+      areaId?: string;
     },
     userCompanyId?: string,
   ) {
@@ -239,6 +305,12 @@ export class TicketsService {
             name: true,
             email: true,
             avatar: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

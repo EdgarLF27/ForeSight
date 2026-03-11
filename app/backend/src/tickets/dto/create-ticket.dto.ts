@@ -1,17 +1,14 @@
-import { IsString, IsEnum, IsOptional, MinLength } from 'class-validator';
-import { TicketPriority } from '@prisma/client';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()
-  @MinLength(3, { message: 'El título debe tener al menos 3 caracteres' })
   title: string;
 
   @IsString()
-  @MinLength(5, { message: 'La descripción debe tener al menos 5 caracteres' })
   description: string;
 
-  @IsEnum(TicketPriority, { message: 'Prioridad inválida' })
-  priority: TicketPriority;
+  @IsString()
+  priority: string;
 
   @IsOptional()
   @IsString()
@@ -20,4 +17,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   assignedToId?: string;
+
+  @IsOptional()
+  @IsString()
+  areaId?: string;
 }

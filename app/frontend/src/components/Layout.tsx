@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Menu, 
   X, 
@@ -10,7 +10,9 @@ import {
   Bell,
   ChevronDown,
   Building2,
-  Shield
+  Shield,
+  MapPin,
+  CheckCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -22,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useNotifications } from '@/hooks/useNotifications';
 import type { User, Company } from '@/types';
 
 interface LayoutProps {
@@ -38,11 +41,20 @@ const navItems = [
   { id: 'tickets', label: 'Tickets', icon: Ticket },
   { id: 'team', label: 'Equipo', icon: Users },
   { id: 'roles', label: 'Roles', icon: Shield },
+  { id: 'areas', label: 'Áreas', icon: MapPin },
   { id: 'settings', label: 'Configuración', icon: Settings },
 ];
 
 export function Layout({ children, user, company, onLogout, currentPage, onPageChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { notifications, unreadCount, loadNotifications, markRead, markAllRead } = useNotifications();
+
+  useEffect(() => {
+    loadNotifications();
+    // Polling cada 30 segundos para nuevas notificaciones
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -89,10 +101,58 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
 
           {/* Right: Notifications + User */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-[#5f6368]" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#ea4335] rounded-full" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5 text-[#5f6368]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-[#ea4335] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-[#dadce0]">
+                  <span className="font-semibold text-sm">Notificaciones</span>
+                  {unreadCount > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-auto p-0 text-xs text-[#1a73e8] hover:bg-transparent"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAllRead();
+                      }}
+                    >
+                      Marcar todas como leídas
+                    </Button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-[#5f6368]">
+                    No tienes notificaciones
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <DropdownMenuItem 
+                      key={n.id} 
+                      className={`px-4 py-3 flex flex-col items-start gap-1 focus:bg-gray-50 cursor-default ${!n.read ? 'bg-blue-50/50' : ''}`}
+                      onClick={() => !n.read && markRead(n.id)}
+                    >
+                      <div className="flex justify-between w-full gap-2">
+                        <span className={`text-sm ${!n.read ? 'font-bold' : 'font-medium'} text-[#202124]`}>{n.title}</span>
+                        {!n.read && <div className="w-2 h-2 bg-[#1a73e8] rounded-full mt-1.5 flex-shrink-0" />}
+                      </div>
+                      <p className="text-xs text-[#5f6368] line-clamp-2">{n.message}</p>
+                      <span className="text-[10px] text-[#80868b] mt-1">
+                        {new Date(n.createdAt).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                      </span>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -142,8 +202,8 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
             
             const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
             
-            // Ocultar "Equipo" y "Roles" para empleados
-            if ((item.id === 'team' || item.id === 'roles') && !isAdmin) return null;
+            // Ocultar "Equipo", "Roles" y "Áreas" para empleados
+            if ((item.id === 'team' || item.id === 'roles' || item.id === 'areas') && !isAdmin) return null;
             
             return (
               <button

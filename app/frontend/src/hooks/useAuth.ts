@@ -11,30 +11,37 @@ export function useAuth() {
     isAuthenticated: false,
     isLoading: true,
   });
+const loadStoredAuth = useCallback(async () => {
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!stored) {
+    setState(prev => ({ ...prev, isLoading: false }));
+    return;
+  }
 
-  const loadStoredAuth = useCallback(async () => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
+  try {
+    const { token } = JSON.parse(stored);
+    authApi.setToken(token);
 
-    try {
-      const { token, user } = JSON.parse(stored);
-      // Configurar el token en la instancia de axios
-      authApi.setToken(token);
-      
-      setState({
-        user,
-        company: user.company || null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
+    // PASO DE MAESTRO: Pedir al servidor la versión real y actualizada del perfil
+    const { data: user } = await authApi.getProfile();
+
+    setState({
+      user,
+      company: user.company || null,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    // Guardar los datos frescos para la próxima vez
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user }));
+  } catch (error) {
+    console.error("Auth refresh error:", error);
+    // Si el token falló o expiró, limpiamos todo
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem('token');
+    setState(prev => ({ ...prev, isLoading: false }));
+  }
+}, []);
 
   useEffect(() => {
     loadStoredAuth();
@@ -57,6 +64,7 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+      return true;
     } catch (error) {
       console.error("Login hook error:", error);
       return false;

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -13,6 +14,7 @@ model User {
   password  String
   name      String
   avatar    String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -23,20 +25,28 @@ model User {
   roleId    String?
   role      Role?    @relation(fields: [roleId], references: [id])
 
+  areaId    String?
+  area      Area?    @relation(fields: [areaId], references: [id])
+
   ownedCompany Company? @relation("CompanyOwner")
 
   createdTickets Ticket[] @relation("TicketCreator")
   assignedTickets Ticket[] @relation("TicketAssignee")
   comments       Comment[]
+  
+  technicianMeetings Meeting[] @relation("TechnicianMeetings")
+  employeeMeetings   Meeting[] @relation("EmployeeMeetings")
+  notifications      Notification[]
 
   @@map("users")
+  @@index([areaId])
 }
 
 model Role {
   id          String       @id @default(uuid())
   name        String
   description String?
-  isSystem    Boolean      @default(false) // Roles base (Admin, Empleado) creados por defecto
+  isSystem    Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -52,9 +62,9 @@ model Role {
 
 model Permission {
   id          String   @id @default(uuid())
-  name        String   @unique // e.g., "tickets:create"
+  name        String   @unique
   description String?
-  module      String   // Para agrupar (tickets, users, etc.)
+  module      String
   createdAt   DateTime @default(now())
 
   // Relations
@@ -77,9 +87,27 @@ model Company {
 
   members User[]
   roles   Role[]
+  areas   Area[]
   tickets Ticket[]
 
   @@map("companies")
+}
+
+model Area {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  users   User[]
+  tickets Ticket[]
+
+  @@map("areas")
 }
 
 model Ticket {
@@ -97,15 +125,60 @@ model Ticket {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  areaId    String?
+  area      Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User   @relation("TicketCreator", fields: [createdById], references: [id])
 
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
 
+  meetings Meeting[]
   comments Comment[]
 
   @@map("tickets")
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  scheduledAt DateTime
+  duration    Int      @default(60)
+  type        String
+  status      MeetingStatus @default(PROPOSED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  technicianId String
+  technician   User @relation("TechnicianMeetings", fields: [technicianId], references: [id])
+
+  employeeId String
+  employee   User @relation("EmployeeMeetings", fields: [employeeId], references: [id])
+
+  lastProposedById String?
+
+  @@map("meetings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 model Comment {
@@ -121,6 +194,14 @@ model Comment {
   user   User   @relation(fields: [userId], references: [id])
 
   @@map("comments")
+}
+
+enum MeetingStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
 }
 
 enum UserRole {

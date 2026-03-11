@@ -11,11 +11,14 @@ import { TicketDetail } from '@/components/TicketDetail';
 import { TicketsPage } from '@/components/TicketsPage';
 import { TeamPage } from '@/components/TeamPage';
 import { RolesPage } from '@/components/RolesPage';
+import { AreasPage } from '@/components/AreasPage';
 import { SettingsPage } from '@/components/SettingsPage';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+import { useAreas } from '@/hooks/useAreas';
 import type { Ticket, UserRole } from '@/types';
 
-type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'settings';
+type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'settings';
 
 function App() {
   const { 
@@ -57,8 +60,14 @@ function App() {
     members: teamMembers, 
     loadMembers,
     regenerateInviteCode,
-    changeUserRole
+    changeUserRole,
+    changeUserArea
   } = useTeam(company?.id);
+
+  const {
+    areas,
+    loadAreas
+  } = useAreas();
 
   const isAdmin = user?.role === 'Administrador' || (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'EMPRESA';
   const isTechnician = (typeof user?.role === 'object' && user?.role?.name === 'Técnico');
@@ -68,11 +77,12 @@ function App() {
     if (isAuthenticated && company?.id) {
       loadTickets();
       loadMembers();
+      loadAreas();
       if (user?.id) {
         loadMyTickets(true);
       }
     }
-  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets]);
+  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets, loadAreas]);
 
   // Cargar comentarios cuando se selecciona un ticket
   useEffect(() => {
@@ -100,8 +110,17 @@ function App() {
     return await joinCompany(code);
   };
 
-  const handleCreateTicket = (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
-    createTicket(ticketData);
+  const handleCreateTicket = async (ticketData: any): Promise<boolean> => {
+    try {
+      const result = await createTicket(ticketData);
+      return !!result;
+    } catch (err: any) {
+      const serverError = err.response?.data?.message;
+      console.error('ERROR DE VALIDACIÓN:', Array.isArray(serverError) ? serverError.join(', ') : serverError);
+      const message = serverError || 'Error al crear ticket';
+      toast.error(Array.isArray(message) ? message[0] : message);
+      return false;
+    }
   };
 
   const handleViewTicket = (ticket: Ticket) => {
@@ -146,7 +165,7 @@ function App() {
     }
   };
 
-  const handleRegenerateCode = () => {
+  const handleRegenerateCode = async () => {
     if (company) {
       return await regenerateInviteCode();
     }
@@ -212,8 +231,10 @@ function App() {
             <DashboardAdmin
               company={company!}
               tickets={tickets}
+              areas={areas}
               onCreateTicket={handleCreateTicket}
               onViewTicket={handleViewTicket}
+              onUpdateTicket={updateTicket}
             />
           );
         }
@@ -221,6 +242,7 @@ function App() {
           <DashboardEmployee
             company={company}
             tickets={myTickets}
+            areas={areas}
             onCreateTicket={handleCreateTicket}
             onViewTicket={handleViewTicket}
             onJoinCompany={handleJoinCompany}
@@ -231,7 +253,9 @@ function App() {
         return (
           <TicketsPage
             tickets={(isAdmin || isTechnician) ? tickets : myTickets}
+            areas={areas}
             teamMembers={teamMembers}
+            currentUser={user!}
             onCreateTicket={handleCreateTicket}
             onViewTicket={handleViewTicket}
             onUpdateTicket={updateTicket}
@@ -247,6 +271,7 @@ function App() {
               teamMembers={teamMembers}
               onRegenerateCode={handleRegenerateCode}
               onChangeRole={changeUserRole}
+              onChangeArea={changeUserArea}
             />
           );
         }
@@ -255,6 +280,12 @@ function App() {
       case 'roles':
         if (isAdmin) {
           return <RolesPage />;
+        }
+        return null;
+
+      case 'areas':
+        if (isAdmin) {
+          return <AreasPage />;
         }
         return null;
 

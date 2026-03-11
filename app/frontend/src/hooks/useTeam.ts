@@ -37,11 +37,25 @@ export function useTeam(companyId?: string) {
   const changeUserRole = useCallback(async (userId: string, roleId: string) => {
     try {
       setIsLoading(true);
-      await usersApi.updateRole(userId, roleId);
+      await usersApi.updateUserRole(userId, roleId);
       await loadMembers(); // Recargar la lista
       return true;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cambiar rol');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadMembers]);
+
+  const changeUserArea = useCallback(async (userId: string, areaId: string | null) => {
+    try {
+      setIsLoading(true);
+      await usersApi.updateUserArea(userId, areaId);
+      await loadMembers(); // Recargar la lista
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cambiar área');
       return false;
     } finally {
       setIsLoading(false);
@@ -55,5 +69,6 @@ export function useTeam(companyId?: string) {
     loadMembers,
     regenerateInviteCode,
     changeUserRole,
+    changeUserArea,
   };
 }
