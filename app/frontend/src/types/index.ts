@@ -136,6 +136,7 @@ export interface Meeting {
     name: string;
     avatar?: string;
   };
+  lastProposedById?: string;
   createdAt: string;
   updatedAt: string;
 }

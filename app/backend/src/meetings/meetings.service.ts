@@ -79,6 +79,7 @@ export class MeetingsService {
         ticketId,
         technicianId,
         employeeId: ticket.createdById,
+        lastProposedById: technicianId,
       },
       include: {
         employee: {
@@ -88,7 +89,7 @@ export class MeetingsService {
           select: { name: true }
         }
       }
-    });
+    }) as any; // Cast a any para evitar errores de tipado de Prisma en compilación rápida
 
     // 4. Crear notificación para el empleado
     await this.prisma.notification.create({
@@ -101,6 +102,48 @@ export class MeetingsService {
     });
 
     return meeting;
+  }
+
+  async repropose(id: string, userId: string, scheduledAt: string, duration: number = 60) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id },
+      include: { ticket: true, technician: true, employee: true }
+    }) as any;
+
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+
+    // Verificar que el usuario es parte de la reunión
+    if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
+      throw new ForbiddenException('No tienes permiso para reprogramar esta reunión');
+    }
+
+    const startTime = new Date(scheduledAt);
+    
+    // Actualizar la reunión
+    const updatedMeeting = await this.prisma.meeting.update({
+      where: { id },
+      data: {
+        scheduledAt: startTime,
+        duration,
+        status: 'PROPOSED',
+        lastProposedById: userId,
+      }
+    });
+
+    // Notificar a la otra parte
+    const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
+    const proposerName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
+
+    await this.prisma.notification.create({
+      data: {
+        userId: otherUserId,
+        title: 'Nueva propuesta de horario',
+        message: `${proposerName} ha sugerido un nuevo horario para la reunión del ticket: ${meeting.ticket.title}`,
+        type: 'MEETING_REPROPOSAL',
+      }
+    });
+
+    return updatedMeeting;
   }
 
   async findByTicket(ticketId: string) {
@@ -134,13 +177,23 @@ export class MeetingsService {
   async updateStatus(id: string, userId: string, status: MeetingStatus) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { id },
-    });
+    }) as any;
 
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
 
-    // Solo el empleado puede aceptar/rechazar propuestas
-    if (meeting.employeeId !== userId && status !== 'CANCELLED') {
-      throw new ForbiddenException('No tienes permiso para cambiar el estado de esta reunión');
+    // Validaciones de permiso para aceptar/rechazar
+    if (status === 'ACCEPTED' || status === 'REJECTED') {
+      if (meeting.lastProposedById === userId) {
+        throw new ForbiddenException('No puedes aceptar tu propia propuesta. Espera a que la otra parte responda.');
+      }
+      
+      if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
+        throw new ForbiddenException('No eres parte de esta reunión.');
+      }
+    } else if (status === 'CANCELLED') {
+      if (meeting.technicianId !== userId && meeting.employeeId !== userId) {
+        throw new ForbiddenException('No tienes permiso para cancelar esta reunión.');
+      }
     }
 
     return this.prisma.meeting.update({

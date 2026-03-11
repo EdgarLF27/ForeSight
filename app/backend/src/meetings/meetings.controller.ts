@@ -47,4 +47,14 @@ export class MeetingsController {
   ) {
     return this.meetingsService.updateStatus(id, req.user.userId, status);
   }
+
+  @Put(':id/repropose')
+  async repropose(
+    @Param('id') id: string,
+    @Body('scheduledAt') scheduledAt: string,
+    @Body('duration') duration: number,
+    @Request() req,
+  ) {
+    return this.meetingsService.repropose(id, req.user.userId, scheduledAt, duration);
+  }
 }
