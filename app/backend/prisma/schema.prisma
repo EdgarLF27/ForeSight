@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -86,7 +87,6 @@ model Company {
   roles   Role[]
   areas   Area[]
   tickets Ticket[]
-  areas   Area[]
 
   @@map("companies")
 }
@@ -102,6 +102,7 @@ model Area {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  users   User[]
   tickets Ticket[]
 
   @@map("areas")
@@ -123,16 +124,13 @@ model Ticket {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   areaId    String?
-  area      Area?   @relation(fields: [areaId], references: [id])
+  area      Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
 
   createdById String
   createdBy   User   @relation("TicketCreator", fields: [createdById], references: [id])
 
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
-
-  areaId String?
-  area   Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
 
   meetings Meeting[]
   comments Comment[]

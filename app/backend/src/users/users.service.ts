@@ -50,6 +50,31 @@ export class UsersService {
     return result;
   }
 
+  async updateArea(id: string, areaId: string | null, companyId: string) {
+    if (areaId) {
+      // Verificar que el área existe y pertenece a la empresa
+      const area = await this.prisma.area.findFirst({
+        where: {
+          id: areaId,
+          companyId
+        }
+      });
+
+      if (!area) {
+        throw new NotFoundException('El área especificada no existe o no pertenece a tu empresa');
+      }
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { areaId },
+      include: { role: true, area: true }
+    });
+
+    const { password, ...result } = user;
+    return result;
+  }
+
   async updateRole(id: string, roleId: string, companyId: string) {
     // Verificar que el rol existe y pertenece a la empresa (o es de sistema)
     const role = await this.prisma.role.findFirst({

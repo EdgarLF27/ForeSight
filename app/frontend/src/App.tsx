@@ -60,7 +60,8 @@ function App() {
     members: teamMembers, 
     loadMembers,
     regenerateInviteCode,
-    changeUserRole
+    changeUserRole,
+    changeUserArea
   } = useTeam(company?.id);
 
   const {
@@ -270,6 +271,7 @@ function App() {
               teamMembers={teamMembers}
               onRegenerateCode={handleRegenerateCode}
               onChangeRole={changeUserRole}
+              onChangeArea={changeUserArea}
             />
           );
         }

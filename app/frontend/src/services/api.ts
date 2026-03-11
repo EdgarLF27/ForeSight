@@ -75,8 +75,11 @@ export const usersApi = {
   updateMe: (data: { name?: string; email?: string; avatar?: string }) =>
     api.put('/users/me', data),
 
-  updateRole: (id: string, roleId: string) =>
+  updateUserRole: (id: string, roleId: string) => 
     api.patch(`/users/${id}/role`, { roleId }),
+
+  updateUserArea: (id: string, areaId: string | null) => 
+    api.patch(`/users/${id}/area`, { areaId }),
 };
 
 // Companies API
