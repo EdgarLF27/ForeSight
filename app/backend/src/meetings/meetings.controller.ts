@@ -39,6 +39,11 @@ export class MeetingsController {
     return this.meetingsService.findByUser(req.user.userId);
   }
 
+  @Get('agenda')
+  async getAgenda(@Request() req) {
+    return this.meetingsService.findAgenda(req.user.userId);
+  }
+
   @Put(':id/status')
   async updateStatus(
     @Param('id') id: string,

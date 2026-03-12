@@ -12,7 +12,8 @@ import {
   Building2,
   Shield,
   MapPin,
-  CheckCheck
+  CheckCheck,
+  Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -39,6 +40,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'tickets', label: 'Tickets', icon: Ticket },
+  { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'team', label: 'Equipo', icon: Users },
   { id: 'roles', label: 'Roles', icon: Shield },
   { id: 'areas', label: 'Áreas', icon: MapPin },
@@ -201,9 +203,13 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
             const isActive = currentPage === item.id;
             
             const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
-            
+            const isTechnician = (typeof user.role === 'object' && user.role?.name === 'Técnico');
+
             // Ocultar "Equipo", "Roles" y "Áreas" para empleados
             if ((item.id === 'team' || item.id === 'roles' || item.id === 'areas') && !isAdmin) return null;
+            
+            // Ocultar "Agenda" si no es admin ni técnico (opcional, pero según tu requerimiento es para el técnico)
+            if (item.id === 'agenda' && !isAdmin && !isTechnician) return null;
             
             return (
               <button

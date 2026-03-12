@@ -172,4 +172,25 @@ export class MeetingsService {
       data: { status },
     });
   }
+
+  async findAgenda(userId: string) {
+    return this.prisma.meeting.findMany({
+      where: {
+        OR: [
+          { technicianId: userId },
+          { employeeId: userId },
+        ],
+        status: 'ACCEPTED',
+        scheduledAt: {
+          gte: new Date(), // Solo futuras o actuales
+        },
+      },
+      include: {
+        ticket: { select: { title: true } },
+        technician: { select: { name: true, avatar: true } },
+        employee: { select: { name: true, avatar: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
 }

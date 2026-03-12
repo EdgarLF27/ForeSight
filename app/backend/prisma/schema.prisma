@@ -89,7 +89,6 @@ model Company {
   roles   Role[]
   areas   Area[]
   tickets Ticket[]
-  areas   Area[]
 
   @@map("companies")
 }
@@ -106,6 +105,7 @@ model Area {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   tickets Ticket[]
+  users   User[]
 
   @@map("areas")
 }
@@ -133,9 +133,6 @@ model Ticket {
 
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
-
-  areaId String?
-  area   Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
 
   meetings Meeting[]
   comments Comment[]

@@ -12,13 +12,14 @@ import { TicketsPage } from '@/components/TicketsPage';
 import { TeamPage } from '@/components/TeamPage';
 import { RolesPage } from '@/components/RolesPage';
 import { AreasPage } from '@/components/AreasPage';
+import { AgendaPage } from '@/components/AgendaPage';
 import { SettingsPage } from '@/components/SettingsPage';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
 import type { Ticket, UserRole } from '@/types';
 
-type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'settings';
+type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
 
 function App() {
   const { 
@@ -288,6 +289,9 @@ function App() {
           return <AreasPage />;
         }
         return null;
+
+      case 'agenda':
+        return <AgendaPage onViewTicket={handleViewTicket} />;
 
       case 'settings':
         return (
