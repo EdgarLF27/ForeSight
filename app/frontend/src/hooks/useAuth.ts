@@ -11,13 +11,16 @@ export function useAuth() {
     isAuthenticated: false,
     isLoading: true,
   });
+const loadStoredAuth = useCallback(async () => {
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!stored) {
+    setState(prev => ({ ...prev, isLoading: false }));
+    return;
+  }
 
-  const loadStoredAuth = useCallback(async () => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
+  try {
+    const { token } = JSON.parse(stored);
+    authApi.setToken(token);
 
     try {
       const { token, user } = JSON.parse(stored);
@@ -58,6 +61,7 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+      return true;
     } catch (error) {
       console.error("Login hook error:", error);
       return false;

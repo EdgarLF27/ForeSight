@@ -33,6 +33,16 @@ export class UsersController {
     return this.usersService.updateRole(id, updateRoleDto.roleId, req.user.companyId);
   }
 
+  @Patch(':id/area')
+  @Permissions('users:edit')
+  async updateArea(
+    @Param('id') id: string,
+    @Body('areaId') areaId: string | null,
+    @Request() req
+  ) {
+    return this.usersService.updateArea(id, areaId, req.user.companyId);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
