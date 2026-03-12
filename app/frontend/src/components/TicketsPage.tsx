@@ -4,9 +4,11 @@ import {
   Search, 
   Filter, 
   ArrowRight,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   MapPin,
-  ClipboardList,
-  UserCheck
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,24 +21,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
 import type { Ticket, Area, User } from '@/types';
-
 import { toast } from 'sonner';
 
 interface TicketsPageProps {
   tickets: Ticket[];
   areas: Area[];
-  teamMembers: any[];
-  currentUser: User; // Añadido para filtrar por usuario actual
+  teamMembers: User[];
+  currentUser: User;
   onCreateTicket: (ticket: any) => Promise<boolean>;
   onViewTicket: (ticket: Ticket) => void;
-  onUpdateTicket: (ticketId: string, updates: any) => void;
+  onUpdateTicket: (id: string, data: any) => Promise<boolean>;
 }
 
 const statusConfig = {
@@ -46,19 +41,22 @@ const statusConfig = {
   CLOSED: { label: 'Cerrado', color: 'bg-[#5f6368]', textColor: 'text-[#5f6368]', bgColor: 'bg-[#f1f3f4]' },
 };
 
-export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onViewTicket }: TicketsPageProps) {
+const priorityConfig = {
+  LOW: { label: 'Baja', color: 'bg-gray-100', textColor: 'text-gray-600' },
+  MEDIUM: { label: 'Media', color: 'bg-blue-100', textColor: 'text-blue-600' },
+  HIGH: { label: 'Alta', color: 'bg-orange-100', textColor: 'text-orange-600' },
+  URGENT: { label: 'Urgente', color: 'bg-red-100', textColor: 'text-red-600' },
+};
+
+export function TicketsPage({ 
+  tickets, 
+  areas, 
+  currentUser,
+  onCreateTicket, 
+  onViewTicket 
+}: TicketsPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  
-  // Estados para filtros
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
-
-  const isTechnician = (typeof currentUser.role === 'object' && currentUser.role?.name === 'Técnico');
-  const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && currentUser.role?.name === 'Administrador') || currentUser.role === 'EMPRESA';
-
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
@@ -67,39 +65,26 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
     areaId: '',
   });
 
-  const getFilteredTickets = (tab: string) => {
-    return tickets.filter(ticket => {
-      // Filtro por pestaña (solo si es técnico)
-      if (tab === 'claimed' && ticket.assignedToId !== currentUser.id) return false;
-
-      const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
-      const matchesArea = areaFilter === 'all' || ticket.areaId === areaFilter;
-
-      return matchesSearch && matchesStatus && matchesPriority && matchesArea;
-    });
-  };
-
-  const filteredTickets = getFilteredTickets(activeTab);
-  const claimedCount = tickets.filter(t => t.assignedToId === currentUser.id).length;
+  const filteredTickets = tickets.filter(ticket => 
+    ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleCreateTicket = async () => {
     if (!newTicket.title || !newTicket.description) return;
 
-    // Solo enviamos exactamente lo que el DTO espera
-    const ticketPayload: any = {
+    if (!newTicket.areaId) {
+      toast.error('Debes asignar el ticket a un área específica');
+      return;
+    }
+
+    const success = await onCreateTicket({
       title: newTicket.title,
       description: newTicket.description,
       priority: newTicket.priority,
-    };
-
-    if (newTicket.category) ticketPayload.category = newTicket.category;
-    if (newTicket.areaId) ticketPayload.areaId = newTicket.areaId;
-
-    const success = await onCreateTicket(ticketPayload);
+      category: newTicket.category,
+      areaId: newTicket.areaId,
+    });
 
     if (success) {
       toast.success('Ticket creado correctamente');
@@ -118,14 +103,8 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#202124]">
-            {(!isTechnician && !isAdmin) ? 'Tus tickets creados' : 'Tickets'}
-          </h1>
-          <p className="text-[#5f6368]">
-            {(!isTechnician && !isAdmin) 
-              ? 'Listado de incidencias que has reportado' 
-              : 'Listado completo de incidencias y solicitudes'}
-          </p>
+          <h1 className="text-2xl font-semibold text-[#202124]">Tickets</h1>
+          <p className="text-[#5f6368]">Listado completo de incidencias y solicitudes</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -160,15 +139,17 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
                   className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8] min-h-[100px] resize-none"
                 />
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#202124]">Área (opcional)</label>
+                  <label className="text-sm font-medium text-[#202124]">Área Responsable</label>
                   <select
                     value={newTicket.areaId}
                     onChange={(e) => setNewTicket({ ...newTicket, areaId: e.target.value })}
                     className="w-full mt-1 px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
+                    required
                   >
-                    <option value="">Selecciona un área</option>
+                    <option value="">-- Seleccionar Área --</option>
                     {areas.map(area => (
                       <option key={area.id} value={area.id}>{area.name}</option>
                     ))}
@@ -188,6 +169,7 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
                   </select>
                 </div>
               </div>
+
               <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancelar
@@ -195,7 +177,7 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
                 <Button 
                   className="bg-[#1a73e8] hover:bg-[#1557b0]"
                   onClick={handleCreateTicket}
-                  disabled={!newTicket.title || !newTicket.description}
+                  disabled={!newTicket.title || !newTicket.description || !newTicket.areaId}
                 >
                   Crear ticket
                 </Button>
@@ -205,150 +187,93 @@ export function TicketsPage({ tickets, areas, currentUser, onCreateTicket, onVie
         </Dialog>
       </div>
 
-      {isTechnician && (
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-transparent border-b border-[#dadce0] w-full justify-start rounded-none h-auto p-0 gap-6">
-            <TabsTrigger 
-              value="all" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium"
-            >
-              <ClipboardList className="h-4 w-4 mr-2" />
-              Todos los tickets ({tickets.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="claimed" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium text-[#1a73e8]"
-            >
-              <UserCheck className="h-4 w-4 mr-2" />
-              Mis reclamados ({claimedCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
-      <div className="space-y-4">
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
-            <Input 
-              placeholder="Buscar por título o descripción..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || areaFilter !== 'all' || searchTerm) && (
-            <Button 
-              variant="ghost" 
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setPriorityFilter('all');
-                setAreaFilter('all');
-              }}
-              className="text-[#5f6368]"
-            >
-              Limpiar
-            </Button>
-          )}
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
+          <Input 
+            placeholder="Buscar por título o descripción..." 
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-sm border border-[#dadce0] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="OPEN">Abiertos</option>
-            <option value="IN_PROGRESS">En progreso</option>
-            <option value="RESOLVED">Resueltos</option>
-            <option value="CLOSED">Cerrados</option>
-          </select>
-
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-sm border border-[#dadce0] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-          >
-            <option value="all">Todas las prioridades</option>
-            <option value="LOW">Baja</option>
-            <option value="MEDIUM">Media</option>
-            <option value="HIGH">Alta</option>
-            <option value="URGENT">Urgente</option>
-          </select>
-
-          <select
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-            className="text-sm border border-[#dadce0] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-          >
-            <option value="all">Todas las áreas</option>
-            {areas.map(area => (
-              <option key={area.id} value={area.id}>{area.name}</option>
-            ))}
-          </select>
-        </div>
+        <Button variant="outline" className="flex items-center gap-2 text-[#5f6368]">
+          <Filter className="h-4 w-4" />
+          Filtros
+        </Button>
       </div>
 
-      <div className="bg-white border border-[#dadce0] rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#dadce0] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f8f9fa] border-b border-[#dadce0]">
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Ticket</th>
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Área</th>
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Creado por</th>
-                <th className="px-6 py-3 text-xs font-semibold text-[#5f6368] uppercase tracking-wider"></th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider">Ticket</th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider">Área</th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider">Prioridad</th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-4 text-xs font-bold text-[#5f6368] uppercase tracking-wider"></th>
               </tr>
             </thead>
-            <tbody className="divide-y border-[#dadce0]">
+            <tbody className="divide-y divide-[#f1f3f4]">
               {filteredTickets.map((ticket) => (
                 <tr 
                   key={ticket.id} 
-                  className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                  className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
                   onClick={() => onViewTicket(ticket)}
                 >
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-[#202124] group-hover:text-[#1a73e8] transition-colors">{ticket.title}</p>
-                      <p className="text-xs text-[#5f6368] line-clamp-1">{ticket.description}</p>
+                    <div className="max-w-xs">
+                      <p className="text-sm font-semibold text-[#202124] group-hover:text-[#1a73e8] transition-colors truncate">
+                        {ticket.title}
+                      </p>
+                      <p className="text-xs text-[#5f6368] line-clamp-1 mt-0.5">
+                        {ticket.description}
+                      </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {ticket.area ? (
-                      <div className="flex items-center gap-1 text-sm text-[#1a73e8]">
-                        <MapPin className="h-3 w-3" />
-                        <span>{ticket.area.name}</span>
+                      <div className="flex items-center gap-1.5 text-[#1a73e8]">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">{ticket.area.name}</span>
                       </div>
                     ) : (
-                      <span className="text-xs text-[#80868b] italic">Sin área</span>
+                      <span className="text-xs text-gray-400 italic">No asignada</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge className={`${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor} border-0 text-xs`}>
+                    <Badge className={`${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor} border-0 text-[10px] font-bold uppercase tracking-wider h-5`}>
                       {statusConfig[ticket.status].label}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#5f6368]">
-                    {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
+                  <td className="px-6 py-4">
+                    <Badge variant="outline" className={`${priorityConfig[ticket.priority].color} ${priorityConfig[ticket.priority].textColor} border-none text-[10px] h-5`}>
+                      {priorityConfig[ticket.priority].label}
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#5f6368]">
-                    {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-[#202124] font-medium">
+                        {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
+                      </span>
+                      <span className="text-[10px] text-[#5f6368]">
+                        por {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <ArrowRight className="h-4 w-4 text-[#dadce0] group-hover:text-[#1a73e8] transition-colors ml-auto" />
+                    <ArrowRight className="h-4 w-4 text-[#dadce0] group-hover:text-[#1a73e8] transition-all transform group-hover:translate-x-1" />
                   </td>
                 </tr>
               ))}
               {filteredTickets.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-[#5f6368]">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Search className="h-8 w-8 text-[#dadce0]" />
-                      <p>No se encontraron tickets que coincidan con tu búsqueda</p>
+                      <p className="text-[#5f6368] text-sm">No se encontraron tickets que coincidan con tu búsqueda</p>
                     </div>
                   </td>
                 </tr>
