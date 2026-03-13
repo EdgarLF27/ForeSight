@@ -15,7 +15,7 @@ async function main() {
       password: targetHash,
     },
   });
-
+1
   if (!user) {
     console.error('❌ No se encontró ningún usuario con ese hash de contraseña.');
     return;
