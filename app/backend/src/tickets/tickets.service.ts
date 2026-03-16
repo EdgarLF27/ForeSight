@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TicketsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService
+  ) {}
 
   async findAll(companyId: string, user: any) {
     const { id: userId, role, permissions } = user;
@@ -315,6 +319,27 @@ export class TicketsService {
         },
       },
     });
+
+    // TRIGGER DE NOTIFICACIÓN
+    if (data.assignedToId && data.assignedToId !== ticket.assignedToId) {
+      try {
+        // Notificar al técnico
+        await this.notificationsService.create(data.assignedToId, {
+          title: 'Nuevo ticket asignado',
+          message: `Se te ha asignado el ticket: ${updated.title}`,
+          type: 'TICKET_ASSIGNED',
+        });
+
+        // Notificar al creador (empleado)
+        await this.notificationsService.create(updated.createdById, {
+          title: 'Técnico asignado a tu ticket',
+          message: `El técnico ${updated.assignedTo?.name} ha sido asignado a tu ticket: ${updated.title}`,
+          type: 'TICKET_ASSIGNED_CREATOR',
+        });
+      } catch (error) {
+        console.error('Error enviando notificaciones de asignación:', error);
+      }
+    }
 
     return updated;
   }

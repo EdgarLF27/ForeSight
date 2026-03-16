@@ -77,6 +77,9 @@ export const usersApi = {
 
   updateUserArea: (id: string, areaId: string | null) => 
     api.patch(`/users/${id}/area`, { areaId }),
+
+  getTechnicians: (areaId?: string) => 
+    api.get('/users/technicians', { params: { areaId } }),
 };
 
 // Companies API

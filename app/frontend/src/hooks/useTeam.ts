@@ -4,6 +4,7 @@ import type { User } from '@/types';
 
 export function useTeam(companyId?: string) {
   const [members, setMembers] = useState<User[]>([]);
+  const [technicians, setTechnicians] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +23,18 @@ export function useTeam(companyId?: string) {
       setIsLoading(false);
     }
   }, [companyId]);
+
+  const loadTechnicians = useCallback(async (areaId?: string) => {
+    try {
+      setIsLoading(true);
+      const { data } = await usersApi.getTechnicians(areaId);
+      setTechnicians(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar técnicos');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const regenerateInviteCode = useCallback(async () => {
     if (!companyId) return null;
@@ -64,9 +77,11 @@ export function useTeam(companyId?: string) {
 
   return {
     members,
+    technicians,
     isLoading,
     error,
     loadMembers,
+    loadTechnicians,
     regenerateInviteCode,
     changeUserRole,
     changeUserArea,

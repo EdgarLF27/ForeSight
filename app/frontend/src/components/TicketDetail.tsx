@@ -57,6 +57,7 @@ interface TicketDetailProps {
   comments: Comment[];
   currentUser: User;
   teamMembers: User[];
+  technicians?: any[]; // Añadimos técnicos sugeridos
   onBack: () => void;
   onUpdateStatus: (status: TicketStatus) => void;
   onAssign: (userId: string) => void;
@@ -83,6 +84,7 @@ export function TicketDetail({
   comments,
   currentUser,
   teamMembers,
+  technicians,
   onBack,
   onUpdateStatus,
   onAssign,
@@ -494,17 +496,42 @@ export function TicketDetail({
                   <UserIcon className="h-3 w-3" />
                   Asignado a
                 </label>
-                {currentUser.role === 'EMPRESA' ? (
+                {isOwner ? (
                   <Select 
-                    value={ticket.assignedToId || ''} 
-                    onValueChange={onAssign}
+                    value={ticket.assignedToId || 'unassigned'} 
+                    onValueChange={(val) => onAssign(val === 'unassigned' ? '' : val)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sin asignar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin asignar</SelectItem>
-                      {teamMembers.map(member => (
+                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      {/* Mostrar técnicos sugeridos primero */}
+                      {technicians && technicians.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-bold text-[#1a73e8] bg-blue-50">
+                            Técnicos Sugeridos (Misma área)
+                          </div>
+                          {technicians.map(tech => (
+                            <SelectItem key={tech.id} value={tech.id}>
+                              <div className="flex flex-col">
+                                <span>{tech.name}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Carga: {tech._count?.assignedTickets || 0} tickets activos
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <div className="h-px bg-slate-100 my-1" />
+                        </>
+                      )}
+                      {/* Otros miembros del equipo */}
+                      <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground">
+                        Todo el equipo
+                      </div>
+                      {teamMembers
+                        .filter(m => !technicians?.some(t => t.id === m.id))
+                        .map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>

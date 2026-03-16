@@ -60,7 +60,9 @@ function App() {
 
   const { 
     members: teamMembers, 
+    technicians,
     loadMembers,
+    loadTechnicians,
     regenerateInviteCode,
     changeUserRole,
     changeUserArea
@@ -80,18 +82,24 @@ function App() {
       loadTickets();
       loadMembers();
       loadAreas();
+      if (isAdmin) {
+        loadTechnicians();
+      }
       if (user?.id) {
         loadMyTickets(true);
       }
     }
-  }, [isAuthenticated, company?.id, user?.id, loadTickets, loadMembers, loadMyTickets, loadAreas]);
+  }, [isAuthenticated, company?.id, user?.id, isAdmin, loadTickets, loadMembers, loadMyTickets, loadAreas, loadTechnicians]);
 
   // Cargar comentarios cuando se selecciona un ticket
   useEffect(() => {
     if (selectedTicket) {
       loadComments(selectedTicket.id);
+      if (isAdmin) {
+        loadTechnicians(selectedTicket.areaId); // Cargar técnicos específicos del área si es admin
+      }
     }
-  }, [selectedTicket, loadComments]);
+  }, [selectedTicket, loadComments, isAdmin, loadTechnicians]);
 
   // Handlers
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
@@ -205,6 +213,7 @@ function App() {
           comments={comments}
           currentUser={user}
           teamMembers={teamMembers}
+          technicians={technicians}
           onBack={handleBackFromTicket}
           onUpdateStatus={handleUpdateTicketStatus}
           onAssign={handleAssignTicket}

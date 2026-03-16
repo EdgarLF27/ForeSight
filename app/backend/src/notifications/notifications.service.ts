@@ -5,6 +5,15 @@ import { PrismaService } from '../prisma/prisma.service';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
+  async create(userId: string, data: { title: string; message: string; type: string }) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        ...data,
+      },
+    });
+  }
+
   async findAll(userId: string) {
     return this.prisma.notification.findMany({
       where: { userId },
