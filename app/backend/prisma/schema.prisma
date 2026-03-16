@@ -37,6 +37,7 @@ model User {
   technicianMeetings Meeting[] @relation("TechnicianMeetings")
   employeeMeetings   Meeting[] @relation("EmployeeMeetings")
   notifications      Notification[]
+  activities         TicketActivity[]
 
   @@map("users")
   @@index([areaId])
@@ -106,7 +107,6 @@ model Area {
 
   users   User[]
   tickets Ticket[]
-  users   User[]
 
   @@map("areas")
 }
@@ -135,10 +135,27 @@ model Ticket {
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
 
-  meetings Meeting[]
-  comments Comment[]
+  meetings   Meeting[]
+  comments   Comment[]
+  activities TicketActivity[]
 
   @@map("tickets")
+}
+
+model TicketActivity {
+  id        String   @id @default(uuid())
+  ticketId  String
+  userId    String
+  action    String   // 'CREATED', 'STATUS_CHANGE', 'ASSIGNED', 'UNASSIGNED', 'PRIORITY_CHANGE'
+  details   String?  // Detalles legibles: "De OPEN a IN_PROGRESS"
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("ticket_activities")
+  @@index([ticketId])
+  @@index([userId])
 }
 
 model Meeting {
