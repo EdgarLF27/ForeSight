@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
+import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,9 +10,10 @@ interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
   onJoinCompany: (code: string) => Promise<boolean>;
+  onBack?: () => void;
 }
 
-export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) {
+export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -116,7 +117,17 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-900 lg:text-white transition-colors"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+      )}
+
       {/* Left Side - Illustration */}
       <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#34a853] relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10" />

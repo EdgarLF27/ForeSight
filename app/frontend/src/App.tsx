@@ -5,6 +5,7 @@ import { useComments } from '@/hooks/useComments';
 import { useTeam } from '@/hooks/useTeam';
 import { Layout } from '@/components/Layout';
 import { AuthPage } from '@/components/AuthPage';
+import { LandingPage } from '@/components/LandingPage';
 import { DashboardAdmin } from '@/components/DashboardAdmin';
 import { DashboardEmployee } from '@/components/DashboardEmployee';
 import { TicketDetail } from '@/components/TicketDetail';
@@ -37,6 +38,7 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   // Hooks para tickets
   const { 
@@ -179,15 +181,19 @@ function App() {
     return <LoadingState message="Sincronizando con ForeSight..." />;
   }
 
-  // Mostrar login si no está autenticado
+  // Mostrar landing o auth si no está autenticado
   if (!isAuthenticated || !user) {
-    return (
-      <AuthPage 
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onJoinCompany={handleJoinCompany}
-      />
-    );
+    if (showAuth) {
+      return (
+        <AuthPage 
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onJoinCompany={handleJoinCompany}
+          onBack={() => setShowAuth(false)}
+        />
+      );
+    }
+    return <LandingPage onNavigateToAuth={() => setShowAuth(true)} />;
   }
 
   // Mostrar detalle de ticket si hay uno seleccionado
