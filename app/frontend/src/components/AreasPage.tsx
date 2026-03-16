@@ -51,7 +51,7 @@ export function AreasPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedArea, setSelectedMember] = useState<Area | null>(null);
+  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   
   // Estado para formularios
   const [formData, setFormData] = useState({ name: '', description: '' });
@@ -65,7 +65,7 @@ export function AreasPage() {
   const filteredAreas = useMemo(() => {
     return areas.filter(area => 
       area.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      area.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      (area.description || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [areas, searchQuery]);
 
@@ -75,38 +75,36 @@ export function AreasPage() {
   };
 
   const handleOpenEdit = (area: Area) => {
-    setSelectedMember(area);
+    setSelectedArea(area);
     setFormData({ name: area.name, description: area.description || '' });
     setIsEditDialogOpen(true);
   };
 
   const handleOpenDelete = (area: Area) => {
-    setSelectedMember(area);
+    setSelectedArea(area);
     setIsDeleteDialogOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return toast.error('El nombre es obligatorio');
+    if (formData.name.trim().length < 2) return toast.error('El nombre debe tener al menos 2 caracteres');
 
     setIsActionLoading(true);
     try {
-      let success;
       if (isAddDialogOpen) {
-        success = await createArea(formData);
-        if (success) {
-          toast.success('Área creada exitosamente');
-          setIsAddDialogOpen(false);
-        }
-      } else {
-        success = await updateArea(selectedArea!.id, formData);
-        if (success) {
-          toast.success('Área actualizada');
-          setIsEditDialogOpen(false);
-        }
+        await createArea(formData);
+        toast.success('Área creada exitosamente');
+        setIsAddDialogOpen(false);
+      } else if (selectedArea) {
+        await updateArea(selectedArea.id, formData);
+        toast.success('Área actualizada');
+        setIsEditDialogOpen(false);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al procesar la solicitud');
+      // El hook ya seteó el error, pero el toast da feedback inmediato
+      const msg = err.response?.data?.message || 'Error al procesar la solicitud';
+      toast.error(msg);
     } finally {
       setIsActionLoading(false);
     }
@@ -120,12 +118,12 @@ export function AreasPage() {
     setIsActionLoading(false);
     
     if (success) {
-      toast.success('Área eliminada');
+      toast.success('Área eliminada exitosamente');
       setIsDeleteDialogOpen(false);
     } else {
-      // El error lo maneja el hook, pero mostramos un toast extra
+      // El hook ya maneja el error básico, pero mostramos un toast específico de integridad
       toast.error('No se pudo eliminar el área', {
-        description: 'Verifica si tiene tickets o empleados asociados.'
+        description: 'Asegúrate de que no tenga tickets ni empleados asociados.'
       });
     }
   };

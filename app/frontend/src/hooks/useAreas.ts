@@ -20,36 +20,48 @@ export function useAreas() {
     }
   }, []);
 
-  const createArea = useCallback(async (name: string, description?: string) => {
+  const createArea = useCallback(async (formData: { name: string; description?: string }) => {
     try {
-      const { data } = await areasApi.create({ name, description });
+      setIsLoading(true);
+      const { data } = await areasApi.create(formData);
       setAreas(prev => [...prev, data]);
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear área');
-      return false;
+      const msg = err.response?.data?.message || 'Error al crear área';
+      setError(msg);
+      throw err; // Lanzamos el error para que el componente lo maneje con toast
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const updateArea = useCallback(async (id: string, name: string, description?: string) => {
+  const updateArea = useCallback(async (id: string, formData: { name: string; description?: string }) => {
     try {
-      const { data } = await areasApi.update(id, { name, description });
+      setIsLoading(true);
+      const { data } = await areasApi.update(id, formData);
       setAreas(prev => prev.map(a => a.id === id ? data : a));
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al actualizar área');
-      return false;
+      const msg = err.response?.data?.message || 'Error al actualizar área';
+      setError(msg);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   const deleteArea = useCallback(async (id: string) => {
     try {
+      setIsLoading(true);
       await areasApi.delete(id);
       setAreas(prev => prev.filter(a => a.id !== id));
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al eliminar área');
+      const msg = err.response?.data?.message || 'Error al eliminar área';
+      setError(msg);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
