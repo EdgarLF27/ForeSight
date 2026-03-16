@@ -1,7 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/node
 # Edit at https://www.toptal.com/developers/gitignore?templates=node
 
+#GEMINI context
+GEMINI.md
 #Dev VS Code Settings
+
 .vscode/
 
 #SQL Files ( Prisma)

@@ -13,7 +13,9 @@ const api: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Buscar el token en las llaves conocidas
+    const token = localStorage.getItem('foresight_token') || localStorage.getItem('token');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,12 +28,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
+    // Si el error es 401, el hook useAuth se encargará de validar si debe desloguear
     return Promise.reject(error);
   }
 );
@@ -140,6 +137,7 @@ export const areasApi = {
 export const meetingsApi = {
   getByTicket: (ticketId: string) => api.get(`/meetings/ticket/${ticketId}`),
   getMyMeetings: () => api.get('/meetings/my-meetings'),
+  getAgenda: () => api.get('/meetings/agenda'),
   createProposal: (data: {
     title: string;
     description?: string;

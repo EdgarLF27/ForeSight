@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 export function useMeetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [agenda, setAgenda] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,6 +16,18 @@ export function useMeetings() {
       setMeetings(data);
     } catch (err: any) {
       console.error('Error al cargar reuniones:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadAgenda = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await meetingsApi.getAgenda();
+      setAgenda(data);
+    } catch (err: any) {
+      console.error('Error al cargar agenda:', err);
     } finally {
       setIsLoading(false);
     }
@@ -74,9 +87,11 @@ export function useMeetings() {
 
   return {
     meetings,
+    agenda,
     isLoading,
     error,
     loadMeetingsByTicket,
+    loadAgenda,
     createProposal,
     updateStatus,
     repropose,

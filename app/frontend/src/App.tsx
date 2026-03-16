@@ -12,13 +12,15 @@ import { TicketsPage } from '@/components/TicketsPage';
 import { TeamPage } from '@/components/TeamPage';
 import { RolesPage } from '@/components/RolesPage';
 import { AreasPage } from '@/components/AreasPage';
+import { AgendaPage } from '@/components/AgendaPage';
 import { SettingsPage } from '@/components/SettingsPage';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
+import { LoadingState } from '@/components/ui/LoadingState';
 import type { Ticket, UserRole } from '@/types';
 
-type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'settings';
+type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
 
 function App() {
   const { 
@@ -174,14 +176,7 @@ function App() {
 
   // Mostrar loading
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
-          <p className="mt-4 text-[#5f6368]">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Sincronizando con ForeSight..." />;
   }
 
   // Mostrar login si no está autenticado
@@ -232,6 +227,7 @@ function App() {
               company={company!}
               tickets={tickets}
               areas={areas}
+              currentUser={user}
               onCreateTicket={handleCreateTicket}
               onViewTicket={handleViewTicket}
               onUpdateTicket={updateTicket}
@@ -288,6 +284,9 @@ function App() {
           return <AreasPage />;
         }
         return null;
+
+      case 'agenda':
+        return <AgendaPage onViewTicket={handleViewTicket} />;
 
       case 'settings':
         return (

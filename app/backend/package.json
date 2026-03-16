@@ -21,7 +21,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:seed:roles": "ts-node prisma/seed.ts --roles",
+    "prisma:seed:demo": "ts-node prisma/seed.ts --demo",
+    "prisma:seed:clear": "ts-node prisma/seed.ts --clear",
+    "prisma:seed:reset": "ts-node prisma/seed.ts --full-reset"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

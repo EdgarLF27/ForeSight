@@ -2,45 +2,69 @@ import { useState, useEffect, useCallback } from 'react';
 import { authApi, usersApi } from '@/services/api';
 import type { UserRole, AuthState } from '@/types';
 
-const AUTH_STORAGE_KEY = 'foresight_auth';
+const TOKEN_KEY = 'foresight_token';
+const USER_KEY = 'foresight_user';
 
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    company: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
+  // INICIALIZACIÓN SINCRÓNICA: Leer del storage antes de que React respire
+  const getInitialState = (): AuthState => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const userStr = localStorage.getItem(USER_KEY);
+    
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        // Validar que el usuario tenga los campos mínimos (como name)
+        if (user && user.name) {
+          return {
+            user,
+            company: user.company || null,
+            isAuthenticated: true,
+            isLoading: false,
+          };
+        }
+      } catch (e) {
+        console.error("Error parseando cache:", e);
+      }
+    }
+    return {
+      user: null,
+      company: null,
+      isAuthenticated: false,
+      isLoading: true, // Empezamos en loading solo si no hay cache
+    };
+  };
+
+  const [state, setState] = useState<AuthState>(getInitialState());
 
   const loadStoredAuth = useCallback(async () => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) {
-      setState(prev => ({ ...prev, isLoading: false }));
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setState(prev => ({ ...prev, isLoading: false, isAuthenticated: false }));
       return;
     }
 
     try {
-      const { token } = JSON.parse(stored);
-      authApi.setToken(token);
-
-      // PASO DE MAESTRO: Pedir al servidor la versión real y actualizada del perfil
-      const { data: user } = await authApi.getProfile();
+      // Validar silenciosamente con el servidor
+      const response = await authApi.getProfile();
+      const freshUser = response.data.user || response.data; // Manejar si el objeto viene envuelto
 
       setState({
-        user,
-        company: user.company || null,
+        user: freshUser,
+        company: freshUser.company || null,
         isAuthenticated: true,
         isLoading: false,
       });
 
-      // Guardar los datos frescos para la próxima vez
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user }));
-    } catch (error) {
-      console.error("Auth refresh error:", error);
-      // Si el token falló o expiró, limpiamos todo
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem('token');
-      setState(prev => ({ ...prev, isLoading: false }));
+      localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        console.warn("Token inválido al refrescar, cerrando sesión.");
+        logout();
+      } else {
+        // Error de red, mantenemos lo que tenemos en cache
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
     }
   }, []);
 
@@ -53,9 +77,8 @@ export function useAuth() {
       const { data } = await authApi.login({ email, password: pass });
       const { access_token, user } = data;
       
-      const authData = { token: access_token, user };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-      localStorage.setItem('token', access_token);
+      localStorage.setItem(TOKEN_KEY, access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       
       authApi.setToken(access_token);
 
@@ -73,8 +96,9 @@ export function useAuth() {
   };
 
   const logout = () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('foresight_auth'); // Limpiar llave vieja
     authApi.setToken(null);
     setState({
       user: null,
@@ -89,9 +113,8 @@ export function useAuth() {
       const { data } = await authApi.register({ name, email, password: pass, role, companyName });
       const { access_token, user } = data;
       
-      const authData = { token: access_token, user };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-      localStorage.setItem('token', access_token);
+      localStorage.setItem(TOKEN_KEY, access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       
       authApi.setToken(access_token);
 
