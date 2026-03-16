@@ -67,8 +67,6 @@ export class TicketsController {
 
   @Post()
   async create(@Body() createDto: CreateTicketDto, @Request() req) {
-    // Registro de depuración para confirmar que el controlador recibe los datos
-    console.log('Creando ticket con datos:', JSON.stringify(createDto));
     const companyId = req.user.user.companyId;
     
     if (!companyId) {

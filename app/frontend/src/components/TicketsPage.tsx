@@ -56,7 +56,14 @@ export function TicketsPage({
   onViewTicket 
 }: TicketsPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
@@ -69,27 +76,55 @@ export function TicketsPage({
   const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico');
   const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Empleado') || currentUser.role === 'EMPLEADO';
 
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (!matchesSearch) return false;
+  const filteredTickets = tickets
+    .filter(ticket => {
+      // Búsqueda por palabra clave
+      const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
 
-    // Lógica de visibilidad para Técnicos
-    if (isTechnician) {
-      const isUnclaimed = !ticket.assignedToId;
-      const isMyClaimed = ticket.assignedToId === currentUser.id;
-      return isUnclaimed || isMyClaimed;
-    }
+      // Filtro de Estado
+      if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
 
-    // Para Empleados, solo sus propios tickets
-    if (isEmployee) {
-      return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
-    }
+      // Filtro de Prioridad
+      if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
 
-    // Admins ven todo
-    return true;
-  });
+      // Filtro de Área
+      if (areaFilter !== 'all' && ticket.areaId !== areaFilter) return false;
+
+      // Lógica de visibilidad para Técnicos
+      if (isTechnician) {
+        const isUnclaimed = !ticket.assignedToId;
+        const isMyClaimed = ticket.assignedToId === currentUser.id;
+        return isUnclaimed || isMyClaimed;
+      }
+
+      // Para Empleados, solo sus propios tickets
+      if (isEmployee) {
+        return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
+      }
+
+      // Admins ven todo
+      return true;
+    })
+    .sort((a, b) => {
+      // Lógica de ordenamiento
+      if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      
+      if (sortBy === 'priority') {
+        const priorityMap = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+        return priorityMap[b.priority as keyof typeof priorityMap] - priorityMap[a.priority as keyof typeof priorityMap];
+      }
+
+      if (sortBy === 'status') {
+        const statusMap = { OPEN: 4, IN_PROGRESS: 3, RESOLVED: 2, CLOSED: 1 };
+        return statusMap[b.status as keyof typeof statusMap] - statusMap[a.status as keyof typeof statusMap];
+      }
+
+      return 0;
+    });
 
   const canCreateTicket = isAdmin || isEmployee;
 
@@ -212,21 +247,107 @@ export function TicketsPage({
         )}
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-4">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
           <Input 
             placeholder="Buscar por título o descripción..." 
-            className="pl-10"
+            className="pl-10 h-10 border-[#dadce0] focus:ring-[#1a73e8]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" className="flex items-center gap-2 text-[#5f6368]">
-          <Filter className="h-4 w-4" />
-          Filtros
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant={showFilters ? "secondary" : "outline"} 
+            className={`flex items-center gap-2 h-10 ${showFilters ? 'bg-blue-50 text-[#1a73e8] border-blue-200' : 'text-[#5f6368]'}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {(statusFilter !== 'all' || priorityFilter !== 'all' || areaFilter !== 'all') && (
+              <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-[#1a73e8]">
+                !
+              </Badge>
+            )}
+          </Button>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-10 px-3 py-2 text-sm border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#1a73e8] bg-white text-[#5f6368] font-medium"
+          >
+            <option value="newest">Más recientes</option>
+            <option value="oldest">Más antiguos</option>
+            <option value="priority">Por Prioridad</option>
+            <option value="status">Por Estado</option>
+          </select>
+        </div>
       </div>
+
+      {/* Panel de Filtros */}
+      {showFilters && (
+        <div className="p-4 bg-gray-50/50 border border-[#dadce0] rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Estado</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="OPEN">Abiertos</option>
+              <option value="IN_PROGRESS">En progreso</option>
+              <option value="RESOLVED">Resueltos</option>
+              <option value="CLOSED">Cerrados</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Prioridad</label>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+            >
+              <option value="all">Todas las prioridades</option>
+              <option value="URGENT">Urgente</option>
+              <option value="HIGH">Alta</option>
+              <option value="MEDIUM">Media</option>
+              <option value="LOW">Baja</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Área</label>
+            <select
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+            >
+              <option value="all">Todas las áreas</option>
+              {areas.map(area => (
+                <option key={area.id} value={area.id}>{area.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="sm:col-span-3 flex justify-end">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs text-[#1a73e8] h-7 hover:bg-blue-50"
+              onClick={() => {
+                setStatusFilter('all');
+                setPriorityFilter('all');
+                setAreaFilter('all');
+              }}
+            >
+              Limpiar filtros
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-[#dadce0] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">

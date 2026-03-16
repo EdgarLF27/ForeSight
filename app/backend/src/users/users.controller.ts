@@ -35,7 +35,6 @@ export class UsersController {
     @Body() updateRoleDto: UpdateUserRoleDto,
     @Request() req
   ) {
-    console.log('API: Intentando cambiar rol para usuario:', id, 'a rol:', updateRoleDto.roleId);
     return this.usersService.updateRole(id, updateRoleDto.roleId, req.user.companyId);
   }
 
