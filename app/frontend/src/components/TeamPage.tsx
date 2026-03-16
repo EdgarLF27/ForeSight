@@ -10,7 +10,10 @@ import {
   Search,
   CheckCircle,
   Building2,
-  MapPin
+  MapPin,
+  ChevronRight,
+  Loader2,
+  Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,14 +133,10 @@ export function TeamPage({
     setIsSaving(false);
     
     if (success) {
-      toast.success('Cambios guardados', {
-        description: `El perfil de ${selectedMember.name} ha sido actualizado.`
-      });
+      toast.success('Cambios guardados');
       setIsEditDialogOpen(false);
     } else {
-      toast.error('Error', {
-        description: 'Algunos cambios no se pudieron guardar.'
-      });
+      toast.error('Error al guardar cambios');
     }
   };
 
@@ -155,179 +154,166 @@ export function TeamPage({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#202124]">Equipo</h1>
-          <p className="text-[#5f6368]">Gestiona los miembros y organiza tu empresa por áreas</p>
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <Users className="h-6 w-6 text-primary" strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Equipo</h1>
+          </div>
+          <p className="text-muted-foreground font-medium">Gestiona los miembros y organiza tu empresa por áreas.</p>
         </div>
       </div>
 
       {/* Invite Code Card */}
-      <Card className="bg-gradient-to-br from-[#1a73e8] to-[#1557b0] text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-        <CardContent className="p-6 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Código de invitación
+      <Card className="bg-card border-none shadow-md rounded-3xl overflow-hidden relative group">
+        <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary" />
+        <CardContent className="p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2.5 uppercase tracking-tight">
+                <UserPlus className="h-5 w-5 text-primary" strokeWidth={2} />
+                Invitación de Equipo
               </h2>
-              <p className="text-white/80 text-sm">
-                Comparte este código para que nuevos empleados se unan a {company.name}
+              <p className="text-muted-foreground text-sm font-medium max-w-md leading-relaxed">
+                Comparte este código para que nuevos empleados se unan automáticamente a <span className="text-primary font-bold">{company.name}</span>.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <code className="bg-white/20 backdrop-blur px-6 py-3 rounded-xl text-2xl font-mono tracking-widest border border-white/20">
-                {inviteCode}
-              </code>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={handleCopyCode}
-                className="h-12 w-12 bg-white/20 hover:bg-white/30 text-white border border-white/10"
-              >
-                {copied ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={handleRegenerateCode}
-                className="h-12 w-12 bg-white/20 hover:bg-white/30 text-white border border-white/10"
-              >
-                <RefreshCw className="h-5 w-5" />
-              </Button>
+              <div className="bg-muted/50 px-6 py-3 rounded-2xl border border-border group-hover:border-primary/30 transition-colors">
+                <code className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">
+                  {inviteCode}
+                </code>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyCode}
+                  className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all shadow-none"
+                  title="Copiar código"
+                >
+                  {copied ? <CheckCircle className="h-5 w-5" strokeWidth={2} /> : <Copy className="h-5 w-5" strokeWidth={2} />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRegenerateCode}
+                  className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all shadow-none"
+                  title="Regenerar código"
+                >
+                  <RefreshCw className="h-5 w-5" strokeWidth={2} />
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#e8f0fe] rounded-xl flex items-center justify-center">
-              <Users className="h-6 w-6 text-[#1a73e8]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">{teamMembers.length}</p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Miembros</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#e6f4ea] rounded-xl flex items-center justify-center">
-              <Shield className="h-6 w-6 text-[#34a853]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">
-                {teamMembers.filter(m => isAdmin(m)).length}
-              </p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Administradores</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#fef3e8] rounded-xl flex items-center justify-center">
-              <MapPin className="h-6 w-6 text-[#f9ab00]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">{areas.length}</p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Áreas activas</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <StatSummaryCard title="Miembros" value={teamMembers.length} icon={<Users className="h-5 w-5 text-primary" strokeWidth={2} />} />
+        <StatSummaryCard title="Administradores" value={teamMembers.filter(m => isAdmin(m)).length} icon={<Shield className="h-5 w-5 text-emerald-500" strokeWidth={2} />} />
+        <StatSummaryCard title="Áreas activas" value={areas.length} icon={<MapPin className="h-5 w-5 text-amber-500" strokeWidth={2} />} />
       </div>
 
       {/* Members List */}
-      <Card className="border-[#dadce0] shadow-sm">
-        <CardHeader className="pb-4 border-b border-[#f1f3f4]">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="text-lg font-semibold text-[#202124]">Miembros de la Organización</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
+      <Card className="border-none shadow-md bg-card rounded-3xl overflow-hidden">
+        <CardHeader className="px-8 py-6 border-b border-border bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <CardTitle className="text-lg font-bold text-foreground uppercase tracking-tight">Directorio de Miembros</CardTitle>
+            <div className="relative group w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" strokeWidth={2} />
               <Input
                 placeholder="Buscar por nombre o email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-full sm:w-80 bg-[#f8f9fa] border-none"
+                className="pl-10 h-10 bg-card border-border rounded-xl focus:ring-primary/20 focus:border-primary text-sm transition-all"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-[#f1f3f4]">
+          <div className="divide-y divide-border/50">
             {filteredMembers.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
-                <p className="text-[#5f6368]">No se encontraron miembros registrados</p>
+              <div className="text-center py-20">
+                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border">
+                  <Users className="h-8 w-8 text-muted-foreground/30" strokeWidth={1.5} />
+                </div>
+                <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No se encontraron miembros</p>
               </div>
             ) : (
               filteredMembers.map((member) => (
                 <div 
                   key={member.id} 
-                  className="flex items-center gap-4 p-4 hover:bg-[#f8f9fa] transition-colors group"
+                  className="flex items-center gap-5 p-6 hover:bg-muted/30 transition-all group relative"
                 >
-                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  <Avatar className="h-12 w-12 ring-2 ring-border shadow-sm flex-shrink-0">
                     <AvatarFallback className={`text-white text-sm font-bold ${
                       isAdmin(member) 
-                        ? 'bg-gradient-to-br from-[#34a853] to-[#2e7d32]' 
-                        : 'bg-gradient-to-br from-[#1a73e8] to-[#1557b0]'
+                        ? 'bg-emerald-600' 
+                        : 'bg-primary'
                     }`}>
                       {getInitials(member.name)}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-[#202124] truncate">{member.name}</p>
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors uppercase tracking-tight">{member.name}</p>
                       {member.id === user.id && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1">Tú</Badge>
+                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-wider bg-primary/10 text-primary">Tú</Badge>
                       )}
                       {member.id === company.ownerId && (
-                        <Badge className="bg-[#f9ab00] text-white text-[10px] h-4 px-1 border-none">Dueño</Badge>
+                        <Badge variant="warning" className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-wider">Dueño</Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                      <p className="text-xs text-[#5f6368] flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-bold">
+                        <Mail className="h-3 w-3 text-primary/40" strokeWidth={2} />
                         {member.email}
                       </p>
                       {(member as any).area && (
-                        <p className="text-xs text-[#1a73e8] flex items-center gap-1 font-medium">
-                          <Building2 className="h-3 w-3" />
+                        <p className="text-xs text-primary flex items-center gap-1.5 font-bold">
+                          <Building2 className="h-3 w-3" strokeWidth={2} />
                           {(member as any).area.name}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="hidden sm:block">
-                    <Badge variant={isAdmin(member) ? 'default' : 'secondary'} className="font-medium">
+                  <div className="hidden md:flex flex-col items-end gap-1 px-4">
+                    <Badge variant={isAdmin(member) ? 'success' : 'secondary'} className="font-bold text-[10px] px-2.5 py-0.5 rounded-lg uppercase">
                       {getRoleName(member)}
                     </Badge>
                   </div>
 
-                  {(user.role === 'EMPRESA' || isAdmin(user)) && member.id !== company.ownerId && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleOpenEditDialog(member)}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Editar miembro
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-[#ea4335] focus:text-[#ea4335]">
-                          Eliminar del equipo
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(user.role === 'EMPRESA' || isAdmin(user)) && member.id !== company.ownerId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 border-border bg-card shadow-xl">
+                          <DropdownMenuItem onClick={() => handleOpenEditDialog(member)} className="rounded-lg py-2 cursor-pointer focus:bg-primary/10 focus:text-primary">
+                            <RefreshCw className="h-4 w-4 mr-2.5" strokeWidth={2} />
+                            <span className="font-bold text-xs uppercase tracking-tight">Editar miembro</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-lg py-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                            <ChevronRight className="h-4 w-4 mr-2.5 opacity-0" />
+                            <span className="font-bold text-xs uppercase tracking-tight">Eliminar del equipo</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0 hidden sm:block" />
+                  </div>
                 </div>
               ))
             )}
@@ -337,93 +323,105 @@ export function TeamPage({
 
       {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Miembro del Equipo</DialogTitle>
-            <DialogDescription>
-              Ajusta el rol y el área de trabajo de {selectedMember?.name}.
+        <DialogContent className="sm:max-w-[440px] rounded-3xl p-0 overflow-hidden border-border bg-card shadow-2xl">
+          <div className="bg-primary p-8 text-primary-foreground relative">
+            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+              <Users size={100} strokeWidth={1} />
+            </div>
+            <DialogTitle className="text-2xl font-bold">Editar Miembro</DialogTitle>
+            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
+              Ajusta el rol y el área de trabajo de este colaborador.
             </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-6">
+          </div>
+          
+          <div className="p-8 space-y-8">
             {/* Perfil resumido */}
-            <div className="flex items-center gap-3 p-3 bg-[#f8f9fa] rounded-xl border border-[#f1f3f4]">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-[#e8f0fe] text-[#1a73e8] text-xs font-bold">
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-2xl border border-border">
+              <Avatar className="h-12 w-12 shadow-sm ring-2 ring-card">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
                   {selectedMember ? getInitials(selectedMember.name) : ''}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#202124] truncate">{selectedMember?.name}</p>
-                <p className="text-xs text-[#5f6368] truncate">{selectedMember?.email}</p>
+                <p className="text-sm font-bold text-foreground truncate uppercase">{selectedMember?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{selectedMember?.email}</p>
               </div>
             </div>
             
             {/* Selector de Rol */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-[#202124] flex items-center gap-2">
-                <Shield className="h-4 w-4 text-[#1a73e8]" />
+            <div className="space-y-2.5">
+              <label className="text-xs font-bold text-foreground/80 ml-1 flex items-center gap-2 uppercase tracking-widest">
+                <Shield className="h-4 w-4 text-primary" strokeWidth={2} />
                 Rol del Usuario
               </label>
               <Select value={newRoleId} onValueChange={setNewRoleId}>
-                <SelectTrigger className="bg-white border-[#dadce0] rounded-lg">
+                <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 focus:ring-primary/20">
                   <SelectValue placeholder="Selecciona un rol" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl border-border bg-card shadow-xl">
                   {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
+                    <SelectItem key={role.id} value={role.id} className="rounded-lg cursor-pointer font-bold text-xs uppercase">
                       {role.name} {role.isSystem ? '(Sistema)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-[#5f6368]">
-                Define qué permisos tendrá el usuario dentro de la plataforma.
-              </p>
             </div>
 
             {/* Selector de Área */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-[#202124] flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-[#1a73e8]" />
+            <div className="space-y-2.5">
+              <label className="text-xs font-bold text-foreground/80 ml-1 flex items-center gap-2 uppercase tracking-widest">
+                <Building2 className="h-4 w-4 text-primary" strokeWidth={2} />
                 Área de Trabajo
               </label>
               <Select value={newAreaId} onValueChange={setNewAreaId}>
-                <SelectTrigger className="bg-white border-[#dadce0] rounded-lg">
+                <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 focus:ring-primary/20">
                   <SelectValue placeholder="Selecciona un área" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin área asignada</SelectItem>
+                <SelectContent className="rounded-xl border-border bg-card shadow-xl">
+                  <SelectItem value="none" className="rounded-lg cursor-pointer font-bold text-xs uppercase">Sin área asignada</SelectItem>
                   {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
+                    <SelectItem key={area.id} value={area.id} className="rounded-lg cursor-pointer font-bold text-xs uppercase">
                       {area.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-[#5f6368]">
-                Vincular al usuario a un área ayuda a filtrar los tickets automáticamente.
-              </p>
             </div>
           </div>
-          <DialogFooter className="bg-[#f8f9fa] -mx-6 -mb-6 p-4 mt-2">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="text-[#5f6368]">
+
+          <DialogFooter className="p-8 pt-0 flex gap-3">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">
               Cancelar
             </Button>
             <Button 
               onClick={handleSaveChanges} 
               disabled={isSaving}
-              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white px-8 rounded-lg shadow-sm"
+              className="bg-primary text-primary-foreground h-11 px-8 rounded-xl font-bold shadow-lg shadow-primary/20 min-w-[140px]"
             >
               {isSaving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
-              ) : 'Guardar cambios'}
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : 'Guardar Cambios'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatSummaryCard({ title, value, icon }: { title: string, value: number, icon: React.ReactNode }) {
+  return (
+    <Card className="border-none shadow-md bg-card hover:shadow-lg transition-all duration-300 group">
+      <CardContent className="p-6 flex items-center gap-4">
+        <div className="p-3.5 rounded-xl bg-muted/50 border border-border group-hover:bg-primary/10 group-hover:border-primary/20 transition-colors">
+          {icon}
+        </div>
+        <div>
+          <p className="text-3xl font-bold text-foreground tracking-tight leading-tight">{value}</p>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">{title}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

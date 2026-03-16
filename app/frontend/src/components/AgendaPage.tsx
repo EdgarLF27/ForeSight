@@ -88,43 +88,40 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
 
   const pageVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 50 : -50,
+      x: direction > 0 ? 20 : -20,
       opacity: 0,
-      rotateY: direction > 0 ? 10 : -10,
     }),
     center: {
       x: 0,
       opacity: 1,
-      rotateY: 0,
     },
     exit: (direction: number) => ({
-      x: direction < 0 ? 50 : -50,
+      x: direction < 0 ? 20 : -20,
       opacity: 0,
-      rotateY: direction < 0 ? 10 : -10,
     }),
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <CalendarIcon className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <CalendarIcon className="h-6 w-6 text-primary" strokeWidth={2} />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Agenda Técnica</h1>
           </div>
           <p className="text-muted-foreground font-medium">Gestiona tu itinerario y sesiones confirmadas.</p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm p-1.5 rounded-2xl border border-border shadow-sm">
+        <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border shadow-md">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={handlePrevDay} 
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
           </Button>
           
           <Button 
@@ -132,8 +129,8 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
             size="sm" 
             onClick={handleToday} 
             className={cn(
-              "px-4 h-9 text-sm font-bold rounded-xl transition-all",
-              isToday(date) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+              "px-4 h-9 text-xs font-bold rounded-xl transition-all",
+              isToday(date) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-primary hover:bg-primary/10"
             )}
           >
             Hoy
@@ -144,13 +141,13 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-10 px-4 gap-2 border-border font-bold rounded-xl hover:bg-primary/5 hover:border-primary/30 transition-all shadow-none"
+                className="h-9 px-4 gap-2 border-border bg-muted/30 font-bold rounded-xl hover:bg-muted transition-all text-foreground"
               >
-                <CalendarDays className="h-4 w-4 text-primary" />
+                <CalendarDays className="h-4 w-4 text-primary" strokeWidth={2} />
                 <span className="capitalize">{format(date, "d 'de' MMMM", { locale: es })}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl border-border shadow-2xl" align="end">
+            <PopoverContent className="w-auto p-0 rounded-2xl border-border bg-card shadow-2xl" align="end">
               <Calendar
                 mode="single"
                 selected={date}
@@ -171,16 +168,16 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
             variant="ghost" 
             size="icon" 
             onClick={handleNextDay} 
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5" strokeWidth={2} />
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Lado izquierdo: Hoja Diaria Animada */}
-        <div className="lg:col-span-4 perspective-1000">
+        {/* Lado izquierdo: Hoja Diaria */}
+        <div className="lg:col-span-4">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={date.toISOString()}
@@ -189,72 +186,52 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-                rotateY: { duration: 0.4 }
-              }}
-              className="relative"
+              transition={{ duration: 0.2 }}
             >
-              <Card className="border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 rounded-[2.5rem] group ring-1 ring-border/50">
-                <div className="absolute top-0 left-0 w-full h-3 bg-primary" />
+              <Card className="border-none shadow-md overflow-hidden bg-card rounded-3xl group relative">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
                 
-                <div className="pt-10 pb-6 text-center">
-                  <span className="text-primary text-sm font-black uppercase tracking-[0.3em]">
+                <div className="pt-8 pb-4 text-center">
+                  <span className="text-primary text-xs font-bold uppercase tracking-widest">
                     {format(date, 'EEEE', { locale: es })}
                   </span>
                 </div>
                 
-                <CardContent className="flex flex-col items-center justify-center pb-12 pt-4">
-                  <div className="relative mb-6">
-                    <motion.span 
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      className="text-9xl font-black text-foreground tracking-tighter select-none drop-shadow-sm"
-                    >
+                <CardContent className="flex flex-col items-center justify-center pb-10 pt-2">
+                  <div className="relative mb-4">
+                    <span className="text-8xl font-bold text-foreground tracking-tighter select-none">
                       {format(date, 'd')}
-                    </motion.span>
+                    </span>
                     {isToday(date) && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute -top-4 -right-6 p-2 bg-primary rounded-full border-4 border-white dark:border-slate-900 shadow-xl"
-                      >
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </motion.div>
+                      <div className="absolute -top-2 -right-4 p-1.5 bg-primary rounded-full border-2 border-card shadow-lg">
+                        <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2} />
+                      </div>
                     )}
                   </div>
                   
-                  <div className="text-center space-y-1">
-                    <p className="text-2xl font-bold text-muted-foreground capitalize">
+                  <div className="text-center space-y-0.5">
+                    <p className="text-xl font-bold text-muted-foreground capitalize">
                       {format(date, 'MMMM', { locale: es })}
                     </p>
-                    <p className="text-sm font-bold text-muted-foreground/40 tracking-widest">
+                    <p className="text-sm font-bold text-muted-foreground/50">
                       {format(date, 'yyyy')}
                     </p>
                   </div>
                   
-                  <div className="mt-12 pt-8 border-t border-border w-full flex justify-center gap-10">
+                  <div className="mt-10 pt-8 border-t border-border w-full flex justify-center gap-8">
                     <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-widest mb-1">Citas</p>
-                      <p className="text-3xl font-black text-primary">{filteredMeetings.length}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Citas</p>
+                      <p className="text-2xl font-bold text-foreground">{filteredMeetings.length}</p>
                     </div>
-                    <div className="w-px h-12 bg-border" />
+                    <div className="w-px h-10 bg-border" />
                     <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-widest mb-2">Estado</p>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-black px-3 py-1 rounded-lg">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Estado</p>
+                      <Badge variant={filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
                         {filteredMeetings.length > 0 ? 'OCUPADO' : 'LIBRE'}
                       </Badge>
                     </div>
                   </div>
                 </CardContent>
-                
-                {/* Agujeros de espiral decorativos */}
-                <div className="absolute left-6 top-0 bottom-0 flex flex-col justify-around py-12 pointer-events-none opacity-20">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-600 shadow-inner" />
-                  ))}
-                </div>
               </Card>
             </motion.div>
           </AnimatePresence>
@@ -262,15 +239,15 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
 
         {/* Lado derecho: Itinerario */}
         <div className="lg:col-span-8">
-          <Card className="border-none shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden min-h-[500px] ring-1 ring-border/50">
-            <CardHeader className="px-8 py-8 flex flex-row items-center justify-between border-b border-border/50 bg-slate-50/50 dark:bg-slate-800/30">
+          <Card className="border-none shadow-md bg-card rounded-3xl overflow-hidden min-h-[500px]">
+            <CardHeader className="px-8 py-6 flex flex-row items-center justify-between border-b border-border bg-muted/20">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary rounded-2xl shadow-lg shadow-primary/30">
-                  <Clock className="w-5 h-5 text-white" />
+                <div className="p-2 bg-primary rounded-xl shadow-lg shadow-primary/20">
+                  <Clock className="w-5 h-5 text-primary-foreground" strokeWidth={2} />
                 </div>
-                <CardTitle className="text-xl font-bold tracking-tight">Itinerario</CardTitle>
+                <CardTitle className="text-lg font-bold tracking-tight text-foreground">Itinerario</CardTitle>
               </div>
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-4 py-1.5 rounded-xl font-bold text-xs">
+              <Badge variant="info" className="px-3 py-1 rounded-lg font-bold text-[11px]">
                 {filteredMeetings.length} Confirmadas
               </Badge>
             </CardHeader>
@@ -278,63 +255,51 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
               <div className="space-y-6">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                    <p className="text-sm font-bold text-muted-foreground animate-pulse">Sincronizando agenda...</p>
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" strokeWidth={2} />
+                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Sincronizando agenda...</p>
                   </div>
                 ) : filteredMeetings.length === 0 ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-24 border-2 border-dashed border-border rounded-[2rem] bg-slate-50/30 dark:bg-slate-800/10"
-                  >
-                    <div className="bg-white dark:bg-slate-800 w-20 h-20 rounded-3xl shadow-lg flex items-center justify-center mx-auto mb-6 border border-border">
-                      <CalendarIcon className="w-10 h-10 text-muted-foreground/30" />
+                  <div className="text-center py-24 border-2 border-dashed border-border rounded-3xl bg-muted/10">
+                    <div className="bg-card w-16 h-16 rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-6 border border-border">
+                      <CalendarIcon className="w-8 h-8 text-muted-foreground/20" strokeWidth={1.5} />
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Día despejado</h3>
-                    <p className="text-muted-foreground max-w-xs mx-auto text-sm font-medium">No tienes reuniones programadas. ¡Disfruta de tu tiempo libre!</p>
-                  </motion.div>
+                    <h3 className="text-lg font-bold text-foreground mb-2 uppercase tracking-wide">Día despejado</h3>
+                    <p className="text-muted-foreground max-w-xs mx-auto text-sm font-medium">No tienes reuniones programadas para este día.</p>
+                  </div>
                 ) : (
-                  <div className="relative space-y-4">
-                    {/* Línea de tiempo decorativa */}
-                    <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-border/50 hidden md:block" />
-                    
+                  <div className="space-y-4">
                     {filteredMeetings.map((meeting, index) => (
                       <motion.div 
                         key={meeting.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="group relative flex flex-col md:flex-row md:items-center gap-6 p-6 border border-border/50 rounded-3xl bg-white dark:bg-slate-900 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group relative flex flex-col md:flex-row md:items-center gap-6 p-5 border border-border bg-card hover:bg-muted/30 hover:border-primary/30 rounded-2xl shadow-sm transition-all duration-300"
                       >
-                        <div className="relative z-10 flex-shrink-0 w-14 h-14 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 flex flex-col items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <span className="text-[10px] font-black uppercase tracking-tighter opacity-80">{format(new Date(meeting.scheduledAt), 'HH:mm')}</span>
-                          <span className="text-lg font-black leading-tight">{meeting.duration}</span>
-                          <span className="text-[8px] font-black uppercase opacity-60">MIN</span>
+                        <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary rounded-l-2xl" />
+
+                        <div className="relative z-10 flex-shrink-0 w-14 h-14 bg-muted border border-border text-foreground rounded-xl flex flex-col items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors duration-300">
+                          <span className="text-[10px] font-bold uppercase tracking-tight text-primary">{format(new Date(meeting.scheduledAt), 'HH:mm')}</span>
+                          <span className="text-lg font-bold leading-tight">{meeting.duration}</span>
+                          <span className="text-[8px] font-bold uppercase text-muted-foreground">MIN</span>
                         </div>
 
-                        <div className="flex-grow space-y-2">
+                        <div className="flex-grow space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{meeting.title}</h3>
-                            <Badge className={cn(
-                              "border-none text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow-sm",
-                              meeting.type === 'VIRTUAL' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                            )}>
-                              {meeting.type === 'VIRTUAL' ? <Video className="w-3 h-3 mr-1.5 inline" /> : <MapPin className="w-3 h-3 mr-1.5 inline" />}
+                            <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">{meeting.title}</h3>
+                            <Badge variant={meeting.type === 'VIRTUAL' ? 'info' : 'warning'} className="text-[9px] font-bold px-2 py-0.5 rounded-md">
+                              {meeting.type === 'VIRTUAL' ? <Video className="w-2.5 h-2.5 mr-1 inline" strokeWidth={2} /> : <MapPin className="w-2.5 h-2.5 mr-1 inline" strokeWidth={2} />}
                               {meeting.type}
                             </Badge>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground font-medium">
-                            <div className="flex items-center gap-2.5">
-                              <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                                <TicketIcon className="w-3.5 h-3.5 text-primary" />
-                              </div>
-                              <span className="truncate max-w-[200px]">{meeting.ticket?.title}</span>
+                          <div className="flex flex-wrap items-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                            <div className="flex items-center gap-1.5">
+                              <TicketIcon className="w-3.5 h-3.5 text-primary/40" strokeWidth={2} />
+                              <span className="truncate max-w-[180px]">{meeting.ticket?.title}</span>
                             </div>
-                            <div className="flex items-center gap-2.5">
-                              <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                                <User className="w-3.5 h-3.5 text-primary" />
-                              </div>
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-primary/40" strokeWidth={2} />
                               <span>{meeting.employee?.name}</span>
                             </div>
                           </div>
@@ -342,18 +307,18 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
 
                         <div className="flex-shrink-0 md:pl-4">
                           <Button 
-                            variant="secondary" 
+                            variant="ghost" 
                             size="sm" 
                             disabled={!!isNavigating}
                             onClick={() => handleViewTicket(meeting)}
-                            className="w-full md:w-auto bg-primary/5 text-primary font-bold hover:bg-primary hover:text-white rounded-xl flex items-center gap-2 px-5 transition-all duration-300 shadow-none border-none"
+                            className="w-full md:w-auto text-primary font-bold hover:bg-primary/10 rounded-xl flex items-center gap-2 px-4 transition-all"
                           >
                             {isNavigating === meeting.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <>
-                                <span>Ver Ticket</span>
-                                <ExternalLink className="w-4 h-4" />
+                                <span className="text-xs uppercase tracking-widest">Detalles</span>
+                                <ChevronRight className="h-4 w-4" strokeWidth={2} />
                               </>
                             )}
                           </Button>

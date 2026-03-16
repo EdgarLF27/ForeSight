@@ -89,7 +89,7 @@ export class TicketsController {
     @Request() req,
   ) {
     const companyId = req.user.user.companyId;
-    return this.ticketsService.update(id, updateDto, companyId);
+    return this.ticketsService.update(id, updateDto, companyId, req.user.user);
   }
 
   @Delete(':id')

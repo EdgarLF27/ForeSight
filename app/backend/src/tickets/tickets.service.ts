@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 
@@ -274,6 +274,7 @@ export class TicketsService {
       areaId?: string;
     },
     userCompanyId?: string,
+    user?: any,
   ) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
@@ -285,6 +286,37 @@ export class TicketsService {
 
     if (userCompanyId && ticket.companyId !== userCompanyId) {
       throw new ForbiddenException('No tienes acceso a este ticket');
+    }
+
+    // Validación por Rol
+    if (user) {
+      const isAdmin = user.role === 'EMPRESA' || user.role?.name === 'Administrador';
+      const isTechnician = user.role?.name === 'Técnico';
+      const isEmployee = user.role === 'EMPLEADO' || user.role?.name === 'Empleado';
+
+      // Si es empleado, solo puede cancelar sus propios tickets
+      if (isEmployee) {
+        if (ticket.createdById !== user.id) {
+          throw new ForbiddenException('Solo puedes modificar tus propios tickets');
+        }
+        if (data.status && data.status !== 'CANCELLED') {
+          throw new ForbiddenException('Los empleados solo pueden cancelar tickets');
+        }
+        // No permitir cambiar otros campos si no es admin
+        if (data.title || data.description || data.priority || data.areaId) {
+           throw new ForbiddenException('No tienes permiso para editar estos campos');
+        }
+      }
+
+      // Si es técnico, no puede cerrar tickets directamente
+      if (isTechnician && data.status === 'CLOSED') {
+        throw new ForbiddenException('Los técnicos no pueden cerrar tickets; deben marcarlos como resueltos');
+      }
+    }
+
+    // Validación de transición de estados general
+    if (data.status && data.status !== ticket.status) {
+      this.validateStatusTransition(ticket.status, data.status);
     }
 
     const updated = await this.prisma.ticket.update({
@@ -316,7 +348,36 @@ export class TicketsService {
       },
     });
 
+    // Si el estado cambió a CANCELLED, registrarlo en los comentarios como evento de sistema
+    if (data.status === 'CANCELLED' && user) {
+      await this.prisma.comment.create({
+        data: {
+          content: `🛑 El ticket ha sido CANCELADO por el ${user.role?.name || 'Empleado'}: ${user.name}`,
+          ticketId: id,
+          userId: user.id,
+        }
+      });
+    }
+
     return updated;
+  }
+
+  private validateStatusTransition(currentStatus: TicketStatus, newStatus: TicketStatus) {
+    const allowedTransitions: Record<TicketStatus, TicketStatus[]> = {
+      [TicketStatus.OPEN]: [TicketStatus.IN_PROGRESS, TicketStatus.CANCELLED],
+      [TicketStatus.IN_PROGRESS]: [TicketStatus.RESOLVED, TicketStatus.OPEN, TicketStatus.CANCELLED],
+      [TicketStatus.RESOLVED]: [TicketStatus.CLOSED, TicketStatus.IN_PROGRESS],
+      [TicketStatus.CLOSED]: [], // Estado final
+      [TicketStatus.CANCELLED]: [], // Estado final
+    };
+
+    const allowed = allowedTransitions[currentStatus];
+    
+    if (!allowed || !allowed.includes(newStatus)) {
+      throw new BadRequestException(
+        `Transición de estado inválida: no se puede pasar de ${currentStatus} a ${newStatus}`
+      );
+    }
   }
 
   async delete(id: string, userCompanyId?: string) {

@@ -95,6 +95,11 @@ function App() {
     }
   }, [selectedTicket, loadComments]);
 
+  const handlePageChange = (page: Page) => {
+    setSelectedTicket(null);
+    setCurrentPage(page);
+  };
+
   // Handlers
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
     return await login(email, password);
@@ -204,7 +209,7 @@ function App() {
         company={company} 
         onLogout={logout}
         currentPage={currentPage}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
       >
         <TicketDetail
           ticket={selectedTicket}
@@ -315,7 +320,7 @@ function App() {
         company={company} 
         onLogout={logout}
         currentPage={currentPage}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
       >
         {renderPage()}
       </Layout>
