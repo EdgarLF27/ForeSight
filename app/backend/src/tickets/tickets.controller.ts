@@ -61,14 +61,11 @@ export class TicketsController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
-    return this.ticketsService.findOne(id, companyId);
+    return this.ticketsService.findOne(id, req.user.user);
   }
 
   @Post()
   async create(@Body() createDto: CreateTicketDto, @Request() req) {
-    // Registro de depuración para confirmar que el controlador recibe los datos
-    console.log('Creando ticket con datos:', JSON.stringify(createDto));
     const companyId = req.user.user.companyId;
     
     if (!companyId) {
@@ -89,7 +86,12 @@ export class TicketsController {
     @Request() req,
   ) {
     const companyId = req.user.user.companyId;
+<<<<<<< HEAD
     return this.ticketsService.update(id, updateDto, companyId, req.user.user);
+=======
+    const userId = req.user.userId;
+    return this.ticketsService.update(id, updateDto, companyId, userId);
+>>>>>>> 278b74513601766d9abb83716e970dfe6464c789
   }
 
   @Delete(':id')

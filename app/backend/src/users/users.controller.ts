@@ -21,6 +21,12 @@ export class UsersController {
     return this.usersService.findOne(req.user.userId);
   }
 
+  @Get('technicians')
+  @Permissions('tickets:assign')
+  async findTechnicians(@Request() req, @Query('areaId') areaId?: string) {
+    return this.usersService.findTechnicians(req.user.companyId, areaId);
+  }
+
   // MOVEMOS ESTA RUTA AQUÍ ARRIBA
   @Patch(':id/role')
   @Permissions('users:edit')
@@ -29,7 +35,6 @@ export class UsersController {
     @Body() updateRoleDto: UpdateUserRoleDto,
     @Request() req
   ) {
-    console.log('API: Intentando cambiar rol para usuario:', id, 'a rol:', updateRoleDto.roleId);
     return this.usersService.updateRole(id, updateRoleDto.roleId, req.user.companyId);
   }
 

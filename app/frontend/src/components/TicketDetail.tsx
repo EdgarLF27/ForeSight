@@ -15,8 +15,13 @@ import {
   Check,
   X,
   Calendar as CalendarIcon,
+<<<<<<< HEAD
   AlertTriangle,
   ChevronDown
+=======
+  History,
+  Circle
+>>>>>>> 278b74513601766d9abb83716e970dfe6464c789
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +76,7 @@ interface TicketDetailProps {
   comments: Comment[];
   currentUser: User;
   teamMembers: User[];
+  technicians?: any[]; // Añadimos técnicos sugeridos
   onBack: () => void;
   onUpdateStatus: (status: TicketStatus) => void;
   onAssign: (userId: string) => void;
@@ -98,6 +104,7 @@ export function TicketDetail({
   comments,
   currentUser,
   teamMembers,
+  technicians,
   onBack,
   onUpdateStatus,
   onAssign,
@@ -138,6 +145,17 @@ export function TicketDetail({
   const getInitials = (name?: any) => {
     if (typeof name !== 'string' || !name.trim()) return '??';
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'CREATED': return <Circle className="h-3 w-3 fill-[#1a73e8] text-[#1a73e8]" />;
+      case 'STATUS_CHANGE': return <History className="h-3.5 w-3.5 text-[#f9ab00]" />;
+      case 'ASSIGNED': return <UserIcon className="h-3.5 w-3.5 text-[#34a853]" />;
+      case 'PRIORITY_CHANGE': return <Clock className="h-3.5 w-3.5 text-[#ea4335]" />;
+      case 'AREA_CHANGE': return <MapPin className="h-3.5 w-3.5 text-[#1a73e8]" />;
+      default: return <Circle className="h-3 w-3 text-[#5f6368]" />;
+    }
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -322,10 +340,22 @@ export function TicketDetail({
               >
                 Reuniones ({meetings.length})
               </TabsTrigger>
+              <TabsTrigger 
+                value="history" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium"
+              >
+                Historial
+              </TabsTrigger>
             </TabsList>
 
+<<<<<<< HEAD
             <TabsContent value="comments" className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-6">
+=======
+            <TabsContent value="comments" className="mt-6 space-y-6">
+              {/* ... contenido existente de comentarios ... */}
+              <div className="space-y-4">
+>>>>>>> 278b74513601766d9abb83716e970dfe6464c789
                 {comments.length === 0 ? (
                   <div className="py-12 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
                     <MessageSquare className="h-8 w-8 text-slate-200 mx-auto mb-3" strokeWidth={1.5} />
@@ -384,7 +414,12 @@ export function TicketDetail({
               </form>
             </TabsContent>
 
+<<<<<<< HEAD
             <TabsContent value="meetings" className="space-y-6 animate-in fade-in duration-300">
+=======
+            <TabsContent value="meetings" className="mt-6">
+              {/* ... contenido existente de reuniones ... */}
+>>>>>>> 278b74513601766d9abb83716e970dfe6464c789
               <div className="space-y-4">
                 {meetings.length === 0 ? (
                   <div className="text-center py-20 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
@@ -451,6 +486,43 @@ export function TicketDetail({
                 )}
               </div>
             </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#f1f3f4]">
+                {!ticket.activities || ticket.activities.length === 0 ? (
+                  <div className="text-center py-8 text-[#5f6368]">
+                    <History className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                    <p>No hay registros en el historial aún.</p>
+                  </div>
+                ) : (
+                  ticket.activities.map((activity) => (
+                    <div key={activity.id} className="relative">
+                      <div className="absolute -left-[30px] top-1 bg-white p-1 rounded-full border-2 border-white shadow-sm z-10">
+                        {getActionIcon(activity.action)}
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#202124]">
+                            {activity.user?.name || 'Sistema'}
+                          </span>
+                          <span className="text-[11px] text-[#80868b] bg-[#f8f9fa] px-2 py-0.5 rounded-full">
+                            {new Date(activity.createdAt).toLocaleString('es-ES', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-[#5f6368] mt-1 bg-[#f8f9fa] p-3 rounded-lg border border-[#f1f3f4]">
+                          {activity.details}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -507,6 +579,7 @@ export function TicketDetail({
                 </div>
               </div>
 
+<<<<<<< HEAD
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Responsable</label>
                 {isAdmin ? (
@@ -518,6 +591,50 @@ export function TicketDetail({
                       <SelectItem value="none" className="font-medium">Sin asignar</SelectItem>
                       {teamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id} className="font-medium cursor-pointer">
+=======
+              <div>
+                <label className="text-xs text-[#5f6368] block mb-2 flex items-center gap-1">
+                  <UserIcon className="h-3 w-3" />
+                  Asignado a
+                </label>
+                {isOwner ? (
+                  <Select 
+                    value={ticket.assignedToId || 'unassigned'} 
+                    onValueChange={(val) => onAssign(val === 'unassigned' ? '' : val)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sin asignar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      {/* Mostrar técnicos sugeridos primero */}
+                      {technicians && technicians.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-bold text-[#1a73e8] bg-blue-50">
+                            Técnicos Sugeridos (Misma área)
+                          </div>
+                          {technicians.map(tech => (
+                            <SelectItem key={tech.id} value={tech.id}>
+                              <div className="flex flex-col">
+                                <span>{tech.name}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Carga: {tech._count?.assignedTickets || 0} tickets activos
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <div className="h-px bg-slate-100 my-1" />
+                        </>
+                      )}
+                      {/* Otros miembros del equipo */}
+                      <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground">
+                        Todo el equipo
+                      </div>
+                      {teamMembers
+                        .filter(m => !technicians?.some(t => t.id === m.id))
+                        .map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+>>>>>>> 278b74513601766d9abb83716e970dfe6464c789
                           {member.name}
                         </SelectItem>
                       ))}

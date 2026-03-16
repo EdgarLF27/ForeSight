@@ -39,6 +39,36 @@ export class UsersService {
     return users.map(({ password, ...u }) => u);
   }
 
+  async findTechnicians(companyId: string, areaId?: string) {
+    return this.prisma.user.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        role: { name: 'Técnico' },
+        ...(areaId ? { areaId } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        area: {
+          select: { name: true }
+        },
+        _count: {
+          select: {
+            assignedTickets: {
+              where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }
+            }
+          }
+        }
+      },
+      orderBy: {
+        assignedTickets: { _count: 'asc' } // Ordenar por carga de trabajo (menos ocupados primero)
+      }
+    });
+  }
+
   async update(id: string, data: { name?: string; email?: string; avatar?: string; isActive?: boolean }) {
     const user = await this.prisma.user.update({
       where: { id },
