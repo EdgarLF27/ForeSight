@@ -65,9 +65,9 @@ export function TicketsPage({
     areaId: '',
   });
 
-  const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Administrador') || currentUser.role === 'EMPRESA';
-  const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Técnico');
-  const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Empleado') || currentUser.role === 'EMPLEADO';
+  const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Administrador') || currentUser.role === 'EMPRESA';
+  const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico');
+  const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Empleado') || currentUser.role === 'EMPLEADO';
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,9 +82,9 @@ export function TicketsPage({
       return isUnclaimed || isMyClaimed;
     }
 
-    // Para Empleados, solo sus propios tickets (esto ya debería venir filtrado por el hook, pero reforzamos)
+    // Para Empleados, solo sus propios tickets
     if (isEmployee) {
-      return (ticket.createdBy as any).id === currentUser.id;
+      return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
     }
 
     // Admins ven todo
@@ -284,7 +284,7 @@ export function TicketsPage({
                         {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
                       </span>
                       <span className="text-[10px] text-[#5f6368]">
-                        por {typeof ticket.createdBy === 'object' ? ticket.createdBy.name : 'Usuario'}
+                        por {ticket.createdBy?.name || 'Usuario desconocido'}
                       </span>
                     </div>
                   </td>
