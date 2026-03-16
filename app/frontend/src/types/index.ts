@@ -58,6 +58,21 @@ export interface Ticket {
   attachments: string[];
   createdAt: string;
   updatedAt: string;
+  activities?: TicketActivity[];
+}
+
+export interface TicketActivity {
+  id: string;
+  ticketId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  action: string;
+  details: string;
+  createdAt: string;
 }
 
 // Tipos de comentarios

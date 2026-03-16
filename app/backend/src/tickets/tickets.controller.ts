@@ -61,8 +61,7 @@ export class TicketsController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
-    return this.ticketsService.findOne(id, companyId);
+    return this.ticketsService.findOne(id, req.user.user);
   }
 
   @Post()
@@ -87,7 +86,8 @@ export class TicketsController {
     @Request() req,
   ) {
     const companyId = req.user.user.companyId;
-    return this.ticketsService.update(id, updateDto, companyId);
+    const userId = req.user.userId;
+    return this.ticketsService.update(id, updateDto, companyId, userId);
   }
 
   @Delete(':id')

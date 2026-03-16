@@ -14,7 +14,9 @@ import {
   CalendarPlus,
   Check,
   X,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  History,
+  Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -122,6 +124,17 @@ export function TicketDetail({
   const getInitials = (name?: any) => {
     if (typeof name !== 'string' || !name.trim()) return '??';
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'CREATED': return <Circle className="h-3 w-3 fill-[#1a73e8] text-[#1a73e8]" />;
+      case 'STATUS_CHANGE': return <History className="h-3.5 w-3.5 text-[#f9ab00]" />;
+      case 'ASSIGNED': return <UserIcon className="h-3.5 w-3.5 text-[#34a853]" />;
+      case 'PRIORITY_CHANGE': return <Clock className="h-3.5 w-3.5 text-[#ea4335]" />;
+      case 'AREA_CHANGE': return <MapPin className="h-3.5 w-3.5 text-[#1a73e8]" />;
+      default: return <Circle className="h-3 w-3 text-[#5f6368]" />;
+    }
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -284,9 +297,16 @@ export function TicketDetail({
               >
                 Reuniones ({meetings.length})
               </TabsTrigger>
+              <TabsTrigger 
+                value="history" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1a73e8] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 h-auto text-sm font-medium"
+              >
+                Historial
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="comments" className="mt-6 space-y-6">
+              {/* ... contenido existente de comentarios ... */}
               <div className="space-y-4">
                 {comments.length === 0 ? (
                   <p className="text-center text-[#5f6368] py-4">
@@ -346,6 +366,7 @@ export function TicketDetail({
             </TabsContent>
 
             <TabsContent value="meetings" className="mt-6">
+              {/* ... contenido existente de reuniones ... */}
               <div className="space-y-4">
                 {meetings.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-[#dadce0]">
@@ -429,6 +450,43 @@ export function TicketDetail({
                         )}
                       </CardContent>
                     </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#f1f3f4]">
+                {!ticket.activities || ticket.activities.length === 0 ? (
+                  <div className="text-center py-8 text-[#5f6368]">
+                    <History className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                    <p>No hay registros en el historial aún.</p>
+                  </div>
+                ) : (
+                  ticket.activities.map((activity) => (
+                    <div key={activity.id} className="relative">
+                      <div className="absolute -left-[30px] top-1 bg-white p-1 rounded-full border-2 border-white shadow-sm z-10">
+                        {getActionIcon(activity.action)}
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#202124]">
+                            {activity.user?.name || 'Sistema'}
+                          </span>
+                          <span className="text-[11px] text-[#80868b] bg-[#f8f9fa] px-2 py-0.5 rounded-full">
+                            {new Date(activity.createdAt).toLocaleString('es-ES', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-[#5f6368] mt-1 bg-[#f8f9fa] p-3 rounded-lg border border-[#f1f3f4]">
+                          {activity.details}
+                        </p>
+                      </div>
+                    </div>
                   ))
                 )}
               </div>

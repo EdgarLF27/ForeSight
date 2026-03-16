@@ -59,6 +59,7 @@ export function TicketsPage({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -92,6 +93,25 @@ export function TicketsPage({
 
       // Filtro de Área
       if (areaFilter !== 'all' && ticket.areaId !== areaFilter) return false;
+
+      // Filtro de Fecha
+      if (dateFilter !== 'all') {
+        const ticketDate = new Date(ticket.createdAt);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (dateFilter === 'today') {
+          if (ticketDate < startOfToday) return false;
+        } else if (dateFilter === 'week') {
+          const weekAgo = new Date();
+          weekAgo.setDate(now.getDate() - 7);
+          if (ticketDate < weekAgo) return false;
+        } else if (dateFilter === 'month') {
+          const monthAgo = new Date();
+          monthAgo.setMonth(now.getMonth() - 1);
+          if (ticketDate < monthAgo) return false;
+        }
+      }
 
       // Lógica de visibilidad para Técnicos
       if (isTechnician) {
@@ -331,8 +351,22 @@ export function TicketsPage({
               ))}
             </select>
           </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Fecha de creación</label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+            >
+              <option value="all">Cualquier fecha</option>
+              <option value="today">Hoy</option>
+              <option value="week">Última semana</option>
+              <option value="month">Último mes</option>
+            </select>
+          </div>
           
-          <div className="sm:col-span-3 flex justify-end">
+          <div className="sm:col-span-1 flex justify-end items-end pb-1">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -341,6 +375,7 @@ export function TicketsPage({
                 setStatusFilter('all');
                 setPriorityFilter('all');
                 setAreaFilter('all');
+                setDateFilter('all');
               }}
             >
               Limpiar filtros

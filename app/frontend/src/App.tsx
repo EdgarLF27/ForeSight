@@ -44,7 +44,8 @@ function App() {
     createTicket, 
     updateTicket, 
     claimTicket,
-    loadTickets 
+    loadTickets,
+    getTicketById 
   } = useTickets();
 
   const { 
@@ -91,15 +92,29 @@ function App() {
     }
   }, [isAuthenticated, company?.id, user?.id, isAdmin, loadTickets, loadMembers, loadMyTickets, loadAreas, loadTechnicians]);
 
-  // Cargar comentarios cuando se selecciona un ticket
+  // Cargar comentarios y recargar ticket completo cuando se selecciona uno
   useEffect(() => {
+    const refreshTicketDetails = async () => {
+      if (selectedTicket && !selectedTicket.activities) {
+        try {
+          const fullTicket = await getTicketById(selectedTicket.id);
+          if (fullTicket) {
+            setSelectedTicket(fullTicket);
+          }
+        } catch (err) {
+          console.error("Error recargando detalle del ticket:", err);
+        }
+      }
+    };
+
     if (selectedTicket) {
       loadComments(selectedTicket.id);
+      refreshTicketDetails();
       if (isAdmin) {
-        loadTechnicians(selectedTicket.areaId); // Cargar técnicos específicos del área si es admin
+        loadTechnicians(selectedTicket.areaId);
       }
     }
-  }, [selectedTicket, loadComments, isAdmin, loadTechnicians]);
+  }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians, getTicketById]);
 
   // Handlers
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
@@ -142,61 +157,59 @@ function App() {
     loadTickets();
   };
 
-  const handleUpdateTicketStatus = (status: Ticket['status']) => {
+  const handleUpdateTicketStatus = async (status: Ticket['status']) => {
     if (selectedTicket) {
-      updateTicket(selectedTicket.id, { status });
-      setSelectedTicket({ ...selectedTicket, status });
+      const success = await updateTicket(selectedTicket.id, { status });
+      if (success) {
+        const updated = await getTicketById(selectedTicket.id);
+        if (updated) setSelectedTicket(updated);
+      }
     }
   };
 
-  const handleAssignTicket = (userId: string) => {
+  const handleAssignTicket = async (userId: string) => {
     if (selectedTicket) {
-      updateTicket(selectedTicket.id, { assignedToId: userId });
-      setSelectedTicket({ ...selectedTicket, assignedToId: userId });
+      const success = await updateTicket(selectedTicket.id, { assignedToId: userId });
+      if (success) {
+        const updated = await getTicketById(selectedTicket.id);
+        if (updated) setSelectedTicket(updated);
+      }
     }
   };
 
   const handleClaimTicket = async () => {
     if (selectedTicket) {
       const success = await claimTicket(selectedTicket.id);
-      if (success && user) {
-        setSelectedTicket({ 
-          ...selectedTicket, 
-          assignedToId: user.id,
-          status: 'IN_PROGRESS' 
-        });
+      if (success) {
+        const updated = await getTicketById(selectedTicket.id);
+        if (updated) setSelectedTicket(updated);
       }
     }
   };
 
-  const handleAddComment = (content: string) => {
-    if (user && selectedTicket) {
-      addComment(selectedTicket.id, content);
+  const handleAddComment = async (content: string) => {
+    if (selectedTicket) {
+      await addComment(selectedTicket.id, content);
     }
   };
 
-  const handleRegenerateCode = async () => {
-    if (company) {
-      return await regenerateInviteCode();
-    }
-    return null;
-  };
-
-  // Mostrar loading
   if (isLoading) {
-    return <LoadingState message="Sincronizando con ForeSight..." />;
+    return <LoadingState />;
   }
 
-  // Mostrar login si no está autenticado
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return (
-      <AuthPage 
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onJoinCompany={handleJoinCompany}
-      />
+      <>
+        <AuthPage 
+          onLogin={handleLogin} 
+          onRegister={handleRegister} 
+        />
+        <Toaster position="top-right" />
+      </>
     );
   }
+
+  if (!user) return null;
 
   // Mostrar detalle de ticket si hay uno seleccionado
   if (selectedTicket) {
@@ -226,11 +239,11 @@ function App() {
 
   // Renderizar página actual
   const renderPage = () => {
-    const isAdmin = user.role === 'Administrador' || (typeof user.role === 'object' && user.role?.name === 'Administrador') || user.role === 'EMPRESA';
+    const isAdminRole = user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador') || user.role === 'EMPRESA';
     
     switch (currentPage) {
       case 'dashboard':
-        if (isAdmin || isTechnician) {
+        if (isAdminRole || isTechnician) {
           return (
             <DashboardAdmin
               company={company!}
@@ -257,7 +270,7 @@ function App() {
       case 'tickets':
         return (
           <TicketsPage
-            tickets={(isAdmin || isTechnician) ? tickets : myTickets}
+            tickets={(isAdminRole || isTechnician) ? tickets : myTickets}
             areas={areas}
             teamMembers={teamMembers}
             currentUser={user!}
@@ -268,7 +281,7 @@ function App() {
         );
 
       case 'team':
-        if (isAdmin && company) {
+        if (isAdminRole && company) {
           return (
             <TeamPage
               user={user}
@@ -283,13 +296,13 @@ function App() {
         return null;
 
       case 'roles':
-        if (isAdmin) {
+        if (isAdminRole) {
           return <RolesPage />;
         }
         return null;
 
       case 'areas':
-        if (isAdmin) {
+        if (isAdminRole) {
           return <AreasPage />;
         }
         return null;
@@ -298,16 +311,16 @@ function App() {
         return <AgendaPage onViewTicket={handleViewTicket} />;
 
       case 'settings':
-        return (
-          <SettingsPage
-            user={user}
-            company={company}
-            onUpdateUser={updateUser}
-          />
-        );
+        return <SettingsPage user={user} onUpdateUser={updateUser} />;
 
       default:
         return null;
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (company) {
+      await regenerateInviteCode(company.id);
     }
   };
 
@@ -322,7 +335,7 @@ function App() {
       >
         {renderPage()}
       </Layout>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" />
     </>
   );
 }
