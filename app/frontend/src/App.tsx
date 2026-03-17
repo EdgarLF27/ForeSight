@@ -54,10 +54,10 @@ function App() {
   const { members: teamMembers, technicians, loadMembers, loadTechnicians, regenerateInviteCode, changeUserRole, changeUserArea } = useTeam(company?.id);
   const { areas, loadAreas } = useAreas();
 
-  const isAdmin = user?.role === 'Administrador' || (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'EMPRESA';
-  const isTechnician = (typeof user?.role === 'object' && user?.role?.name === 'Técnico');
+  const isAdmin = user?.role === 'EMPRESA' || (typeof user?.role === 'object' && (user?.role as any)?.name === 'Administrador');
+  const isTechnician = (typeof user?.role === 'object' && (user?.role as any)?.name === 'Técnico');
 
-  const myTickets = tickets.filter(t => t.createdById === user?.id || (typeof t.createdBy === 'object' && t.createdBy.id === user?.id));
+  const myTickets = tickets.filter(t => t.createdById === user?.id || (typeof t.createdBy === 'object' && (t.createdBy as any).id === user?.id));
 
   // CARGAR DATOS INICIALES Y REFRESCAR EMPRESA
   useEffect(() => {
@@ -93,7 +93,7 @@ function App() {
     if (selectedTicket) {
       loadComments(selectedTicket.id);
       refreshTicketDetails();
-      if (isAdmin) loadTechnicians(selectedTicket.areaId);
+      if (isAdmin) loadTechnicians();
     }
   }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians, getTicketById]);
 
@@ -175,7 +175,7 @@ function App() {
   }
 
   const renderPage = () => {
-    const isAdminRole = user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador') || user.role === 'EMPRESA';
+    const isAdminRole = user?.role === 'EMPRESA' || (typeof user?.role === 'object' && (user?.role as any)?.name === 'Administrador');
     
     switch (currentPage) {
       case 'dashboard':
@@ -222,7 +222,7 @@ function App() {
             user={user}
             company={company}
             teamMembers={teamMembers}
-            onRegenerateCode={() => regenerateInviteCode(company.id)}
+            onRegenerateCode={() => regenerateInviteCode()}
             onChangeRole={changeUserRole}
             onChangeArea={changeUserArea}
           />

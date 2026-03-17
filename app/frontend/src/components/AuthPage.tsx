@@ -5,9 +5,7 @@ import {
   EyeOff, 
   Building2, 
   User, 
-  ArrowRight, 
   Loader2, 
-  ArrowLeft
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -116,7 +114,7 @@ const PlexusEffect = () => {
     );
   };
 
-export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
+export function AuthPage({ onLogin, onRegister }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState('');
@@ -133,7 +131,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
     handleSubmit: handleSubmitRegister, 
     setValue: setValueRegister,
     watch: watchRegister,
-    formState: { errors: errorsRegister, isSubmitting: isSubmittingRegister } 
+    formState: { isSubmitting: isSubmittingRegister } 
   } = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: { role: 'EMPLEADO', companyName: '' }
@@ -172,16 +170,6 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
     <div className="min-h-screen bg-[#000000] flex font-sans text-slate-200 selection:bg-[#00f2ff]/30 overflow-hidden relative">
       <DataLines />
 
-      {onBack && (
-        <motion.button 
-          whileHover={{ x: -4, color: '#00f2ff' }}
-          onClick={onBack}
-          className="absolute top-6 left-6 z-50 p-2 text-slate-400 transition-colors"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </motion.button>
-      )}
-
       {/* Lado Izquierdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center px-20 border-r border-white/5 bg-black/40">
         <PlexusEffect />
@@ -193,11 +181,10 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
           className="relative z-10 text-center"
         >
           <motion.h1 
-            className="text-8xl font-black tracking-tighter mb-4 text-white relative drop-shadow-[0_0_15px_rgba(0,242,255,0.5)]"
+            className="text-8xl font-black tracking-tighter mb-4 text-white relative"
             animate={{ 
               opacity: [0.9, 1, 0.9],
               scale: [1, 1.01, 1],
-              dropShadow: ["0 0 10px rgba(0,242,255,0.3)", "0 0 25px rgba(0,242,255,0.6)", "0 0 10px rgba(0,242,255,0.3)"]
             }}
             transition={{
               duration: 1.5,

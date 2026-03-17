@@ -3,11 +3,9 @@ import {
   Plus, 
   Search, 
   Filter, 
-  Clock,
   MapPin,
   Inbox,
-  ChevronRight,
-  ArrowUpDown
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +15,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -60,7 +57,6 @@ export function TicketsPage({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -74,7 +70,7 @@ export function TicketsPage({
     areaId: '',
   });
 
-  const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Administrador') || currentUser.role === 'EMPRESA';
+  const isAdmin = currentUser.role === 'EMPRESA' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Administrador');
   const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Empleado') || currentUser.role === 'EMPLEADO';
   const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico');
 
@@ -88,18 +84,6 @@ export function TicketsPage({
       if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
       if (areaFilter !== 'all' && ticket.areaId !== areaFilter) return false;
-
-      if (dateFilter !== 'all') {
-        const ticketDate = new Date(ticket.createdAt);
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        if (dateFilter === 'today' && ticketDate < startOfToday) return false;
-        if (dateFilter === 'week') {
-          const weekAgo = new Date();
-          weekAgo.setDate(now.getDate() - 7);
-          if (ticketDate < weekAgo) return false;
-        }
-      }
 
       if (isTechnician) {
         return !ticket.assignedToId || ticket.assignedToId === currentUser.id;
@@ -132,7 +116,7 @@ export function TicketsPage({
   };
 
   return (
-    <div className="space-y-8 px-1">
+    <div className="space-y-8 px-1 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground uppercase">Gestión de Tickets</h1>

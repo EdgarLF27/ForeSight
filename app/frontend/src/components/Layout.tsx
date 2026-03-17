@@ -14,14 +14,10 @@ import {
   Shield,
   MapPin,
   CheckCheck,
-  Info,
-  MessageSquare,
-  UserPlus as AssignIcon,
-  RefreshCw,
-  Building2,
   AlertCircle,
   Zap,
-  UserPlus
+  UserPlus,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

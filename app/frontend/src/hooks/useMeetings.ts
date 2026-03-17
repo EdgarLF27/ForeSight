@@ -7,7 +7,6 @@ export function useMeetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [agenda, setAgenda] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loadMeetingsByTicket = useCallback(async (ticketId: string) => {
     try {
@@ -89,7 +88,6 @@ export function useMeetings() {
     meetings,
     agenda,
     isLoading,
-    error,
     loadMeetingsByTicket,
     loadAgenda,
     createProposal,
