@@ -39,7 +39,6 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
   const [company, setCompany] = useState<Company | null>(authCompany);
 
   const { 

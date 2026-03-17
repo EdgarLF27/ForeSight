@@ -142,16 +142,6 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPag
 
   return (
     <div className="min-h-screen flex relative">
-      {onBack && (
-        <button 
-          onClick={onBack}
-          className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-900 lg:text-white transition-colors"
-          aria-label="Volver"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-      )}
-
       {/* Left Side - Illustration */}
       <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#34a853] relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10" />
