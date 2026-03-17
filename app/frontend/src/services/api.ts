@@ -11,11 +11,7 @@ const api: AxiosInstance = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-<<<<<<< HEAD
-    const token = localStorage.getItem('token');
-=======
     const token = sessionStorage.getItem('token');
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

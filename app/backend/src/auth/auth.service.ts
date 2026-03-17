@@ -75,8 +75,9 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    const isCompanyRegistration = data.role === 'EMPRESA' && data.companyName && data.companyName.trim() !== '';
     let roleName = 'Empleado'; 
-    if (data.companyName || data.role === 'EMPRESA') {
+    if (isCompanyRegistration) {
       roleName = 'Administrador';
     }
 
@@ -93,14 +94,14 @@ export class AuthService {
       },
       include: { 
         company: true,
-        area: true, // INCLUIMOS ÁREA
+        area: true, 
         role: {
           include: { permissions: true }
         }
       },
     });
 
-    if (data.companyName) {
+    if (isCompanyRegistration) {
       const inviteCode = this.generateInviteCode();
       
       const company = await this.prisma.company.create({

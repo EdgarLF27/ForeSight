@@ -18,14 +18,10 @@ import {
   MessageSquare,
   UserPlus as AssignIcon,
   RefreshCw,
-<<<<<<< HEAD
   Building2,
   AlertCircle,
   Zap,
   UserPlus
-=======
-  Building2
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -91,7 +87,6 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-<<<<<<< HEAD
       case 'CRITICAL':
       case 'URGENT':
         return (
@@ -114,12 +109,6 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
         return <RefreshCw className="h-4 w-4 text-amber-500" />;
       default: 
         return <Bell className="h-4 w-4 text-slate-400" />;
-=======
-      case 'TICKET_ASSIGNED': return <AssignIcon className="h-4 w-4 text-emerald-500" />;
-      case 'COMMENT_RECEIVED': return <MessageSquare className="h-4 w-4 text-primary" />;
-      case 'STATUS_CHANGED': return <RefreshCw className="h-4 w-4 text-amber-500" />;
-      default: return <Info className="h-4 w-4 text-muted-foreground" />;
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
     }
   };
 
@@ -128,7 +117,6 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
     if (n.link && onNotificationAction) onNotificationAction(n.link);
   };
 
-<<<<<<< HEAD
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'CRITICAL':
@@ -147,8 +135,6 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
     return then.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   };
 
-=======
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
   const companyName = company?.name || 'ForeSight';
 
   if (!mounted) return null;
@@ -177,8 +163,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
           <div className="flex items-center gap-2 md:gap-4">
             {/* PANEL DE NOTIFICACIONES */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-<<<<<<< HEAD
+              <DropdownMenuTrigger asChild id="notifications-bell">
                 <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 transition-colors group">
                   <Bell className={`h-5 w-5 transition-colors ${unreadCount > 0 ? 'text-[#00f2ff] animate-pulse' : 'text-slate-400 group-hover:text-white'}`} />
                   {unreadCount > 0 && (
@@ -243,52 +228,11 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
                                     <CheckCheck className="h-3 w-3" />
                                 </div>
                             )}
-=======
-                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted transition-colors">
-                  <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 border-border bg-card shadow-2xl overflow-hidden">
-                <div className="px-4 py-4 border-b border-border flex items-center justify-between bg-muted/20">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold uppercase tracking-widest">Notificaciones</span>
-                    {unreadCount > 0 && <span className="text-[10px] text-primary font-bold">{unreadCount} por leer</span>}
-                  </div>
-                  {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAllRead(); }} className="h-7 px-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-primary rounded-lg">
-                      <CheckCheck className="h-3 w-3 mr-1" /> Leer todas
-                    </Button>
-                  )}
-                </div>
-                <div className="max-h-[380px] overflow-y-auto">
-                   {notifications.length === 0 ? (
-                    <div className="py-12 text-center flex flex-col items-center gap-2">
-                      <div className="p-3 rounded-full bg-muted/50"><Bell className="h-6 w-6 text-muted-foreground/30" /></div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Todo al día</p>
-                    </div>
-                   ) : (
-                    notifications.map(n => (
-                      <DropdownMenuItem key={n.id} onClick={() => handleNotificationClick(n)} className={`p-4 flex items-start gap-4 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border last:border-0 relative ${!n.read ? 'bg-primary/5' : ''}`}>
-                        {!n.read && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary" />}
-                        <div className={`mt-1 p-2 rounded-xl ${!n.read ? 'bg-card shadow-sm border border-border' : 'bg-muted/50'}`}>
-                          {getNotificationIcon(n.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-bold ${!n.read ? 'text-foreground' : 'text-muted-foreground'} uppercase tracking-tight`}>{n.title}</p>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5 line-clamp-2">{n.message}</p>
-                          <span className="text-[9px] font-bold text-muted-foreground/40 uppercase mt-2 block">
-                            {new Date(n.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
                         </div>
                       </DropdownMenuItem>
                     ))
                    )}
                 </div>
-<<<<<<< HEAD
 
                 {notifications.length > 0 && (
                   <div className="p-2 border-t border-white/5 bg-white/[0.01]">
@@ -301,14 +245,12 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
                     </Button>
                   </div>
                 )}
-=======
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
               </DropdownMenuContent>
             </DropdownMenu>
 
             {/* PERFIL DE USUARIO */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild id="user-profile">
                 <Button variant="ghost" className="flex items-center gap-3 px-2 hover:bg-muted transition-colors rounded-xl h-10 border border-border">
                   <Avatar className="h-7 w-7 border border-primary/20">
                     <AvatarImage src={getFileUrl(user.avatar) || ''} className="object-cover" />
@@ -339,7 +281,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
       </header>
 
       {/* Sidebar Minimalista */}
-      <aside className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+      <aside id="sidebar-nav" className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;

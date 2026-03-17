@@ -300,7 +300,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
                         <Building2 className="h-4 w-4" />
                         <span className="text-[10px] font-black uppercase tracking-tighter">Empresa</span>
                       </button>
-                      <button type="button" onClick={() => setValueRegister('role', 'EMPLEADO')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPLEADO' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white' : 'bg-white/5 border-white/10 text-slate-500' }`}>
+                      <button type="button" onClick={() => { setValueRegister('role', 'EMPLEADO'); setValueRegister('companyName', ''); }} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPLEADO' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white' : 'bg-white/5 border-white/10 text-slate-500' }`}>
                         <User className="h-4 w-4" />
                         <span className="text-[10px] font-black uppercase tracking-tighter">Empleado</span>
                       </button>

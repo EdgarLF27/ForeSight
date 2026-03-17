@@ -27,7 +27,7 @@ export function useAuth() {
       user: null,
       company: null,
       isAuthenticated: false,
-      isLoading: true,
+      isLoading: false,
     };
   };
 
@@ -86,13 +86,8 @@ export function useAuth() {
   };
 
   const logout = () => {
-<<<<<<< HEAD
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-=======
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
     setState({
       user: null,
       company: null,
@@ -105,13 +100,8 @@ export function useAuth() {
     try {
       const { data } = await authApi.register({ name, email, password: pass, role, companyName });
       const { access_token, user } = data;
-<<<<<<< HEAD
-      localStorage.setItem(TOKEN_KEY, access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-=======
       sessionStorage.setItem(TOKEN_KEY, access_token);
       sessionStorage.setItem(USER_KEY, JSON.stringify(user));
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
       setState({
         user,
         company: user.company || null,
@@ -129,11 +119,7 @@ export function useAuth() {
       const { data } = await authApi.joinCompany(inviteCode);
       const user = data.user || data;
       setState(prev => ({ ...prev, user, company: user.company }));
-<<<<<<< HEAD
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-=======
       sessionStorage.setItem(USER_KEY, JSON.stringify(user));
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
       return true;
     } catch (error) {
       return false;
@@ -145,11 +131,7 @@ export function useAuth() {
       const { data } = await usersApi.updateMe(updates);
       const updatedUser = { ...state.user, ...data };
       setState(prev => ({ ...prev, user: updatedUser }));
-<<<<<<< HEAD
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-=======
       sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
       return true;
     } catch (error) {
       return false;
@@ -170,11 +152,7 @@ export function useAuth() {
       const { data } = await usersApi.uploadAvatar(file);
       const updatedUser = { ...state.user, ...data };
       setState(prev => ({ ...prev, user: updatedUser }));
-<<<<<<< HEAD
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-=======
       sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
       return true;
     } catch (error) {
       return false;

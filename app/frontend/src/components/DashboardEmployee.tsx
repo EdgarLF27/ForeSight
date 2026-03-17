@@ -76,7 +76,7 @@ export function DashboardEmployee({
     return (
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md w-full">
-          <Card className="border-none shadow-2xl rounded-[2rem] overflow-hidden bg-card">
+          <Card id="join-company-card" className="border-none shadow-2xl rounded-[2rem] overflow-hidden bg-card">
             <CardContent className="p-8 md:p-12 text-center">
               <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner"><Building2 className="h-12 w-12 text-primary" strokeWidth={1.5} /></div>
               <h2 className="text-2xl md:text-3xl font-black text-foreground mb-4 uppercase tracking-tighter">Acceso Corporativo</h2>
@@ -90,8 +90,8 @@ export function DashboardEmployee({
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <Input placeholder="CÓDIGO" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} className="text-center text-3xl tracking-[0.5em] font-black h-16 rounded-2xl border-border bg-muted/30 focus:ring-primary/20 uppercase" maxLength={6} />
-                  <Button className="w-full h-14 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl text-xs font-black shadow-xl shadow-primary/20 uppercase tracking-[0.2em]" onClick={async () => {
+                  <Input id="invite-code-input" placeholder="CÓDIGO" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} className="text-center text-3xl tracking-[0.5em] font-black h-16 rounded-2xl border-border bg-muted/30 focus:ring-primary/20 uppercase" maxLength={6} />
+                  <Button id="join-btn" className="w-full h-14 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl text-xs font-black shadow-xl shadow-primary/20 uppercase tracking-[0.2em]" onClick={async () => {
                     setJoinError('');
                     if (!joinCode) return setJoinError('Código requerido');
                     const success = await onJoinCompany(joinCode);
@@ -130,7 +130,7 @@ export function DashboardEmployee({
           <p className="text-muted-foreground font-medium text-sm md:text-base">Centro de soporte de {company.name}</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger asChild id="create-ticket-btn">
             <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-2xl shadow-lg shadow-primary/20 h-12 md:h-14 px-8 text-xs font-black uppercase tracking-widest transition-all w-full md:w-auto">
               <Plus className="h-5 w-5 mr-2" strokeWidth={3} /> Nuevo Ticket
             </Button>
@@ -177,7 +177,7 @@ export function DashboardEmployee({
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8">
+      <div id="stats-overview" className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8">
         <StatSummaryCard label="Abiertos" count={ticketsByStatus.OPEN.length} icon={<AlertCircle className="h-6 w-6 text-destructive" />} />
         <StatSummaryCard label="En proceso" count={ticketsByStatus.IN_PROGRESS.length} icon={<Clock className="h-6 w-6 text-amber-500" />} />
         <StatSummaryCard label="Finalizados" count={ticketsByStatus.RESOLVED.length} icon={<CheckCircle className="h-6 w-6 text-emerald-500" />} />

@@ -20,7 +20,8 @@ import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { companiesApi } from '@/services/api';
-import type { Ticket, UserRole, Company } from '@/types';
+import { Tutorial } from '@/components/Tutorial';
+import type { Ticket, Company } from '@/types';
 
 type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
 
@@ -39,10 +40,7 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-<<<<<<< HEAD
   const [showAuth, setShowAuth] = useState(false);
-=======
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
   const [company, setCompany] = useState<Company | null>(authCompany);
 
   const { 
@@ -168,7 +166,6 @@ function App() {
   };
 
   if (isLoading) return <LoadingState />;
-<<<<<<< HEAD
 
   if (!isAuthenticated || !user) {
     if (showAuth) {
@@ -182,18 +179,6 @@ function App() {
     return <LandingPage onNavigateToAuth={() => setShowAuth(true)} />;
   }
 
-=======
-
-  if (!isAuthenticated || !user) {
-    return (
-      <>
-        <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} />
-        <Toaster position="top-right" />
-      </>
-    );
-  }
-
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
   const renderPage = () => {
     const isAdminRole = user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador') || user.role === 'EMPRESA';
     
@@ -273,6 +258,7 @@ function App() {
             onAddComment={handleAddComment}
           />
         ) : renderPage()}
+        <Tutorial user={user} />
       </Layout>
       <Toaster position="top-right" />
     </>

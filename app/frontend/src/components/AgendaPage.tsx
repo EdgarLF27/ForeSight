@@ -178,13 +178,8 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-<<<<<<< HEAD
-        {/* Lado izquierdo: Hoja Diaria */}
-        <div className="lg:col-span-4">
-=======
         {/* Lado izquierdo: Hoja Diaria y Calendario Desplegable */}
         <div className="lg:col-span-4 space-y-4">
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={date.toISOString()}
@@ -195,25 +190,6 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
               exit="exit"
               transition={{ duration: 0.2 }}
             >
-<<<<<<< HEAD
-              <Card className="border-none shadow-md overflow-hidden bg-card rounded-3xl group relative">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
-                
-                <div className="pt-8 pb-4 text-center">
-                  <span className="text-primary text-xs font-bold uppercase tracking-widest">
-                    {format(date, 'EEEE', { locale: es })}
-                  </span>
-                </div>
-                
-                <CardContent className="flex flex-col items-center justify-center pb-10 pt-2">
-                  <div className="relative mb-4">
-                    <span className="text-8xl font-bold text-foreground tracking-tighter select-none">
-                      {format(date, 'd')}
-                    </span>
-                    {isToday(date) && (
-                      <div className="absolute -top-2 -right-4 p-1.5 bg-primary rounded-full border-2 border-card shadow-lg">
-                        <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2} />
-=======
               <Card className="border-none shadow-xl overflow-hidden bg-card rounded-[32px] group relative">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
                 
@@ -225,26 +201,16 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
                     {isToday(date) && (
                       <div className="absolute -top-2 -right-4 p-2 bg-primary rounded-full border-4 border-card shadow-lg">
                         <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
                       </div>
                     )}
                   </div>
                   
-<<<<<<< HEAD
-                  <div className="text-center space-y-0.5">
-                    <p className="text-xl font-bold text-muted-foreground capitalize">
-                      {format(date, 'MMMM', { locale: es })}
-                    </p>
-                    <p className="text-sm font-bold text-muted-foreground/50">
-                      {format(date, 'yyyy')}
-=======
                   <div className="text-center space-y-1 mb-8">
                     <p className="text-2xl font-black text-foreground capitalize tracking-tight">
                       {format(date, 'EEEE', { locale: es })}
                     </p>
                     <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                       {format(date, 'MMMM yyyy', { locale: es })}
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
                     </p>
                   </div>
 
@@ -266,18 +232,6 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
                     )}
                   </Button>
                   
-<<<<<<< HEAD
-                  <div className="mt-10 pt-8 border-t border-border w-full flex justify-center gap-8">
-                    <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Citas</p>
-                      <p className="text-2xl font-bold text-foreground">{filteredMeetings.length}</p>
-                    </div>
-                    <div className="w-px h-10 bg-border" />
-                    <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Estado</p>
-                      <Badge variant={filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
-                        {filteredMeetings.length > 0 ? 'OCUPADO' : 'LIBRE'}
-=======
                   <div className="mt-8 pt-8 border-t border-border w-full flex justify-center gap-10">
                     <div className="text-center">
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Citas</p>
@@ -288,7 +242,6 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Estado</p>
                       <Badge variant={filteredMeetings.length > 3 ? 'destructive' : filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-black px-3 py-1 rounded-xl text-[10px] shadow-sm">
                         {filteredMeetings.length > 3 ? 'SATURADO' : filteredMeetings.length > 0 ? 'OCUPADO' : 'LIBRE'}
->>>>>>> 410aa893d0a94f2c52e62c89eff5e15babf6b9a8
                       </Badge>
                     </div>
                   </div>
