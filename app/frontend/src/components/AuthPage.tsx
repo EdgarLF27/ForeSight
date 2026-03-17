@@ -45,9 +45,10 @@ interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
   onJoinCompany: (code: string) => Promise<boolean>;
+  onBack?: () => void;
 }
 
-export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) {
+export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState('');

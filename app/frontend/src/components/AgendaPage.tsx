@@ -237,7 +237,7 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Citas</p>
                       <p className="text-3xl font-black text-foreground">{filteredMeetings.length}</p>
                     </div>
-                    <div className="w-px h-12 bg-border" />
+                    <div className="w-px h-10 bg-border" />
                     <div className="text-center">
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Estado</p>
                       <Badge variant={filteredMeetings.length > 3 ? 'destructive' : filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-black px-3 py-1 rounded-xl text-[10px] shadow-sm">
