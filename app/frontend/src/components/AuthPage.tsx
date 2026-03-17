@@ -45,7 +45,7 @@ interface AuthPageProps {
   onBack?: () => void;
 }
 
-// Nuevo Componente: Red de Líneas de Datos Tecnológicas
+// Componente: Red de Líneas de Datos Tecnológicas
 const DataLines = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
@@ -56,8 +56,6 @@ const DataLines = () => {
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
-        
-        {/* Líneas de datos con motion.path para evitar errores de atributos */}
         {Array.from({ length: 12 }).map((_, i) => {
           const xPos = (i * 8.5) + Math.random() * 5;
           return (
@@ -88,7 +86,7 @@ const DataLines = () => {
   );
 };
 
-// Componente Pro: Animación de Red de Nodos (Plexus)
+// Componente: Animación de Red de Nodos (Plexus)
 const PlexusEffect = () => {
     const nodes = Array.from({ length: 20 }, (_, i) => ({
       id: i,
@@ -185,7 +183,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
         </motion.button>
       )}
 
-      {/* Lado Izquierdo - Visualización de Datos / Branding */}
+      {/* Lado Izquierdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center px-20 border-r border-white/5 bg-black/40">
         <PlexusEffect />
         
@@ -219,18 +217,10 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
 
       {/* Lado Derecho - Formulario */}
       <div className="flex-1 flex items-center justify-center p-6 relative">
-        {/* Aurora Animada */}
         <motion.div 
             className="absolute w-[800px] h-[800px] bg-[#0070f3]/10 blur-[180px] rounded-full pointer-events-none" 
-            animate={{
-                x: [0, 50, -50, 0],
-                y: [0, -50, 50, 0],
-            }}
-            transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "easeInOut"
-            }}
+            animate={{ x: [0, 50, -50, 0], y: [0, -50, 50, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
 
         <motion.div 
@@ -242,7 +232,6 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
             <h1 className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(0,242,255,0.5)]">FORESIGHT</h1>
           </div>
 
-          {/* TABS CON HALO REFORZADO */}
           <div className="flex p-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl mb-8 relative">
             <motion.div 
               className="absolute inset-y-1 bg-[#0070f3] rounded-xl shadow-[0_0_25px_rgba(0,112,243,0.6)]"
@@ -250,98 +239,56 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
               animate={{ x: activeTab === 'login' ? '0%' : '100%', width: '50%' }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
-            <button 
-              onClick={() => setActiveTab('login')}
-              className={`flex-1 py-3 text-sm font-bold z-10 transition-colors duration-300 ${activeTab === 'login' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
+            <button onClick={() => setActiveTab('login')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest z-10 transition-colors duration-300 ${activeTab === 'login' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
               Iniciar Sesión
             </button>
-            <button 
-              onClick={() => setActiveTab('register')}
-              className={`flex-1 py-3 text-sm font-bold z-10 transition-colors duration-300 ${activeTab === 'register' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
+            <button onClick={() => setActiveTab('register')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest z-10 transition-colors duration-300 ${activeTab === 'register' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
               Registrarse
             </button>
           </div>
 
-          {/* PANEL GLASSMORPHISM AVANZADO */}
           <div className="bg-white/[0.02] backdrop-blur-3xl border-[0.5px] border-white/20 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-            {/* Brillo sutil en el borde al hacer hover en el panel */}
             <div className="absolute inset-0 border border-white/5 rounded-[2.5rem] pointer-events-none group-hover:border-[#00f2ff]/20 transition-colors duration-700" />
             
             <AnimatePresence mode="wait">
               {activeTab === 'login' ? (
-                <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: "easeOut" }}>
+                <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4 }}>
                   <div className="mb-8 text-center lg:text-left">
                     <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Acceso Seguro</h2>
                     <p className="text-slate-400 text-sm">Autenticación de nivel corporativo.</p>
                   </div>
 
                   {(generalError || successMessage) && (
-                    <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} className={`mb-6 p-4 border rounded-xl text-sm text-center ${
-                      generalError 
-                        ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                        : 'bg-green-500/10 border-green-500/20 text-green-400'
-                    }`}>
+                    <div className={`mb-6 p-4 border rounded-xl text-sm text-center ${generalError ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-green-500/10 border-green-500/20 text-green-400'}`}>
                       {generalError || successMessage}
-                    </motion.div>
+                    </div>
                   )}
 
                   <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-5">
                     <div className="group/input">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff] transition-colors">Email Institucional</label>
-                      <input
-                        {...registerLogin('email')}
-                        type="email"
-                        placeholder="usuario@foresight.io"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500"
-                      />
-                      {errorsLogin.email && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold tracking-wide">{errorsLogin.email.message}</p>}
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff]">Email Institucional</label>
+                      <input {...registerLogin('email')} type="email" placeholder="usuario@foresight.io" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500" />
+                      {errorsLogin.email && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold">{errorsLogin.email.message}</p>}
                     </div>
 
                     <div className="group/input">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff] transition-colors">Contraseña de Acceso</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff]">Contraseña</label>
                       <div className="relative">
-                        <input
-                          {...registerLogin('password')}
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500"
-                        />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00f2ff] transition-colors">
+                        <input {...registerLogin('password')} type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] transition-all duration-500" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00f2ff]">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      {errorsLogin.password && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold tracking-wide">{errorsLogin.password.message}</p>}
                     </div>
 
-                    <motion.button 
-                        whileHover={{ 
-                            scale: 1.01, 
-                            boxShadow: "0 0 30px rgba(0, 242, 255, 0.4)",
-                            backgroundColor: "#ffffff"
-                        }} 
-                        whileTap={{ scale: 0.99 }} 
-                        disabled={isSubmittingLogin} 
-                        className="w-full bg-white text-black font-black py-4 rounded-xl flex items-center justify-center gap-2 group/btn transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-6 relative overflow-hidden"
-                    >
-                      {/* Efecto de Escaner de Luz */}
-                      <motion.div 
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent -translate-x-full"
-                        animate={{ x: ["100%", "-100%"] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-                      />
-                      
-                      {isSubmittingLogin ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                        <span className="relative z-10 flex items-center gap-2">
-                            ACCEDER AL SISTEMA <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-1 transition-transform" />
-                        </span>
-                      )}
+                    <motion.button whileHover={{ scale: 1.01, boxShadow: "0 0 30px rgba(0, 242, 255, 0.4)", backgroundColor: "#ffffff" }} whileTap={{ scale: 0.99 }} disabled={isSubmittingLogin} className="w-full bg-white text-black font-black py-4 rounded-xl flex items-center justify-center gap-2 mt-6 relative overflow-hidden">
+                      <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent -translate-x-full" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 1 }} />
+                      {isSubmittingLogin ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCEDER AL SISTEMA"}
                     </motion.button>
                   </form>
                 </motion.div>
               ) : (
-                <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: "easeOut" }}>
+                <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4 }}>
                   <div className="mb-6 text-center lg:text-left">
                     <h2 className="text-3xl font-bold text-white mb-1">Registro de Red</h2>
                     <p className="text-slate-400 text-sm">Crea una nueva identidad en Foresight.</p>
@@ -349,33 +296,25 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
 
                   <form onSubmit={handleSubmitRegister(onRegisterSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <button type="button" onClick={() => setValueRegister('role', 'EMPRESA')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPRESA' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white shadow-[0_0_15px_rgba(0,112,243,0.3)]' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20' }`}>
+                      <button type="button" onClick={() => setValueRegister('role', 'EMPRESA')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPRESA' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white' : 'bg-white/5 border-white/10 text-slate-500' }`}>
                         <Building2 className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Entidad Empresa</span>
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Empresa</span>
                       </button>
-                      <button type="button" onClick={() => setValueRegister('role', 'EMPLEADO')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPLEADO' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white shadow-[0_0_15px_rgba(0,112,243,0.3)]' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20' }`}>
+                      <button type="button" onClick={() => setValueRegister('role', 'EMPLEADO')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPLEADO' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white' : 'bg-white/5 border-white/10 text-slate-500' }`}>
                         <User className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Operador Empleado</span>
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Empleado</span>
                       </button>
                     </div>
 
                     {selectedRole === 'EMPRESA' && (
-                      <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="space-y-4">
-                        <input {...registerRegister('companyName')} placeholder="Nombre Legal de la Compañía" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
-                        {errorsRegister.companyName && <p className="text-red-400 text-[10px] ml-1 font-bold uppercase">{errorsRegister.companyName.message}</p>}
-                      </motion.div>
+                      <input {...registerRegister('companyName')} placeholder="Nombre de la Compañía" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff]" />
                     )}
 
-                    <input {...registerRegister('name')} placeholder="Nombre y Apellidos" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
-                    <input {...registerRegister('email')} type="email" placeholder="Email Corporativo" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
-                    <input {...registerRegister('password')} type="password" placeholder="Contraseña Segura (mín. 8 car.)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
+                    <input {...registerRegister('name')} placeholder="Nombre y Apellidos" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff]" />
+                    <input {...registerRegister('email')} type="email" placeholder="Email Corporativo" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff]" />
+                    <input {...registerRegister('password')} type="password" placeholder="Contraseña Segura" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff]" />
 
-                    <motion.button 
-                        whileHover={{ scale: 1.01, boxShadow: "0 0 25px rgba(0, 112, 243, 0.5)" }} 
-                        whileTap={{ scale: 0.99 }} 
-                        disabled={isSubmittingRegister} 
-                        className="w-full bg-[#0070f3] text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 group transition-all duration-300 mt-4 relative overflow-hidden"
-                    >
+                    <motion.button whileHover={{ scale: 1.01, boxShadow: "0 0 25px rgba(0, 112, 243, 0.5)" }} whileTap={{ scale: 0.99 }} disabled={isSubmittingRegister} className="w-full bg-[#0070f3] text-white font-black py-4 rounded-xl mt-4">
                       {isSubmittingRegister ? <Loader2 className="h-5 w-5 animate-spin" /> : "GENERAR CREDENCIALES"}
                     </motion.button>
                   </form>
@@ -386,7 +325,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
 
           <div className="mt-8 text-center">
             <p className="text-slate-600 text-[10px] font-bold tracking-[0.2em] uppercase">
-              &copy; {new Date().getFullYear()} Foresight Neural Systems // Protocolo de Seguridad Activo
+              &copy; {new Date().getFullYear()} Foresight Neural Systems // Protocolo Activo
             </p>
           </div>
         </motion.div>
