@@ -10,13 +10,16 @@ import {
   Search,
   CheckCircle,
   Building2,
-  MapPin
+  MapPin,
+  ChevronRight,
+  Loader2,
+  Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +44,7 @@ import {
 import { toast } from 'sonner';
 import { useRoles } from '@/hooks/useRoles';
 import { useAreas } from '@/hooks/useAreas';
+import { getFileUrl } from '@/services/api';
 import type { User, Company } from '@/types';
 
 interface TeamPageProps {
@@ -64,11 +68,9 @@ export function TeamPage({
   const [copied, setCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState(company.inviteCode);
   
-  // Hooks
   const { roles } = useRoles();
   const { areas, loadAreas } = useAreas();
   
-  // Estado para el modal de edición
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<User | null>(null);
   const [newRoleId, setNewRoleId] = useState<string>('');
@@ -100,7 +102,7 @@ export function TeamPage({
 
   const handleOpenEditDialog = (member: User) => {
     setSelectedMember(member);
-    const currentRoleId = typeof member.role === 'object' ? member.role?.id : '';
+    const currentRoleId = typeof member.role === 'object' ? (member.role as any).id : '';
     setNewRoleId(currentRoleId || '');
     setNewAreaId((member as any).areaId || 'none');
     setIsEditDialogOpen(true);
@@ -108,18 +110,15 @@ export function TeamPage({
 
   const handleSaveChanges = async () => {
     if (!selectedMember) return;
-    
     setIsSaving(true);
     let success = true;
 
-    // 1. Guardar Rol si cambió
-    const currentRoleId = typeof selectedMember.role === 'object' ? selectedMember.role?.id : '';
+    const currentRoleId = typeof selectedMember.role === 'object' ? (selectedMember.role as any).id : '';
     if (newRoleId && newRoleId !== currentRoleId) {
       const roleSuccess = await onChangeRole(selectedMember.id, newRoleId);
       if (!roleSuccess) success = false;
     }
 
-    // 2. Guardar Área si cambió
     const currentAreaId = (selectedMember as any).areaId || 'none';
     if (newAreaId !== currentAreaId) {
       const areaIdToSave = newAreaId === 'none' ? null : newAreaId;
@@ -128,16 +127,9 @@ export function TeamPage({
     }
 
     setIsSaving(false);
-    
     if (success) {
-      toast.success('Cambios guardados', {
-        description: `El perfil de ${selectedMember.name} ha sido actualizado.`
-      });
+      toast.success('Cambios guardados');
       setIsEditDialogOpen(false);
-    } else {
-      toast.error('Error', {
-        description: 'Algunos cambios no se pudieron guardar.'
-      });
     }
   };
 
@@ -145,189 +137,115 @@ export function TeamPage({
     return name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const isAdmin = (u: User) => {
-    return typeof u.role === 'object' ? u.role?.name === 'Administrador' || u.role?.name === 'Dueño' : u.role === 'EMPRESA';
+  const isAdminMember = (u: User) => {
+    return typeof u.role === 'object' ? (u.role as any).name === 'Administrador' || (u.role as any).name === 'Dueño' : u.role === 'EMPRESA';
   };
 
   const getRoleName = (u: User) => {
-    if (typeof u.role === 'object') return u.role?.name || 'Sin rol';
+    if (typeof u.role === 'object') return (u.role as any).name || 'Sin rol';
     return u.role === 'EMPRESA' ? 'Administrador' : 'Empleado';
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#202124]">Equipo</h1>
-          <p className="text-[#5f6368]">Gestiona los miembros y organiza tu empresa por áreas</p>
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <Users className="h-6 w-6 text-primary" strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground uppercase">Equipo</h1>
+          </div>
+          <p className="text-muted-foreground font-medium">Gestiona los miembros y organiza tu empresa por áreas.</p>
         </div>
       </div>
 
       {/* Invite Code Card */}
-      <Card className="bg-gradient-to-br from-[#1a73e8] to-[#1557b0] text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-        <CardContent className="p-6 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Código de invitación
+      <Card className="bg-card border-none shadow-md rounded-3xl overflow-hidden relative group">
+        <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary" />
+        <CardContent className="p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2.5 uppercase tracking-tight">
+                <UserPlus className="h-5 w-5 text-primary" strokeWidth={2} />
+                Invitación de Equipo
               </h2>
-              <p className="text-white/80 text-sm">
-                Comparte este código para que nuevos empleados se unan a {company.name}
+              <p className="text-muted-foreground text-sm font-medium max-w-md leading-relaxed">
+                Comparte este código para que nuevos empleados se unan automáticamente a <span className="text-primary font-bold">{company.name}</span>.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <code className="bg-white/20 backdrop-blur px-6 py-3 rounded-xl text-2xl font-mono tracking-widest border border-white/20">
-                {inviteCode}
-              </code>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={handleCopyCode}
-                className="h-12 w-12 bg-white/20 hover:bg-white/30 text-white border border-white/10"
-              >
-                {copied ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={handleRegenerateCode}
-                className="h-12 w-12 bg-white/20 hover:bg-white/30 text-white border border-white/10"
-              >
-                <RefreshCw className="h-5 w-5" />
-              </Button>
+              <div className="bg-muted/50 px-6 py-3 rounded-2xl border border-border group-hover:border-primary/30 transition-colors">
+                <code className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">
+                  {inviteCode}
+                </code>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={handleCopyCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
+                  {copied ? <CheckCircle className="h-5 w-5 text-emerald-500" strokeWidth={2} /> : <Copy className="h-5 w-5" strokeWidth={2} />}
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleRegenerateCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
+                  <RefreshCw className="h-5 w-5" strokeWidth={2} />
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#e8f0fe] rounded-xl flex items-center justify-center">
-              <Users className="h-6 w-6 text-[#1a73e8]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">{teamMembers.length}</p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Miembros</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#e6f4ea] rounded-xl flex items-center justify-center">
-              <Shield className="h-6 w-6 text-[#34a853]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">
-                {teamMembers.filter(m => isAdmin(m)).length}
-              </p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Administradores</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#fef3e8] rounded-xl flex items-center justify-center">
-              <MapPin className="h-6 w-6 text-[#f9ab00]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-[#202124]">{areas.length}</p>
-              <p className="text-xs text-[#5f6368] uppercase font-bold tracking-wider">Áreas activas</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Members List */}
-      <Card className="border-[#dadce0] shadow-sm">
-        <CardHeader className="pb-4 border-b border-[#f1f3f4]">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="text-lg font-semibold text-[#202124]">Miembros de la Organización</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
+      <Card className="border-none shadow-md bg-card rounded-3xl overflow-hidden">
+        <CardHeader className="px-8 py-6 border-b border-border bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <CardTitle className="text-lg font-bold text-foreground uppercase tracking-tight">Directorio de Miembros</CardTitle>
+            <div className="relative group w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 placeholder="Buscar por nombre o email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-full sm:w-80 bg-[#f8f9fa] border-none"
+                className="pl-10 h-10 bg-card border-border rounded-xl focus:ring-primary/20 text-sm"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-[#f1f3f4]">
+          <div className="divide-y divide-border/50">
             {filteredMembers.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
-                <p className="text-[#5f6368]">No se encontraron miembros registrados</p>
-              </div>
+              <div className="text-center py-20"><Users className="h-8 w-8 text-muted-foreground/30 mx-auto mb-4" /><p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No hay miembros</p></div>
             ) : (
               filteredMembers.map((member) => (
-                <div 
-                  key={member.id} 
-                  className="flex items-center gap-4 p-4 hover:bg-[#f8f9fa] transition-colors group"
-                >
-                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-                    <AvatarFallback className={`text-white text-sm font-bold ${
-                      isAdmin(member) 
-                        ? 'bg-gradient-to-br from-[#34a853] to-[#2e7d32]' 
-                        : 'bg-gradient-to-br from-[#1a73e8] to-[#1557b0]'
-                    }`}>
-                      {getInitials(member.name)}
-                    </AvatarFallback>
+                <div key={member.id} className="flex items-center gap-5 p-6 hover:bg-muted/30 transition-all group relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Avatar className="h-12 w-12 ring-2 ring-border shadow-sm flex-shrink-0">
+                    <AvatarImage src={getFileUrl(member.avatar) || ''} className="object-cover" />
+                    <AvatarFallback className={`text-white text-sm font-bold ${isAdminMember(member) ? 'bg-emerald-600' : 'bg-primary'}`}>{getInitials(member.name)}</AvatarFallback>
                   </Avatar>
-                  
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-[#202124] truncate">{member.name}</p>
-                      {member.id === user.id && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1">Tú</Badge>
-                      )}
-                      {member.id === company.ownerId && (
-                        <Badge className="bg-[#f9ab00] text-white text-[10px] h-4 px-1 border-none">Dueño</Badge>
-                      )}
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors uppercase tracking-tight">{member.name}</p>
+                      {member.id === user.id && <Badge className="text-[9px] h-4 px-1.5 font-bold uppercase bg-primary/10 text-primary border-none">Tú</Badge>}
+                      {member.id === company.ownerId && <Badge variant="warning" className="text-[9px] h-4 px-1.5 font-bold uppercase">Dueño</Badge>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                      <p className="text-xs text-[#5f6368] flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {member.email}
-                      </p>
-                      {(member as any).area && (
-                        <p className="text-xs text-[#1a73e8] flex items-center gap-1 font-medium">
-                          <Building2 className="h-3 w-3" />
-                          {(member as any).area.name}
-                        </p>
-                      )}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-bold"><Mail className="h-3 w-3 text-primary/40" />{member.email}</p>
+                      {(member as any).area && <p className="text-xs text-primary flex items-center gap-1.5 font-bold"><Building2 className="h-3 w-3" />{(member as any).area.name}</p>}
                     </div>
                   </div>
-
-                  <div className="hidden sm:block">
-                    <Badge variant={isAdmin(member) ? 'default' : 'secondary'} className="font-medium">
-                      {getRoleName(member)}
-                    </Badge>
+                  <div className="hidden md:flex flex-col items-end gap-1 px-4">
+                    <Badge variant={isAdminMember(member) ? 'success' : 'secondary'} className="font-bold text-[10px] px-2.5 py-0.5 rounded-lg uppercase">{getRoleName(member)}</Badge>
                   </div>
-
-                  {(user.role === 'EMPRESA' || isAdmin(user)) && member.id !== company.ownerId && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleOpenEditDialog(member)}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Editar miembro
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-[#ea4335] focus:text-[#ea4335]">
-                          Eliminar del equipo
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(user.role === 'EMPRESA' || isAdminMember(user)) && member.id !== company.ownerId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl opacity-0 group-hover:opacity-100"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 bg-card border-border shadow-xl">
+                          <DropdownMenuItem onClick={() => handleOpenEditDialog(member)} className="rounded-lg py-2 cursor-pointer font-bold text-xs uppercase"><RefreshCw className="h-4 w-4 mr-2.5" /> Editar miembro</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all hidden sm:block" />
+                  </div>
                 </div>
               ))
             )}
@@ -335,95 +253,65 @@ export function TeamPage({
         </CardContent>
       </Card>
 
-      {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Miembro del Equipo</DialogTitle>
-            <DialogDescription>
-              Ajusta el rol y el área de trabajo de {selectedMember?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-6">
-            {/* Perfil resumido */}
-            <div className="flex items-center gap-3 p-3 bg-[#f8f9fa] rounded-xl border border-[#f1f3f4]">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-[#e8f0fe] text-[#1a73e8] text-xs font-bold">
-                  {selectedMember ? getInitials(selectedMember.name) : ''}
-                </AvatarFallback>
+        <DialogContent className="sm:max-w-[440px] rounded-3xl p-0 overflow-hidden bg-card border-border shadow-2xl">
+          <div className="bg-primary p-8 text-primary-foreground relative">
+            <div className="absolute -right-4 -top-4 opacity-10 rotate-12"><Users size={100} /></div>
+            <DialogTitle className="text-2xl font-bold uppercase">Editar Miembro</DialogTitle>
+            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">Ajusta el perfil de este colaborador.</DialogDescription>
+          </div>
+          <div className="p-8 space-y-8">
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-2xl border border-border">
+              <Avatar className="h-12 w-12 shadow-sm ring-2 ring-card">
+                <AvatarImage src={getFileUrl(selectedMember?.avatar) || ''} className="object-cover" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">{selectedMember ? getInitials(selectedMember.name) : ''}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#202124] truncate">{selectedMember?.name}</p>
-                <p className="text-xs text-[#5f6368] truncate">{selectedMember?.email}</p>
+                <p className="text-sm font-bold text-foreground truncate uppercase">{selectedMember?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{selectedMember?.email}</p>
               </div>
             </div>
-            
-            {/* Selector de Rol */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-[#202124] flex items-center gap-2">
-                <Shield className="h-4 w-4 text-[#1a73e8]" />
-                Rol del Usuario
-              </label>
-              <Select value={newRoleId} onValueChange={setNewRoleId}>
-                <SelectTrigger className="bg-white border-[#dadce0] rounded-lg">
-                  <SelectValue placeholder="Selecciona un rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name} {role.isSystem ? '(Sistema)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-[#5f6368]">
-                Define qué permisos tendrá el usuario dentro de la plataforma.
-              </p>
-            </div>
-
-            {/* Selector de Área */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-[#202124] flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-[#1a73e8]" />
-                Área de Trabajo
-              </label>
-              <Select value={newAreaId} onValueChange={setNewAreaId}>
-                <SelectTrigger className="bg-white border-[#dadce0] rounded-lg">
-                  <SelectValue placeholder="Selecciona un área" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin área asignada</SelectItem>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-[#5f6368]">
-                Vincular al usuario a un área ayuda a filtrar los tickets automáticamente.
-              </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Rol</label>
+                <Select value={newRoleId} onValueChange={setNewRoleId}>
+                  <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 font-bold text-xs uppercase"><SelectValue placeholder="Selecciona un rol" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-border bg-card shadow-xl">
+                    {roles.map((role) => (<SelectItem key={role.id} value={role.id} className="font-bold text-[10px] uppercase">{role.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Área</label>
+                <Select value={newAreaId} onValueChange={setNewAreaId}>
+                  <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 font-bold text-xs uppercase"><SelectValue placeholder="Selecciona un área" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-border bg-card shadow-xl">
+                    <SelectItem value="none" className="font-bold text-[10px] uppercase">Sin área</SelectItem>
+                    {areas.map((area) => (<SelectItem key={area.id} value={area.id} className="font-bold text-[10px] uppercase">{area.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <DialogFooter className="bg-[#f8f9fa] -mx-6 -mb-6 p-4 mt-2">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="text-[#5f6368]">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSaveChanges} 
-              disabled={isSaving}
-              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white px-8 rounded-lg shadow-sm"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
-              ) : 'Guardar cambios'}
+          <DialogFooter className="p-8 pt-0 flex gap-3">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground uppercase text-xs">Cancelar</Button>
+            <Button onClick={handleSaveChanges} disabled={isSaving} className="bg-primary text-primary-foreground h-11 px-8 rounded-xl font-bold uppercase text-xs shadow-lg shadow-primary/20">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Cambios'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatSummaryCard({ title, value, icon }: { title: string, value: number, icon: React.ReactNode }) {
+  return (
+    <Card className="border-none shadow-md bg-card hover:shadow-lg transition-all duration-300 group">
+      <CardContent className="p-6 flex items-center gap-4">
+        <div className="p-3.5 rounded-xl bg-muted/50 border border-border group-hover:bg-primary/10 transition-colors">{icon}</div>
+        <div><p className="text-3xl font-bold text-foreground tracking-tight">{value}</p><p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{title}</p></div>
+      </CardContent>
+    </Card>
   );
 }

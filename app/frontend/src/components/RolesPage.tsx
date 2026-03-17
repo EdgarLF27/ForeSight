@@ -5,13 +5,14 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
 import { Badge } from './ui/badge';
-import { Shield, Plus, Trash2, Edit2, XCircle } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit2, XCircle, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from './ui/dialog';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -33,6 +34,7 @@ export const RolesPage: React.FC = () => {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -57,23 +59,22 @@ export const RolesPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsActionLoading(true);
     try {
       if (editingRole) {
         await updateRole(editingRole.id, formData);
-        toast.success('Rol actualizado', {
-          description: `El rol "${formData.name}" se ha actualizado correctamente.`
-        });
+        toast.success('Rol actualizado');
       } else {
         await createRole(formData);
-        toast.success('Rol creado', {
-          description: `El rol "${formData.name}" se ha creado correctamente.`
-        });
+        toast.success('Rol creado');
       }
       setIsDialogOpen(false);
     } catch (err) {
       toast.error('Error al guardar', {
         description: err instanceof Error ? err.message : 'No se pudo guardar el rol.'
       });
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -93,91 +94,105 @@ export const RolesPage: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!roleToDelete) return;
+    setIsActionLoading(true);
     try {
       await deleteRole(roleToDelete);
-      toast.success('Rol eliminado', {
-        description: 'El rol se ha eliminado permanentemente.'
-      });
+      toast.success('Rol eliminado');
     } catch (err) {
       toast.error('Error al eliminar', {
         description: err instanceof Error ? err.message : 'No se pudo eliminar el rol.'
       });
     } finally {
+      setIsActionLoading(false);
       setIsDeleteAlertOpen(false);
       setRoleToDelete(null);
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Cargando roles y permisos...</div>;
+  if (loading) return (
+    <div className="h-[60vh] flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={2} />
+    </div>
+  );
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-            <Shield className="h-8 w-8 text-blue-600" />
-            Gestión de Roles y Permisos
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Define qué acciones pueden realizar los diferentes perfiles en tu empresa.
-          </p>
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <Shield className="h-6 w-6 text-primary" strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Roles</h1>
+          </div>
+          <p className="text-muted-foreground font-medium">Define qué acciones pueden realizar los diferentes perfiles.</p>
         </div>
-        <Button onClick={handleOpenCreate} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Rol
+        <Button onClick={handleOpenCreate} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold">
+          <Plus className="h-4 w-4 mr-2" strokeWidth={3} />
+          Nuevo Rol
         </Button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
-          <XCircle className="h-5 w-5" /> {error}
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold">
+          <XCircle className="h-5 w-5" strokeWidth={2} /> {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.isArray(roles) && roles.map((role) => (
-          <Card key={role.id} className={role.isSystem ? 'bg-slate-50 border-slate-200' : 'hover:shadow-md transition-shadow'}>
-            <CardHeader className="pb-3">
+          <Card key={role.id} className={`group border-none shadow-md hover:shadow-lg transition-all duration-300 bg-card rounded-2xl overflow-hidden relative ${role.isSystem ? 'bg-muted/30' : ''}`}>
+            <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${role.isSystem ? 'bg-muted-foreground/30' : 'bg-primary'} opacity-0 group-hover:opacity-100 transition-opacity`} />
+            
+            <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    {role.name}
-                    {role.isSystem && <Badge variant="secondary" className="text-[10px] uppercase font-bold bg-slate-200">Sistema</Badge>}
-                  </CardTitle>
-                  <CardDescription className="mt-1 line-clamp-2 min-h-[40px]">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">
+                      {role.name}
+                    </CardTitle>
+                    {role.isSystem && <Badge variant="secondary" className="text-[9px] uppercase font-bold px-1.5 py-0 rounded-md">Sistema</Badge>}
+                  </div>
+                  <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px] font-medium leading-relaxed">
                     {role.description || 'Sin descripción'}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex flex-wrap gap-1.5">
-                  {role.permissions.slice(0, 5).map(p => (
-                    <Badge key={p.id} variant="outline" className="text-[11px] bg-white">
+                  {role.permissions.slice(0, 4).map(p => (
+                    <Badge key={p.id} variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/50 text-muted-foreground">
                       {p.name}
                     </Badge>
                   ))}
-                  {role.permissions.length > 5 && (
-                    <Badge variant="outline" className="text-[11px] bg-white">
-                      +{role.permissions.length - 5} más
+                  {role.permissions.length > 4 && (
+                    <Badge variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/50 text-muted-foreground">
+                      +{role.permissions.length - 4} más
                     </Badge>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <span className="text-xs text-slate-500">
-                    {role._count?.users || 0} usuarios asignados
+                <div className="flex items-center justify-between pt-5 border-t border-border">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    {role._count?.users || 0} usuarios
                   </span>
-                  <div className="flex gap-2">
-                    {!role.isSystem && (
+                  <div className="flex gap-1">
+                    {!role.isSystem ? (
                       <>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(role)}>
-                          <Edit2 className="h-4 w-4 text-slate-600" />
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(role)} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                          <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(role.id)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(role.id)} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
                         </Button>
                       </>
+                    ) : (
+                      <div className="h-8 px-2 flex items-center">
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -188,51 +203,61 @@ export const RolesPage: React.FC = () => {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">{editingRole ? 'Editar Rol' : 'Crear Nuevo Rol'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6 py-4">
-            <div className="space-y-4">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl p-0 border-border bg-card shadow-2xl flex flex-col">
+          <div className="bg-primary p-8 text-primary-foreground relative flex-shrink-0">
+            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+              <Shield size={100} strokeWidth={1} />
+            </div>
+            <DialogTitle className="text-2xl font-bold">{editingRole ? 'Editar Rol' : 'Crear Nuevo Rol'}</DialogTitle>
+            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
+              Configura el nombre, descripción y permisos del perfil.
+            </DialogDescription>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
+            <div className="space-y-6">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nombre del Rol</Label>
+                <Label htmlFor="name" className="text-sm font-bold text-foreground/80 ml-1">Nombre del Rol</Label>
                 <Input
                   id="name"
                   placeholder="Ej: Técnico de Nivel 1"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   required
+                  className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20 font-bold"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="description">Descripción</Label>
+                <Label htmlFor="description" className="text-sm font-bold text-foreground/80 ml-1">Descripción</Label>
                 <Input
                   id="description"
                   placeholder="Descripción de las responsabilidades..."
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20"
                 />
               </div>
             </div>
 
             <div className="space-y-4">
-              <Label className="text-base font-semibold">Permisos Asociados</Label>
-              <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-slate-50">
+              <Label className="text-base font-bold text-foreground ml-1 uppercase tracking-wide">Permisos Asociados</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border border-border p-6 rounded-2xl bg-muted/20">
                 {permissions.map((p) => (
-                  <div key={p.id} className="flex items-start space-x-3 space-y-0">
+                  <div key={p.id} className="flex items-start space-x-3 group cursor-pointer" onClick={() => togglePermission(p.id)}>
                     <Checkbox
                       id={`p-${p.id}`}
                       checked={formData.permissionIds.includes(p.id)}
                       onCheckedChange={() => togglePermission(p.id)}
+                      className="mt-1 rounded-md border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
-                    <div className="grid gap-1.5 leading-none">
+                    <div className="grid gap-1 leading-none">
                       <label
                         htmlFor={`p-${p.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        className="text-sm font-bold text-foreground cursor-pointer group-hover:text-primary transition-colors"
                       >
                         {p.name}
                       </label>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         {p.description}
                       </p>
                     </div>
@@ -240,32 +265,35 @@ export const RolesPage: React.FC = () => {
                 ))}
               </div>
             </div>
-
-            <DialogFooter className="sticky bottom-0 bg-white pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                {editingRole ? 'Actualizar Rol' : 'Crear Rol'}
-              </Button>
-            </DialogFooter>
           </form>
+
+          <DialogFooter className="p-8 border-t border-border bg-muted/10 flex gap-3 flex-shrink-0">
+            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isActionLoading} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-10 font-bold shadow-lg shadow-primary/20 min-w-[140px]">
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : (editingRole ? 'Actualizar Rol' : 'Crear Rol')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-2xl p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente el rol
-              y no podrá ser recuperado.
+            <div className="w-12 h-12 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive mb-4 border border-destructive/20">
+              <AlertCircle className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-foreground">¿Estás completamente seguro?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
+              Esta acción no se puede deshacer. Esto eliminará permanentemente el rol del sistema. 
+              Los usuarios con este rol perderán sus permisos asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
-              Eliminar Rol
+          <AlertDialogFooter className="mt-6 flex gap-3">
+            <AlertDialogCancel className="rounded-xl h-11 px-6 font-bold border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:opacity-90 rounded-xl h-11 px-6 font-bold shadow-lg shadow-destructive/20" disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar Rol'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

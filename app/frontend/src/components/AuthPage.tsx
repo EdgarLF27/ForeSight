@@ -1,122 +1,157 @@
 import { useState } from 'react';
-import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
+import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UserRole } from '@/types';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+// Esquemas de validación Zod
+const loginSchema = z.object({
+  email: z.string().email('Correo electrónico inválido'),
+  password: z.string().min(1, 'La contraseña es requerida'),
+});
+
+const registerSchema = z.object({
+  name: z.string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras y espacios'),
+  email: z.string().email('Correo electrónico inválido'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  role: z.enum(['EMPRESA', 'EMPLEADO'] as const),
+  companyName: z.string().optional(),
+}).refine((data) => {
+  if (data.role === 'EMPRESA' && (!data.companyName || data.companyName.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El nombre de la empresa es requerido",
+  path: ["companyName"],
+});
+
+const joinSchema = z.object({
+  code: z.string().length(6, 'El código debe tener 6 caracteres').regex(/^[A-Z0-9]+$/, 'Formato de código inválido'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
+type JoinFormData = z.infer<typeof joinSchema>;
 
 interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
   onJoinCompany: (code: string) => Promise<boolean>;
+  onBack?: () => void;
 }
 
-export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) {
+export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   
-  // Form states
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [registerData, setRegisterData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'EMPLEADO' as UserRole,
-    companyName: '',
+  // Forms
+  const { 
+    register: registerLogin, 
+    handleSubmit: handleSubmitLogin, 
+    formState: { errors: errorsLogin, isSubmitting: isSubmittingLogin } 
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
   });
-  const [joinCode, setJoinCode] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!loginData.email || !loginData.password) {
-      setError('Por favor completa todos los campos');
-      return;
+  const { 
+    register: registerRegister, 
+    handleSubmit: handleSubmitRegister, 
+    setValue: setValueRegister,
+    watch: watchRegister,
+    formState: { errors: errorsRegister, isSubmitting: isSubmittingRegister } 
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      role: 'EMPLEADO',
+      companyName: '',
     }
+  });
 
-    setIsLoading(true);
+  const { 
+    register: registerJoin, 
+    handleSubmit: handleSubmitJoin, 
+    formState: { errors: errorsJoin, isSubmitting: isSubmittingJoin },
+    reset: resetJoin
+  } = useForm<JoinFormData>({
+    resolver: zodResolver(joinSchema)
+  });
+
+  const selectedRole = watchRegister('role');
+
+  const onLoginSubmit = async (data: LoginFormData) => {
+    setGeneralError('');
+    setSuccessMessage('');
     try {
-      const success = await onLogin(loginData.email, loginData.password);
+      const success = await onLogin(data.email, data.password);
       if (!success) {
-        setError('Correo o contraseña incorrectos');
+        setGeneralError('Correo o contraseña incorrectos');
       }
     } catch (err) {
-      setError('Ocurrió un error al intentar iniciar sesión');
-    } finally {
-      setIsLoading(false);
+      setGeneralError('Ocurrió un error al intentar iniciar sesión');
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!registerData.name || !registerData.email || !registerData.password) {
-      setError('Por favor completa todos los campos');
-      return;
-    }
-
-    if (registerData.role === 'EMPRESA' && !registerData.companyName) {
-      setError('Por favor ingresa el nombre de tu empresa');
-      return;
-    }
-
-    setIsLoading(true);
+  const onRegisterSubmit = async (data: RegisterFormData) => {
+    setGeneralError('');
+    setSuccessMessage('');
     try {
       const success = await onRegister(
-        registerData.name,
-        registerData.email,
-        registerData.password,
-        registerData.role,
-        registerData.companyName
+        data.name,
+        data.email,
+        data.password,
+        data.role,
+        data.companyName
       );
       
       if (success) {
-        setSuccess('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
+        setSuccessMessage('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
         setActiveTab('login');
       } else {
-        setError('El correo ya está registrado');
+        setGeneralError('El correo ya está registrado');
       }
     } catch (err) {
-      setError('Ocurrió un error al registrar la cuenta');
-    } finally {
-      setIsLoading(false);
+      setGeneralError('Ocurrió un error al registrar la cuenta');
     }
   };
 
-  const handleJoinCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    
-    if (!joinCode) {
-      setError('Por favor ingresa el código de invitación');
-      return;
-    }
-
-    setIsLoading(true);
+  const onJoinSubmit = async (data: JoinFormData) => {
+    setGeneralError('');
+    setSuccessMessage('');
     try {
-      const success = await onJoinCompany(joinCode);
+      const success = await onJoinCompany(data.code);
       if (success) {
-        setSuccess('¡Te has unido a la empresa exitosamente!');
-        setJoinCode('');
+        setSuccessMessage('¡Te has unido a la empresa exitosamente!');
+        resetJoin();
       } else {
-        setError('Código de invitación inválido');
+        setGeneralError('Código de invitación inválido');
       }
     } catch (err) {
-      setError('Ocurrió un error al intentar unirte');
-    } finally {
-      setIsLoading(false);
+      setGeneralError('Ocurrió un error al intentar unirte');
     }
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-900 lg:text-white transition-colors"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+      )}
+
       {/* Left Side - Illustration */}
       <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#34a853] relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10" />
@@ -194,30 +229,30 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <p className="text-[#5f6368] mt-1">Ingresa tus credenciales para continuar</p>
                 </div>
 
-                {error && activeTab === 'login' && (
+                {generalError && activeTab === 'login' && (
                   <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {error}
+                    {generalError}
                   </div>
                 )}
 
-                {success && activeTab === 'login' && (
+                {successMessage && activeTab === 'login' && (
                   <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
-                    {success}
+                    {successMessage}
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
                   <div>
                     <Label htmlFor="login-email">Correo electrónico</Label>
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="tu@empresa.com"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                      className="mt-1"
-                      disabled={isLoading}
+                      {...registerLogin('email')}
+                      className={`mt-1 ${errorsLogin.email ? 'border-red-500' : ''}`}
+                      disabled={isSubmittingLogin}
                     />
+                    {errorsLogin.email && <p className="text-red-500 text-xs mt-1">{errorsLogin.email.message}</p>}
                   </div>
 
                   <div>
@@ -227,27 +262,28 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                         id="login-password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        disabled={isLoading}
+                        {...registerLogin('password')}
+                        className={errorsLogin.password ? 'border-red-500' : ''}
+                        disabled={isSubmittingLogin}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f6368]"
-                        disabled={isLoading}
+                        disabled={isSubmittingLogin}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {errorsLogin.password && <p className="text-red-500 text-xs mt-1">{errorsLogin.password.message}</p>}
                   </div>
 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
-                    disabled={isLoading}
+                    disabled={isSubmittingLogin}
                   >
-                    {isLoading ? (
+                    {isSubmittingLogin ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Iniciando sesión...
@@ -271,62 +307,62 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <p className="text-[#5f6368] mt-1">Elige tu tipo de cuenta</p>
                 </div>
 
-                {error && activeTab === 'register' && (
+                {generalError && activeTab === 'register' && (
                   <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {error}
+                    {generalError}
                   </div>
                 )}
 
-                <form onSubmit={handleRegister} className="space-y-4">
+                <form onSubmit={handleSubmitRegister(onRegisterSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => setRegisterData({ ...registerData, role: 'EMPRESA' })}
-                      disabled={isLoading}
+                      onClick={() => setValueRegister('role', 'EMPRESA')}
+                      disabled={isSubmittingRegister}
                       className={`p-4 rounded-xl border-2 transition-all ${
-                        registerData.role === 'EMPRESA'
+                        selectedRole === 'EMPRESA'
                           ? 'border-[#1a73e8] bg-[#e8f0fe]'
                           : 'border-[#dadce0] hover:border-[#1a73e8]'
                       }`}
                     >
                       <Building2 className={`h-6 w-6 mx-auto mb-2 ${
-                        registerData.role === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
+                        selectedRole === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
                       }`} />
                       <p className={`text-sm font-medium ${
-                        registerData.role === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#202124]'
+                        selectedRole === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#202124]'
                       }`}>Empresa</p>
                     </button>
                     
                     <button
                       type="button"
-                      onClick={() => setRegisterData({ ...registerData, role: 'EMPLEADO' })}
-                      disabled={isLoading}
+                      onClick={() => setValueRegister('role', 'EMPLEADO')}
+                      disabled={isSubmittingRegister}
                       className={`p-4 rounded-xl border-2 transition-all ${
-                        registerData.role === 'EMPLEADO'
+                        selectedRole === 'EMPLEADO'
                           ? 'border-[#1a73e8] bg-[#e8f0fe]'
                           : 'border-[#dadce0] hover:border-[#1a73e8]'
                       }`}
                     >
                       <User className={`h-6 w-6 mx-auto mb-2 ${
-                        registerData.role === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
+                        selectedRole === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
                       }`} />
                       <p className={`text-sm font-medium ${
-                        registerData.role === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#202124]'
+                        selectedRole === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#202124]'
                       }`}>Empleado</p>
                     </button>
                   </div>
 
-                  {registerData.role === 'EMPRESA' && (
+                  {selectedRole === 'EMPRESA' && (
                     <div>
                       <Label htmlFor="company-name">Nombre de la empresa</Label>
                       <Input
                         id="company-name"
                         placeholder="Mi Empresa SA"
-                        value={registerData.companyName}
-                        onChange={(e) => setRegisterData({ ...registerData, companyName: e.target.value })}
-                        className="mt-1"
-                        disabled={isLoading}
+                        {...registerRegister('companyName')}
+                        className={`mt-1 ${errorsRegister.companyName ? 'border-red-500' : ''}`}
+                        disabled={isSubmittingRegister}
                       />
+                      {errorsRegister.companyName && <p className="text-red-500 text-xs mt-1">{errorsRegister.companyName.message}</p>}
                     </div>
                   )}
 
@@ -335,11 +371,11 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                     <Input
                       id="register-name"
                       placeholder="Juan Pérez"
-                      value={registerData.name}
-                      onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                      className="mt-1"
-                      disabled={isLoading}
+                      {...registerRegister('name')}
+                      className={`mt-1 ${errorsRegister.name ? 'border-red-500' : ''}`}
+                      disabled={isSubmittingRegister}
                     />
+                     {errorsRegister.name && <p className="text-red-500 text-xs mt-1">{errorsRegister.name.message}</p>}
                   </div>
 
                   <div>
@@ -348,11 +384,11 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       id="register-email"
                       type="email"
                       placeholder="tu@empresa.com"
-                      value={registerData.email}
-                      onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                      className="mt-1"
-                      disabled={isLoading}
+                      {...registerRegister('email')}
+                      className={`mt-1 ${errorsRegister.email ? 'border-red-500' : ''}`}
+                      disabled={isSubmittingRegister}
                     />
+                    {errorsRegister.email && <p className="text-red-500 text-xs mt-1">{errorsRegister.email.message}</p>}
                   </div>
 
                   <div>
@@ -361,19 +397,20 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                       id="register-password"
                       type="password"
                       placeholder="••••••••"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                      className="mt-1"
-                      disabled={isLoading}
+                      {...registerRegister('password')}
+                      className={`mt-1 ${errorsRegister.password ? 'border-red-500' : ''}`}
+                      disabled={isSubmittingRegister}
                     />
+                    {errorsRegister.password && <p className="text-red-500 text-xs mt-1">{errorsRegister.password.message}</p>}
+                    <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres</p>
                   </div>
 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
-                    disabled={isLoading}
+                    disabled={isSubmittingRegister}
                   >
-                    {isLoading ? (
+                    {isSubmittingRegister ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creando cuenta...
@@ -397,30 +434,34 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <p className="text-[#5f6368] mt-1">Ingresa el código de invitación</p>
                 </div>
 
-                {error && activeTab === 'join' && (
+                {generalError && activeTab === 'join' && (
                   <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {error}
+                    {generalError}
                   </div>
                 )}
 
-                {success && activeTab === 'join' && (
+                {successMessage && activeTab === 'join' && (
                   <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
-                    {success}
+                    {successMessage}
                   </div>
                 )}
 
-                <form onSubmit={handleJoinCompany} className="space-y-4">
+                <form onSubmit={handleSubmitJoin(onJoinSubmit)} className="space-y-4">
                   <div>
                     <Label htmlFor="join-code">Código de invitación</Label>
                     <Input
                       id="join-code"
                       placeholder="ABC123"
-                      value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                      className="mt-1 text-center text-2xl tracking-widest font-mono uppercase"
+                      {...registerJoin('code', {
+                        onChange: (e) => {
+                          e.target.value = e.target.value.toUpperCase();
+                        }
+                      })}
+                      className={`mt-1 text-center text-2xl tracking-widest font-mono uppercase ${errorsJoin.code ? 'border-red-500' : ''}`}
                       maxLength={6}
-                      disabled={isLoading}
+                      disabled={isSubmittingJoin}
                     />
+                    {errorsJoin.code && <p className="text-red-500 text-xs mt-1 text-center">{errorsJoin.code.message}</p>}
                     <p className="text-xs text-[#5f6368] mt-2 text-center">
                       Solicita el código a tu administrador
                     </p>
@@ -429,9 +470,9 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                   <Button 
                     type="submit" 
                     className="w-full bg-[#34a853] hover:bg-[#2e7d32]"
-                    disabled={isLoading}
+                    disabled={isSubmittingJoin}
                   >
-                    {isLoading ? (
+                    {isSubmittingJoin ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Uniéndote...
@@ -451,7 +492,7 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany }: AuthPageProps) 
                     <button 
                       onClick={() => setActiveTab('register')} 
                       className="text-[#1a73e8] font-medium hover:underline"
-                      disabled={isLoading}
+                      disabled={isSubmittingJoin}
                     >
                       Crea una cuenta
                     </button>

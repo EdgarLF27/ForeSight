@@ -2,6 +2,8 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,8 +16,6 @@ async function bootstrap() {
         .get("FRONTEND_URL", "http://localhost:5173,http://localhost:5174")
         .split(",");
       
-      // Si no hay origin (como en peticiones locales de servidor a servidor) 
-      // o el origin está en la lista de permitidos
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -25,7 +25,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Enable validation pipes
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -34,11 +33,13 @@ async function bootstrap() {
     }),
   );
 
-  // Set global prefix
+  // SERVIR ARCHIVOS ESTÁTICOS CORRECTAMENTE
+  // join(__dirname, '..', '..', 'uploads') apunta a la raíz de /backend/uploads cuando corre desde /dist
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+
   app.setGlobalPrefix("api");
 
   const port = configService.get("PORT", 3001);
-
   await app.listen(port);
 }
 

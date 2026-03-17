@@ -9,7 +9,9 @@ import {
   Building2,
   Users,
   Ticket,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,7 +46,7 @@ import { useAreas } from '@/hooks/useAreas';
 import type { Area } from '@/types';
 
 export function AreasPage() {
-  const { areas, isLoading, error, loadAreas, createArea, updateArea, deleteArea } = useAreas();
+  const { areas, isLoading, loadAreas, createArea, updateArea, deleteArea } = useAreas();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Estado para diálogos
@@ -102,7 +104,6 @@ export function AreasPage() {
         setIsEditDialogOpen(false);
       }
     } catch (err: any) {
-      // El hook ya seteó el error, pero el toast da feedback inmediato
       const msg = err.response?.data?.message || 'Error al procesar la solicitud';
       toast.error(msg);
     } finally {
@@ -121,7 +122,6 @@ export function AreasPage() {
       toast.success('Área eliminada exitosamente');
       setIsDeleteDialogOpen(false);
     } else {
-      // El hook ya maneja el error básico, pero mostramos un toast específico de integridad
       toast.error('No se pudo eliminar el área', {
         description: 'Asegúrate de que no tenga tickets ni empleados asociados.'
       });
@@ -131,75 +131,87 @@ export function AreasPage() {
   if (isLoading && areas.length === 0) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1a73e8]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={2} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#202124]">Administración de Áreas</h1>
-          <p className="text-[#5f6368]">Organiza tu empresa en departamentos y unidades</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <Building2 className="h-6 w-6 text-primary" strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Áreas</h1>
+          </div>
+          <p className="text-muted-foreground font-medium">Organiza tu empresa en departamentos y unidades.</p>
         </div>
-        <Button onClick={handleOpenAdd} className="bg-[#1a73e8] hover:bg-[#1557b0] shadow-sm">
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={handleOpenAdd} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold">
+          <Plus className="h-4 w-4 mr-2" strokeWidth={3} />
           Nueva Área
         </Button>
       </div>
 
       {/* Búsqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
+      <div className="relative group max-w-2xl">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" strokeWidth={2} />
         <Input
           placeholder="Buscar áreas por nombre o descripción..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-white border-[#dadce0] focus:ring-2 focus:ring-[#1a73e8] transition-all"
+          className="pl-10 h-11 bg-card border-border rounded-xl focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium"
         />
       </div>
 
       {/* Grid de Áreas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAreas.map((area) => (
-          <Card key={area.id} className="group border-[#dadce0] hover:border-[#1a73e8] hover:shadow-md transition-all duration-200">
+          <Card key={area.id} className="group border-none shadow-md hover:shadow-lg transition-all duration-300 bg-card rounded-3xl overflow-hidden relative">
+            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+            
             <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 bg-[#e8f0fe] rounded-lg flex items-center justify-center text-[#1a73e8]">
-                  <Building2 className="h-5 w-5" />
+              <div className="flex justify-between items-start mb-5">
+                <div className="w-11 h-11 bg-muted rounded-xl flex items-center justify-center text-primary border border-border group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Building2 className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleOpenEdit(area)} className="cursor-pointer">
-                      <Edit2 className="h-4 w-4 mr-2" /> Editar
+                  <DropdownMenuContent align="end" className="rounded-xl p-1 border-border bg-card shadow-xl">
+                    <DropdownMenuItem onClick={() => handleOpenEdit(area)} className="rounded-lg cursor-pointer py-2 px-3 focus:bg-primary/10 focus:text-primary">
+                      <Edit2 className="h-3.5 w-3.5 mr-2.5" /> 
+                      <span className="font-bold text-xs uppercase tracking-tight">Editar</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleOpenDelete(area)} className="text-[#ea4335] focus:text-[#ea4335] cursor-pointer">
-                      <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                    <DropdownMenuItem onClick={() => handleOpenDelete(area)} className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer py-2 px-3">
+                      <Trash2 className="h-3.5 w-3.5 mr-2.5" /> 
+                      <span className="font-bold text-xs uppercase tracking-tight">Eliminar</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              <h3 className="text-lg font-semibold text-[#202124] mb-1">{area.name}</h3>
-              <p className="text-sm text-[#5f6368] line-clamp-2 min-h-[40px] mb-4">
+              <h3 className="text-lg font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors uppercase tracking-tight">{area.name}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px] mb-6 font-medium leading-relaxed">
                 {area.description || 'Sin descripción'}
               </p>
 
-              <div className="flex items-center gap-4 pt-4 border-t border-[#f1f3f4]">
-                <div className="flex items-center gap-1.5 text-xs text-[#5f6368]">
-                  <Users className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                  <Users className="h-3.5 w-3.5 text-primary/40" strokeWidth={2} />
                   <span>{(area as any)._count?.users || 0} Miembros</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#5f6368]">
-                  <Ticket className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                  <Ticket className="h-3.5 w-3.5 text-primary/40" strokeWidth={2} />
                   <span>{(area as any)._count?.tickets || 0} Tickets</span>
+                </div>
+                <div className="ml-auto opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
+                  <ChevronRight className="h-4 w-4 text-primary" strokeWidth={2} />
                 </div>
               </div>
             </CardContent>
@@ -207,9 +219,11 @@ export function AreasPage() {
         ))}
 
         {filteredAreas.length === 0 && !isLoading && (
-          <div className="col-span-full py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-[#dadce0]">
-            <Building2 className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
-            <p className="text-[#5f6368]">No se encontraron áreas. ¡Crea la primera!</p>
+          <div className="col-span-full py-20 text-center bg-card rounded-3xl border-2 border-dashed border-border">
+            <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border">
+              <Building2 className="h-8 w-8 text-muted-foreground/30" strokeWidth={1.5} />
+            </div>
+            <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No se encontraron áreas</p>
           </div>
         )}
       </div>
@@ -221,38 +235,42 @@ export function AreasPage() {
           if (!v) { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }
         }}
       >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{isAddDialogOpen ? 'Nueva Área' : 'Editar Área'}</DialogTitle>
-            <DialogDescription>
-              Define el nombre y la descripción para organizar las solicitudes de soporte.
+        <DialogContent className="sm:max-w-[425px] rounded-3xl p-0 overflow-hidden border-border bg-card shadow-2xl">
+          <div className="bg-primary p-8 text-primary-foreground relative">
+            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+              <Building2 size={100} strokeWidth={1} />
+            </div>
+            <DialogTitle className="text-2xl font-bold">{isAddDialogOpen ? 'Nueva Área' : 'Editar Área'}</DialogTitle>
+            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
+              Define el nombre y la descripción del departamento.
             </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4 py-4">
+          </div>
+          <form onSubmit={handleSave} className="p-8 space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#202124]">Nombre del área</label>
+              <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Nombre del área</label>
               <Input
                 placeholder="Ej: Soporte Técnico, Redes, etc."
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20 font-bold"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#202124]">Descripción (opcional)</label>
+              <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Descripción</label>
               <textarea
                 placeholder="¿De qué se encarga este departamento?"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a73e8] min-h-[100px] resize-none text-sm"
+                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-muted/30 min-h-[120px] resize-none text-sm transition-all font-medium text-foreground"
               />
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="ghost" onClick={() => { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }}>
+            <DialogFooter className="pt-4 flex gap-3">
+              <Button type="button" variant="ghost" onClick={() => { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isActionLoading} className="bg-[#1a73e8] hover:bg-[#1557b0] min-w-[100px]">
-                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
+              <Button type="submit" disabled={isActionLoading} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20 min-w-[120px]">
+                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Área'}
               </Button>
             </DialogFooter>
           </form>
@@ -261,25 +279,27 @@ export function AreasPage() {
 
       {/* Alerta de Eliminación */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-2xl p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-[#ea4335]" />
-              ¿Estás seguro?
+            <div className="w-12 h-12 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive mb-4 border border-destructive/20">
+              <AlertCircle className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-foreground uppercase tracking-tight">
+              ¿Eliminar esta área?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
               Esta acción eliminará el área <strong>{selectedArea?.name}</strong> permanentemente. 
-              No podrás eliminarla si tiene empleados o tickets vinculados.
+              No podrás eliminarla si tiene empleados o tickets vinculados por integridad del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="mt-6 flex gap-3">
+            <AlertDialogCancel className="rounded-xl h-11 px-6 font-bold border-border">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete} 
-              className="bg-[#ea4335] hover:bg-[#b31412] text-white"
+              className="bg-destructive text-destructive-foreground hover:opacity-90 rounded-xl h-11 px-6 font-bold shadow-lg shadow-destructive/20"
               disabled={isActionLoading}
             >
-              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar Área'}
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar Permanentemente'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

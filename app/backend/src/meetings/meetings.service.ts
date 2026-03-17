@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException } 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { MeetingStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MeetingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService
+  ) {}
 
   private async checkOverlap(technicianId: string, startTime: Date, endTime: Date, excludeMeetingId?: string) {
     const allMeetings = await this.prisma.meeting.findMany({
@@ -14,7 +18,7 @@ export class MeetingsService {
         status: { in: ['PROPOSED', 'ACCEPTED'] },
         id: excludeMeetingId ? { not: excludeMeetingId } : undefined,
         scheduledAt: {
-          gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Ventana de 24h para optimizar
+          gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000),
           lte: new Date(startTime.getTime() + 24 * 60 * 60 * 1000),
         }
       }
@@ -37,17 +41,14 @@ export class MeetingsService {
     const startTime = new Date(scheduledAt);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
-    // 1. Verificar ticket
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
     });
 
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
 
-    // 2. Validar traslapes
     await this.checkOverlap(technicianId, startTime, endTime);
 
-    // 3. Crear reunión
     const meeting = await this.prisma.meeting.create({
       data: {
         title: dto.title,
@@ -67,14 +68,12 @@ export class MeetingsService {
       }
     }) as any;
 
-    // 4. Notificar
-    await this.prisma.notification.create({
-      data: {
-        userId: ticket.createdById,
-        title: 'Nueva propuesta de reunión',
-        message: `El técnico ${meeting.technician.name} ha propuesto una reunión para el ticket: ${ticket.title}`,
-        type: 'MEETING_PROPOSAL',
-      }
+    // NOTIFICACIÓN: Con link al ticket
+    await this.notificationsService.create(ticket.createdById, {
+      title: 'Nueva propuesta de reunión',
+      message: `El técnico ${meeting.technician.name} ha propuesto una reunión para el ticket: ${ticket.title}`,
+      type: 'MEETING_PROPOSAL',
+      link: ticketId
     });
 
     return meeting;
@@ -95,8 +94,6 @@ export class MeetingsService {
     const startTime = new Date(scheduledAt);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
-    // PASO DE MAESTRO: Validar traslapes también al reprogramar, excluyendo la reunión actual
-    // Si el usuario es el técnico, validamos su agenda
     if (userId === meeting.technicianId) {
         await this.checkOverlap(userId, startTime, endTime, id);
     }
@@ -114,13 +111,12 @@ export class MeetingsService {
     const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
     const proposerName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
 
-    await this.prisma.notification.create({
-      data: {
-        userId: otherUserId,
-        title: 'Nueva propuesta de horario',
-        message: `${proposerName} ha sugerido un nuevo horario para la reunión del ticket: ${meeting.ticket.title}`,
-        type: 'MEETING_REPROPOSAL',
-      }
+    // NOTIFICACIÓN: Con link al ticket
+    await this.notificationsService.create(otherUserId, {
+      title: 'Nueva propuesta de horario',
+      message: `${proposerName} ha sugerido un nuevo horario para la reunión del ticket: ${meeting.ticket.title}`,
+      type: 'MEETING_REPROPOSAL',
+      link: meeting.ticketId
     });
 
     return updatedMeeting;
@@ -157,20 +153,35 @@ export class MeetingsService {
   async updateStatus(id: string, userId: string, status: MeetingStatus) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { id },
+      include: { ticket: true, technician: true, employee: true }
     }) as any;
 
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
 
     if (status === 'ACCEPTED' || status === 'REJECTED') {
       if (meeting.lastProposedById === userId) {
-        throw new ForbiddenException('No puedes aceptar tu propia propuesta. Espera a que la otra parte responda.');
+        throw new ForbiddenException('No puedes aceptar tu propia propuesta.');
       }
     }
 
-    return this.prisma.meeting.update({
+    const updated = await this.prisma.meeting.update({
       where: { id },
       data: { status },
     });
+
+    // NOTIFICACIÓN: Al técnico (si el empleado acepta) o viceversa
+    const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
+    const responderName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
+    const statusText = status === 'ACCEPTED' ? 'aceptado' : 'rechazado';
+
+    await this.notificationsService.create(otherUserId, {
+      title: `Reunión ${statusText}`,
+      message: `${responderName} ha ${statusText} la reunión para el ticket: ${meeting.ticket.title}`,
+      type: 'MEETING_STATUS_UPDATE',
+      link: meeting.ticketId
+    });
+
+    return updated;
   }
 
   async findAgenda(userId: string) {
@@ -182,11 +193,11 @@ export class MeetingsService {
         ],
         status: 'ACCEPTED',
         scheduledAt: {
-          gte: new Date(), // Solo futuras o actuales
+          gte: new Date(),
         },
       },
       include: {
-        ticket: { select: { title: true } },
+        ticket: { select: { id: true, title: true } },
         technician: { select: { name: true, avatar: true } },
         employee: { select: { name: true, avatar: true } },
       },
