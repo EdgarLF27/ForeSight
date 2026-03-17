@@ -5,6 +5,7 @@ import { useComments } from '@/hooks/useComments';
 import { useTeam } from '@/hooks/useTeam';
 import { Layout } from '@/components/Layout';
 import { AuthPage } from '@/components/AuthPage';
+import { LandingPage } from '@/components/LandingPage';
 import { DashboardAdmin } from '@/components/DashboardAdmin';
 import { DashboardEmployee } from '@/components/DashboardEmployee';
 import { TicketDetail } from '@/components/TicketDetail';
@@ -19,7 +20,8 @@ import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { companiesApi } from '@/services/api';
-import type { Ticket, UserRole, Company } from '@/types';
+import { Tutorial } from '@/components/Tutorial';
+import type { Ticket, Company } from '@/types';
 
 type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
 
@@ -38,6 +40,7 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
   const [company, setCompany] = useState<Company | null>(authCompany);
 
   const { 
@@ -165,12 +168,15 @@ function App() {
   if (isLoading) return <LoadingState />;
 
   if (!isAuthenticated || !user) {
-    return (
-      <>
-        <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} />
-        <Toaster position="top-right" />
-      </>
-    );
+    if (showAuth) {
+      return (
+        <>
+          <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} onBack={() => setShowAuth(false)} />
+          <Toaster position="top-right" />
+        </>
+      );
+    }
+    return <LandingPage onNavigateToAuth={() => setShowAuth(true)} />;
   }
 
   const renderPage = () => {
@@ -252,6 +258,7 @@ function App() {
             onAddComment={handleAddComment}
           />
         ) : renderPage()}
+        <Tutorial user={user} />
       </Layout>
       <Toaster position="top-right" />
     </>

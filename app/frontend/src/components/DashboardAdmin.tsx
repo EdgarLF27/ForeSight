@@ -157,7 +157,7 @@ export function DashboardAdmin({
         </div>
         {isAdmin && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild id="create-ticket-btn">
               <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-2xl shadow-lg shadow-primary/20 h-12 md:h-14 px-8 font-bold transition-all w-full md:w-auto">
                 <Plus className="h-5 w-5 mr-2" strokeWidth={3} /> Nuevo Ticket
               </Button>
@@ -205,7 +205,7 @@ export function DashboardAdmin({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div id="stats-overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard title="Total" value={stats.total} icon={<Ticket className="h-5 w-5 text-primary" />} />
         <StatCard title="Abiertos" value={stats.open} icon={<AlertCircle className="h-5 w-5 text-destructive" />} />
         <StatCard title="En Proceso" value={stats.inProgress} icon={<Clock className="h-5 w-5 text-amber-500" />} />

@@ -18,7 +18,10 @@ import {
   MessageSquare,
   UserPlus as AssignIcon,
   RefreshCw,
-  Building2
+  Building2,
+  AlertCircle,
+  Zap,
+  UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -84,16 +87,52 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'TICKET_ASSIGNED': return <AssignIcon className="h-4 w-4 text-emerald-500" />;
-      case 'COMMENT_RECEIVED': return <MessageSquare className="h-4 w-4 text-primary" />;
-      case 'STATUS_CHANGED': return <RefreshCw className="h-4 w-4 text-amber-500" />;
-      default: return <Info className="h-4 w-4 text-muted-foreground" />;
+      case 'CRITICAL':
+      case 'URGENT':
+        return (
+          <div className="relative">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <div className="absolute inset-0 bg-red-500/20 blur-md rounded-full" />
+          </div>
+        );
+      case 'INFO':
+      case 'COMMENT_RECEIVED':
+        return (
+          <div className="relative">
+            <Zap className="h-4 w-4 text-[#00f2ff]" />
+            <div className="absolute inset-0 bg-[#00f2ff]/20 blur-md rounded-full" />
+          </div>
+        );
+      case 'TICKET_ASSIGNED': 
+        return <UserPlus className="h-4 w-4 text-emerald-500" />;
+      case 'STATUS_CHANGED': 
+        return <RefreshCw className="h-4 w-4 text-amber-500" />;
+      default: 
+        return <Bell className="h-4 w-4 text-slate-400" />;
     }
   };
 
   const handleNotificationClick = async (n: Notification) => {
     if (!n.read) await markRead(n.id);
     if (n.link && onNotificationAction) onNotificationAction(n.link);
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'CRITICAL':
+      case 'URGENT': return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
+      default: return 'bg-[#0070f3] shadow-[0_0_10px_rgba(0,112,243,0.5)]';
+    }
+  };
+
+  const formatTimestamp = (date: string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diff = Math.floor((now.getTime() - then.getTime()) / 60000);
+    if (diff < 1) return 'Ahora';
+    if (diff < 60) return `Hace ${diff}m`;
+    if (diff < 1440) return `Hace ${Math.floor(diff / 60)}h`;
+    return then.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   };
 
   const companyName = company?.name || 'ForeSight';
@@ -124,56 +163,94 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
           <div className="flex items-center gap-2 md:gap-4">
             {/* PANEL DE NOTIFICACIONES */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted transition-colors">
-                  <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
+              <DropdownMenuTrigger asChild id="notifications-bell">
+                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 transition-colors group">
+                  <Bell className={`h-5 w-5 transition-colors ${unreadCount > 0 ? 'text-[#00f2ff] animate-pulse' : 'text-slate-400 group-hover:text-white'}`} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-black shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 border-border bg-card shadow-2xl overflow-hidden">
-                <div className="px-4 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+              <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 border-white/10 bg-black/80 backdrop-blur-xl shadow-[0_0_30px_rgba(0,112,243,0.2)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold uppercase tracking-widest">Notificaciones</span>
-                    {unreadCount > 0 && <span className="text-[10px] text-primary font-bold">{unreadCount} por leer</span>}
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00f2ff]">Notificaciones</span>
+                    {unreadCount > 0 && <span className="text-[9px] text-slate-400 font-bold mt-0.5">{unreadCount} PENDIENTES</span>}
                   </div>
                   {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAllRead(); }} className="h-7 px-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-primary rounded-lg">
-                      <CheckCheck className="h-3 w-3 mr-1" /> Leer todas
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAllRead(); }} className="h-7 px-3 text-[9px] font-black uppercase text-slate-400 hover:text-[#00f2ff] hover:bg-white/5 rounded-lg tracking-wider">
+                      <CheckCheck className="h-3.5 w-3.5 mr-1.5" /> Leer todas
                     </Button>
                   )}
                 </div>
-                <div className="max-h-[380px] overflow-y-auto">
+
+                <div className="max-h-[420px] overflow-y-auto custom-scrollbar">
                    {notifications.length === 0 ? (
-                    <div className="py-12 text-center flex flex-col items-center gap-2">
-                      <div className="p-3 rounded-full bg-muted/50"><Bell className="h-6 w-6 text-muted-foreground/30" /></div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Todo al día</p>
+                    <div className="py-16 text-center flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <Bell className="h-8 w-8 text-slate-700 animate-[pulse_4s_infinite]" />
+                        <div className="absolute inset-0 bg-slate-400/5 blur-xl rounded-full" />
+                      </div>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Todo al día</p>
                     </div>
                    ) : (
                     notifications.map(n => (
-                      <DropdownMenuItem key={n.id} onClick={() => handleNotificationClick(n)} className={`p-4 flex items-start gap-4 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border last:border-0 relative ${!n.read ? 'bg-primary/5' : ''}`}>
-                        {!n.read && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary" />}
-                        <div className={`mt-1 p-2 rounded-xl ${!n.read ? 'bg-card shadow-sm border border-border' : 'bg-muted/50'}`}>
+                      <DropdownMenuItem 
+                        key={n.id} 
+                        onClick={() => handleNotificationClick(n)} 
+                        className={`p-4 flex items-start gap-4 cursor-pointer hover:bg-white/[0.03] transition-all duration-300 border-b border-white/5 last:border-0 relative group/item ${!n.read ? 'bg-[#0070f3]/5' : ''}`}
+                      >
+                        {/* Indicador lateral táctico */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-[2px] transition-all duration-300 ${!n.read ? getNotificationColor(n.type) : 'bg-transparent'}`} />
+                        
+                        <div className={`mt-1 p-2 rounded-xl transition-all duration-300 ${!n.read ? 'bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.05)] border border-white/10' : 'bg-transparent opacity-50'}`}>
                           {getNotificationIcon(n.type)}
                         </div>
+
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-bold ${!n.read ? 'text-foreground' : 'text-muted-foreground'} uppercase tracking-tight`}>{n.title}</p>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5 line-clamp-2">{n.message}</p>
-                          <span className="text-[9px] font-bold text-muted-foreground/40 uppercase mt-2 block">
-                            {new Date(n.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-[11px] font-black uppercase tracking-tight ${!n.read ? 'text-white' : 'text-slate-400'}`}>
+                              {n.title}
+                            </p>
+                            <span className="text-[9px] font-medium text-slate-500 font-mono">
+                              {formatTimestamp(n.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed mt-1 line-clamp-2 font-medium">
+                            {n.message}
+                          </p>
+                        </div>
+
+                        {/* Botón de acción rápido al hover */}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            {!n.read && (
+                                <div className="p-1.5 bg-white/5 rounded-lg border border-white/10 hover:border-[#00f2ff]/50 text-slate-400 hover:text-[#00f2ff]">
+                                    <CheckCheck className="h-3 w-3" />
+                                </div>
+                            )}
                         </div>
                       </DropdownMenuItem>
                     ))
                    )}
                 </div>
+
+                {notifications.length > 0 && (
+                  <div className="p-2 border-t border-white/5 bg-white/[0.01]">
+                    <Button 
+                        variant="ghost" 
+                        className="w-full h-9 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#00f2ff] hover:bg-white/5 rounded-xl transition-all"
+                        onClick={markAllRead}
+                    >
+                        Limpiar todas las notificaciones
+                    </Button>
+                  </div>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
             {/* PERFIL DE USUARIO */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild id="user-profile">
                 <Button variant="ghost" className="flex items-center gap-3 px-2 hover:bg-muted transition-colors rounded-xl h-10 border border-border">
                   <Avatar className="h-7 w-7 border border-primary/20">
                     <AvatarImage src={getFileUrl(user.avatar) || ''} className="object-cover" />
@@ -204,7 +281,7 @@ export function Layout({ children, user, company, onLogout, currentPage, onPageC
       </header>
 
       {/* Sidebar Minimalista */}
-      <aside className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+      <aside id="sidebar-nav" className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;

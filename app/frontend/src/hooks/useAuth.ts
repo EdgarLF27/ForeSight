@@ -27,7 +27,7 @@ export function useAuth() {
       user: null,
       company: null,
       isAuthenticated: false,
-      isLoading: true,
+      isLoading: false,
     };
   };
 
