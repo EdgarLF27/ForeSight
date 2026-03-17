@@ -1,15 +1,20 @@
 import { useState } from 'react';
-import { Ticket, Eye, EyeOff, Building2, User, ArrowRight, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UserRole } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Eye, 
+  EyeOff, 
+  Building2, 
+  User, 
+  ArrowRight, 
+  Loader2, 
+  ArrowLeft
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import type { UserRole } from '@/types';
 
-// Esquemas de validación Zod
+// Esquemas de validación
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
   password: z.string().min(1, 'La contraseña es requerida'),
@@ -33,14 +38,6 @@ const registerSchema = z.object({
   path: ["companyName"],
 });
 
-const joinSchema = z.object({
-  code: z.string().length(6, 'El código debe tener 6 caracteres').regex(/^[A-Z0-9]+$/, 'Formato de código inválido'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
-type JoinFormData = z.infer<typeof joinSchema>;
-
 interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
@@ -48,20 +45,91 @@ interface AuthPageProps {
   onBack?: () => void;
 }
 
-export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPageProps) {
-  const [activeTab, setActiveTab] = useState('login');
+// Nuevo Componente: Red de Líneas de Datos Tecnológicas
+const DataLines = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+      <svg width="100%" height="100%" className="absolute inset-0">
+        <defs>
+          <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#00f2ff" strokeWidth="0.5" strokeOpacity="0.2" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        
+        {/* Líneas de datos con motion.path para evitar errores de atributos */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const xPos = (i * 8.5) + Math.random() * 5;
+          return (
+            <motion.path
+              key={i}
+              d={`M ${xPos} -10 L ${xPos} 110`}
+              stroke="#00f2ff"
+              strokeWidth="0.5"
+              strokeDasharray="10, 20"
+              initial={{ pathLength: 0, opacity: 0, pathOffset: 0 }}
+              animate={{ 
+                pathLength: [0, 0.4, 0],
+                opacity: [0, 0.4, 0],
+                pathOffset: [0, 1.5]
+              }}
+              transition={{
+                duration: 4 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "linear",
+                delay: Math.random() * 5
+              }}
+            />
+          );
+        })}
+      </svg>
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+    </div>
+  );
+};
+
+// Componente Pro: Animación de Red de Nodos (Plexus)
+const PlexusEffect = () => {
+    const nodes = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+    }));
+  
+    return (
+      <div className="absolute inset-0 opacity-40">
+        {nodes.map(node => (
+          <motion.div
+            key={node.id}
+            className="absolute w-1 h-1 bg-[#00f2ff] rounded-full"
+            style={{ left: `${node.x}%`, top: `${node.y}%`, boxShadow: '0 0 10px #00f2ff' }}
+            animate={{
+              x: [0, Math.random() * 40 - 20, 0],
+              y: [0, Math.random() * 40 - 20, 0],
+              opacity: [0.2, 0.8, 0.2]
+            }}
+            transition={{
+              duration: Math.random() * 10 + 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
+export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-  // Forms
+
   const { 
     register: registerLogin, 
     handleSubmit: handleSubmitLogin, 
     formState: { errors: errorsLogin, isSubmitting: isSubmittingLogin } 
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema)
-  });
+  } = useForm<z.infer<typeof loginSchema>>({ resolver: zodResolver(loginSchema) });
 
   const { 
     register: registerRegister, 
@@ -69,439 +137,259 @@ export function AuthPage({ onLogin, onRegister, onJoinCompany, onBack }: AuthPag
     setValue: setValueRegister,
     watch: watchRegister,
     formState: { errors: errorsRegister, isSubmitting: isSubmittingRegister } 
-  } = useForm<RegisterFormData>({
+  } = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: 'EMPLEADO',
-      companyName: '',
-    }
-  });
-
-  const { 
-    register: registerJoin, 
-    handleSubmit: handleSubmitJoin, 
-    formState: { errors: errorsJoin, isSubmitting: isSubmittingJoin },
-    reset: resetJoin
-  } = useForm<JoinFormData>({
-    resolver: zodResolver(joinSchema)
+    defaultValues: { role: 'EMPLEADO', companyName: '' }
   });
 
   const selectedRole = watchRegister('role');
 
-  const onLoginSubmit = async (data: LoginFormData) => {
+  const onLoginSubmit = async (data: z.infer<typeof loginSchema>) => {
     setGeneralError('');
     setSuccessMessage('');
     try {
       const success = await onLogin(data.email, data.password);
-      if (!success) {
-        setGeneralError('Correo o contraseña incorrectos');
-      }
+      if (!success) setGeneralError('Credenciales inválidas');
     } catch (err) {
-      setGeneralError('Ocurrió un error al intentar iniciar sesión');
+      setGeneralError('Error de conexión con el servidor');
     }
   };
 
-  const onRegisterSubmit = async (data: RegisterFormData) => {
+  const onRegisterSubmit = async (data: z.infer<typeof registerSchema>) => {
     setGeneralError('');
     setSuccessMessage('');
     try {
-      const success = await onRegister(
-        data.name,
-        data.email,
-        data.password,
-        data.role,
-        data.companyName
-      );
-      
+      const success = await onRegister(data.name, data.email, data.password, data.role, data.companyName);
       if (success) {
-        setSuccessMessage('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
-        setActiveTab('login');
+        setSuccessMessage('Registro completado con éxito');
+        setTimeout(() => setActiveTab('login'), 1500);
       } else {
-        setGeneralError('El correo ya está registrado');
+        setGeneralError('El correo ya está en uso');
       }
     } catch (err) {
-      setGeneralError('Ocurrió un error al registrar la cuenta');
-    }
-  };
-
-  const onJoinSubmit = async (data: JoinFormData) => {
-    setGeneralError('');
-    setSuccessMessage('');
-    try {
-      const success = await onJoinCompany(data.code);
-      if (success) {
-        setSuccessMessage('¡Te has unido a la empresa exitosamente!');
-        resetJoin();
-      } else {
-        setGeneralError('Código de invitación inválido');
-      }
-    } catch (err) {
-      setGeneralError('Ocurrió un error al intentar unirte');
+      setGeneralError('Error al crear la cuenta');
     }
   };
 
   return (
-    <div className="min-h-screen flex relative">
+    <div className="min-h-screen bg-[#000000] flex font-sans text-slate-200 selection:bg-[#00f2ff]/30 overflow-hidden relative">
+      <DataLines />
+
       {onBack && (
-        <button 
+        <motion.button 
+          whileHover={{ x: -4, color: '#00f2ff' }}
           onClick={onBack}
-          className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-900 lg:text-white transition-colors"
-          aria-label="Volver"
+          className="absolute top-6 left-6 z-50 p-2 text-slate-400 transition-colors"
         >
           <ArrowLeft className="h-6 w-6" />
-        </button>
+        </motion.button>
       )}
 
-      {/* Left Side - Illustration */}
-      <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#34a853] relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10" />
+      {/* Lado Izquierdo - Visualización de Datos / Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center px-20 border-r border-white/5 bg-black/40">
+        <PlexusEffect />
         
-        {/* Decorative circles */}
-        <div className="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          <div className="mb-8">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mb-6">
-              <Ticket className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold mb-4">TicketClass</h1>
-            <p className="text-xl text-white/90 mb-6">
-              Gestión de tickets simplificada para tu equipo
-            </p>
-          </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="relative z-10 text-center"
+        >
+          <motion.h1 
+            className="text-8xl font-black tracking-tighter mb-4 text-white relative drop-shadow-[0_0_15px_rgba(0,242,255,0.5)]"
+            animate={{ 
+              opacity: [0.9, 1, 0.9],
+              scale: [1, 1.01, 1],
+              dropShadow: ["0 0 10px rgba(0,242,255,0.3)", "0 0 25px rgba(0,242,255,0.6)", "0 0 10px rgba(0,242,255,0.3)"]
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            FORESIGHT
+          </motion.h1>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium">Organiza tu equipo</p>
-                <p className="text-sm text-white/70">Como en un aula virtual</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium">Gestiona tickets fácilmente</p>
-                <p className="text-sm text-white/70">Crea, asigna y resuelve</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium">Únete con un código</p>
-                <p className="text-sm text-white/70">Rápido y sencillo</p>
-              </div>
-            </div>
-          </div>
-        </div>
+          <p className="text-lg text-slate-400 max-w-md mx-auto font-light tracking-wide">
+            LA PLATAFORMA DE INTELIGENCIA PARA LA INFRAESTRUCTURA DEL MAÑANA
+          </p>
+        </motion.div>
       </div>
 
-      {/* Right Side - Forms */}
-      <div className="flex-1 flex items-center justify-center p-4 lg:p-8 bg-[#f8f9fa]">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#1a73e8] to-[#1557b0] rounded-xl flex items-center justify-center mr-3">
-              <Ticket className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-[#202124]">TicketClass</h1>
+      {/* Lado Derecho - Formulario */}
+      <div className="flex-1 flex items-center justify-center p-6 relative">
+        {/* Aurora Animada */}
+        <motion.div 
+            className="absolute w-[800px] h-[800px] bg-[#0070f3]/10 blur-[180px] rounded-full pointer-events-none" 
+            animate={{
+                x: [0, 50, -50, 0],
+                y: [0, -50, 50, 0],
+            }}
+            transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "easeInOut"
+            }}
+        />
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md z-10"
+        >
+          <div className="lg:hidden text-center mb-10">
+            <h1 className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(0,242,255,0.5)]">FORESIGHT</h1>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
-              <TabsTrigger value="register">Registrarse</TabsTrigger>
-              <TabsTrigger value="join">Unirse</TabsTrigger>
-            </TabsList>
+          {/* TABS CON HALO REFORZADO */}
+          <div className="flex p-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl mb-8 relative">
+            <motion.div 
+              className="absolute inset-y-1 bg-[#0070f3] rounded-xl shadow-[0_0_25px_rgba(0,112,243,0.6)]"
+              initial={false}
+              animate={{ x: activeTab === 'login' ? '0%' : '100%', width: '50%' }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+            <button 
+              onClick={() => setActiveTab('login')}
+              className={`flex-1 py-3 text-sm font-bold z-10 transition-colors duration-300 ${activeTab === 'login' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Iniciar Sesión
+            </button>
+            <button 
+              onClick={() => setActiveTab('register')}
+              className={`flex-1 py-3 text-sm font-bold z-10 transition-colors duration-300 ${activeTab === 'register' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Registrarse
+            </button>
+          </div>
 
-            {/* Login Tab */}
-            <TabsContent value="login">
-              <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-semibold text-[#202124]">Bienvenido de nuevo</h2>
-                  <p className="text-[#5f6368] mt-1">Ingresa tus credenciales para continuar</p>
-                </div>
-
-                {generalError && activeTab === 'login' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {generalError}
-                  </div>
-                )}
-
-                {successMessage && activeTab === 'login' && (
-                  <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
-                    {successMessage}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
-                  <div>
-                    <Label htmlFor="login-email">Correo electrónico</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="tu@empresa.com"
-                      {...registerLogin('email')}
-                      className={`mt-1 ${errorsLogin.email ? 'border-red-500' : ''}`}
-                      disabled={isSubmittingLogin}
-                    />
-                    {errorsLogin.email && <p className="text-red-500 text-xs mt-1">{errorsLogin.email.message}</p>}
+          {/* PANEL GLASSMORPHISM AVANZADO */}
+          <div className="bg-white/[0.02] backdrop-blur-3xl border-[0.5px] border-white/20 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+            {/* Brillo sutil en el borde al hacer hover en el panel */}
+            <div className="absolute inset-0 border border-white/5 rounded-[2.5rem] pointer-events-none group-hover:border-[#00f2ff]/20 transition-colors duration-700" />
+            
+            <AnimatePresence mode="wait">
+              {activeTab === 'login' ? (
+                <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: "easeOut" }}>
+                  <div className="mb-8 text-center lg:text-left">
+                    <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Acceso Seguro</h2>
+                    <p className="text-slate-400 text-sm">Autenticación de nivel corporativo.</p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="login-password">Contraseña</Label>
-                    <div className="relative mt-1">
-                      <Input
-                        id="login-password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        {...registerLogin('password')}
-                        className={errorsLogin.password ? 'border-red-500' : ''}
-                        disabled={isSubmittingLogin}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f6368]"
-                        disabled={isSubmittingLogin}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {errorsLogin.password && <p className="text-red-500 text-xs mt-1">{errorsLogin.password.message}</p>}
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
-                    disabled={isSubmittingLogin}
-                  >
-                    {isSubmittingLogin ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Iniciando sesión...
-                      </>
-                    ) : (
-                      <>
-                        Iniciar sesión
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </TabsContent>
-
-            {/* Register Tab */}
-            <TabsContent value="register">
-              <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-semibold text-[#202124]">Crear cuenta</h2>
-                  <p className="text-[#5f6368] mt-1">Elige tu tipo de cuenta</p>
-                </div>
-
-                {generalError && activeTab === 'register' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {generalError}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitRegister(onRegisterSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setValueRegister('role', 'EMPRESA')}
-                      disabled={isSubmittingRegister}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        selectedRole === 'EMPRESA'
-                          ? 'border-[#1a73e8] bg-[#e8f0fe]'
-                          : 'border-[#dadce0] hover:border-[#1a73e8]'
-                      }`}
-                    >
-                      <Building2 className={`h-6 w-6 mx-auto mb-2 ${
-                        selectedRole === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
-                      }`} />
-                      <p className={`text-sm font-medium ${
-                        selectedRole === 'EMPRESA' ? 'text-[#1a73e8]' : 'text-[#202124]'
-                      }`}>Empresa</p>
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setValueRegister('role', 'EMPLEADO')}
-                      disabled={isSubmittingRegister}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        selectedRole === 'EMPLEADO'
-                          ? 'border-[#1a73e8] bg-[#e8f0fe]'
-                          : 'border-[#dadce0] hover:border-[#1a73e8]'
-                      }`}
-                    >
-                      <User className={`h-6 w-6 mx-auto mb-2 ${
-                        selectedRole === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#5f6368]'
-                      }`} />
-                      <p className={`text-sm font-medium ${
-                        selectedRole === 'EMPLEADO' ? 'text-[#1a73e8]' : 'text-[#202124]'
-                      }`}>Empleado</p>
-                    </button>
-                  </div>
-
-                  {selectedRole === 'EMPRESA' && (
-                    <div>
-                      <Label htmlFor="company-name">Nombre de la empresa</Label>
-                      <Input
-                        id="company-name"
-                        placeholder="Mi Empresa SA"
-                        {...registerRegister('companyName')}
-                        className={`mt-1 ${errorsRegister.companyName ? 'border-red-500' : ''}`}
-                        disabled={isSubmittingRegister}
-                      />
-                      {errorsRegister.companyName && <p className="text-red-500 text-xs mt-1">{errorsRegister.companyName.message}</p>}
-                    </div>
+                  {(generalError || successMessage) && (
+                    <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} className={`mb-6 p-4 border rounded-xl text-sm text-center ${
+                      generalError 
+                        ? 'bg-red-500/10 border-red-500/20 text-red-400' 
+                        : 'bg-green-500/10 border-green-500/20 text-green-400'
+                    }`}>
+                      {generalError || successMessage}
+                    </motion.div>
                   )}
 
-                  <div>
-                    <Label htmlFor="register-name">Nombre completo</Label>
-                    <Input
-                      id="register-name"
-                      placeholder="Juan Pérez"
-                      {...registerRegister('name')}
-                      className={`mt-1 ${errorsRegister.name ? 'border-red-500' : ''}`}
-                      disabled={isSubmittingRegister}
-                    />
-                     {errorsRegister.name && <p className="text-red-500 text-xs mt-1">{errorsRegister.name.message}</p>}
-                  </div>
+                  <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-5">
+                    <div className="group/input">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff] transition-colors">Email Institucional</label>
+                      <input
+                        {...registerLogin('email')}
+                        type="email"
+                        placeholder="usuario@foresight.io"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500"
+                      />
+                      {errorsLogin.email && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold tracking-wide">{errorsLogin.email.message}</p>}
+                    </div>
 
-                  <div>
-                    <Label htmlFor="register-email">Correo electrónico</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      placeholder="tu@empresa.com"
-                      {...registerRegister('email')}
-                      className={`mt-1 ${errorsRegister.email ? 'border-red-500' : ''}`}
-                      disabled={isSubmittingRegister}
-                    />
-                    {errorsRegister.email && <p className="text-red-500 text-xs mt-1">{errorsRegister.email.message}</p>}
-                  </div>
+                    <div className="group/input">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff] transition-colors">Contraseña de Acceso</label>
+                      <div className="relative">
+                        <input
+                          {...registerLogin('password')}
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500"
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00f2ff] transition-colors">
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errorsLogin.password && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold tracking-wide">{errorsLogin.password.message}</p>}
+                    </div>
 
-                  <div>
-                    <Label htmlFor="register-password">Contraseña</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="••••••••"
-                      {...registerRegister('password')}
-                      className={`mt-1 ${errorsRegister.password ? 'border-red-500' : ''}`}
-                      disabled={isSubmittingRegister}
-                    />
-                    {errorsRegister.password && <p className="text-red-500 text-xs mt-1">{errorsRegister.password.message}</p>}
-                    <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres</p>
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-[#1a73e8] hover:bg-[#1557b0]"
-                    disabled={isSubmittingRegister}
-                  >
-                    {isSubmittingRegister ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creando cuenta...
-                      </>
-                    ) : (
-                      <>
-                        Crear cuenta
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </TabsContent>
-
-            {/* Join Company Tab */}
-            <TabsContent value="join">
-              <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-semibold text-[#202124]">Unirse a empresa</h2>
-                  <p className="text-[#5f6368] mt-1">Ingresa el código de invitación</p>
-                </div>
-
-                {generalError && activeTab === 'join' && (
-                  <div className="mb-4 p-3 bg-[#fce8e6] text-[#ea4335] rounded-lg text-sm text-center">
-                    {generalError}
-                  </div>
-                )}
-
-                {successMessage && activeTab === 'join' && (
-                  <div className="mb-4 p-3 bg-[#e6f4ea] text-[#34a853] rounded-lg text-sm text-center">
-                    {successMessage}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitJoin(onJoinSubmit)} className="space-y-4">
-                  <div>
-                    <Label htmlFor="join-code">Código de invitación</Label>
-                    <Input
-                      id="join-code"
-                      placeholder="ABC123"
-                      {...registerJoin('code', {
-                        onChange: (e) => {
-                          e.target.value = e.target.value.toUpperCase();
-                        }
-                      })}
-                      className={`mt-1 text-center text-2xl tracking-widest font-mono uppercase ${errorsJoin.code ? 'border-red-500' : ''}`}
-                      maxLength={6}
-                      disabled={isSubmittingJoin}
-                    />
-                    {errorsJoin.code && <p className="text-red-500 text-xs mt-1 text-center">{errorsJoin.code.message}</p>}
-                    <p className="text-xs text-[#5f6368] mt-2 text-center">
-                      Solicita el código a tu administrador
-                    </p>
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-[#34a853] hover:bg-[#2e7d32]"
-                    disabled={isSubmittingJoin}
-                  >
-                    {isSubmittingJoin ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uniéndote...
-                      </>
-                    ) : (
-                      <>
-                        Unirse a la empresa
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-
-                <div className="mt-6 p-4 bg-[#f8f9fa] rounded-lg">
-                  <p className="text-sm text-[#5f6368] text-center">
-                    ¿No tienes un código?{' '}
-                    <button 
-                      onClick={() => setActiveTab('register')} 
-                      className="text-[#1a73e8] font-medium hover:underline"
-                      disabled={isSubmittingJoin}
+                    <motion.button 
+                        whileHover={{ 
+                            scale: 1.01, 
+                            boxShadow: "0 0 30px rgba(0, 242, 255, 0.4)",
+                            backgroundColor: "#ffffff"
+                        }} 
+                        whileTap={{ scale: 0.99 }} 
+                        disabled={isSubmittingLogin} 
+                        className="w-full bg-white text-black font-black py-4 rounded-xl flex items-center justify-center gap-2 group/btn transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-6 relative overflow-hidden"
                     >
-                      Crea una cuenta
-                    </button>
-                  </p>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+                      {/* Efecto de Escaner de Luz */}
+                      <motion.div 
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent -translate-x-full"
+                        animate={{ x: ["100%", "-100%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                      />
+                      
+                      {isSubmittingLogin ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                        <span className="relative z-10 flex items-center gap-2">
+                            ACCEDER AL SISTEMA <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-1 transition-transform" />
+                        </span>
+                      )}
+                    </motion.button>
+                  </form>
+                </motion.div>
+              ) : (
+                <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: "easeOut" }}>
+                  <div className="mb-6 text-center lg:text-left">
+                    <h2 className="text-3xl font-bold text-white mb-1">Registro de Red</h2>
+                    <p className="text-slate-400 text-sm">Crea una nueva identidad en Foresight.</p>
+                  </div>
+
+                  <form onSubmit={handleSubmitRegister(onRegisterSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button" onClick={() => setValueRegister('role', 'EMPRESA')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPRESA' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white shadow-[0_0_15px_rgba(0,112,243,0.3)]' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20' }`}>
+                        <Building2 className="h-4 w-4" />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Entidad Empresa</span>
+                      </button>
+                      <button type="button" onClick={() => setValueRegister('role', 'EMPLEADO')} className={`py-4 rounded-xl border transition-all duration-500 flex flex-col items-center gap-1 ${ selectedRole === 'EMPLEADO' ? 'bg-[#0070f3]/20 border-[#0070f3] text-white shadow-[0_0_15px_rgba(0,112,243,0.3)]' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20' }`}>
+                        <User className="h-4 w-4" />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Operador Empleado</span>
+                      </button>
+                    </div>
+
+                    {selectedRole === 'EMPRESA' && (
+                      <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="space-y-4">
+                        <input {...registerRegister('companyName')} placeholder="Nombre Legal de la Compañía" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
+                        {errorsRegister.companyName && <p className="text-red-400 text-[10px] ml-1 font-bold uppercase">{errorsRegister.companyName.message}</p>}
+                      </motion.div>
+                    )}
+
+                    <input {...registerRegister('name')} placeholder="Nombre y Apellidos" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
+                    <input {...registerRegister('email')} type="email" placeholder="Email Corporativo" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
+                    <input {...registerRegister('password')} type="password" placeholder="Contraseña Segura (mín. 8 car.)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00f2ff] transition-all" />
+
+                    <motion.button 
+                        whileHover={{ scale: 1.01, boxShadow: "0 0 25px rgba(0, 112, 243, 0.5)" }} 
+                        whileTap={{ scale: 0.99 }} 
+                        disabled={isSubmittingRegister} 
+                        className="w-full bg-[#0070f3] text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 group transition-all duration-300 mt-4 relative overflow-hidden"
+                    >
+                      {isSubmittingRegister ? <Loader2 className="h-5 w-5 animate-spin" /> : "GENERAR CREDENCIALES"}
+                    </motion.button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-slate-600 text-[10px] font-bold tracking-[0.2em] uppercase">
+              &copy; {new Date().getFullYear()} Foresight Neural Systems // Protocolo de Seguridad Activo
+            </p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
