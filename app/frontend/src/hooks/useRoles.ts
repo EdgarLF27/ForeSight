@@ -47,6 +47,12 @@ export const useRoles = () => {
 
   useEffect(() => {
     const init = async () => {
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       await Promise.all([fetchRoles(), fetchPermissions()]);
       setLoading(false);
