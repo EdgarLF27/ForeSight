@@ -201,7 +201,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
               dropShadow: ["0 0 10px rgba(0,242,255,0.3)", "0 0 25px rgba(0,242,255,0.6)", "0 0 10px rgba(0,242,255,0.3)"]
             }}
             transition={{
-              duration: 4,
+              duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut"
             }}
@@ -266,7 +266,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
 
                   <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-5">
                     <div className="group/input">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff]">Email Institucional</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 mb-2 block group-focus-within/input:text-[#00f2ff]">Email-Correo</label>
                       <input {...registerLogin('email')} type="email" placeholder="usuario@foresight.io" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 outline-none focus:border-[#00f2ff] focus:shadow-[0_0_15px_rgba(0,242,255,0.15)] transition-all duration-500" />
                       {errorsLogin.email && <p className="text-red-400 text-[10px] mt-1 ml-1 font-bold">{errorsLogin.email.message}</p>}
                     </div>
@@ -290,7 +290,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
               ) : (
                 <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4 }}>
                   <div className="mb-6 text-center lg:text-left">
-                    <h2 className="text-3xl font-bold text-white mb-1">Registro de Red</h2>
+                    <h2 className="text-3xl font-bold text-white mb-1">Registro</h2>
                     <p className="text-slate-400 text-sm">Crea una nueva identidad en Foresight.</p>
                   </div>
 
@@ -325,7 +325,7 @@ export function AuthPage({ onLogin, onRegister, onBack }: AuthPageProps) {
 
           <div className="mt-8 text-center">
             <p className="text-slate-600 text-[10px] font-bold tracking-[0.2em] uppercase">
-              &copy; {new Date().getFullYear()} Foresight Neural Systems // Protocolo Activo
+              &copy; {new Date().getFullYear()} 
             </p>
           </div>
         </motion.div>
