@@ -295,7 +295,7 @@ export function AuthPage({ onLogin, onRegister }: AuthPageProps) {
                 >
                   <div className="mb-8 text-center lg:text-left">
                     <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-                      Acceso Seguro
+                      Trabajamos para el futuro de tu empresa
                     </h2>
                     <p className="text-slate-400 text-sm">Bienvenido</p>
                   </div>
