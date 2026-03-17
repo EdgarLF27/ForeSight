@@ -7,8 +7,8 @@ const USER_KEY = 'foresight_user';
 
 export function useAuth() {
   const getInitialState = (): AuthState => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const userStr = localStorage.getItem(USER_KEY);
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    const userStr = sessionStorage.getItem(USER_KEY);
     
     if (token && userStr) {
       try {
@@ -34,7 +34,7 @@ export function useAuth() {
   const [state, setState] = useState<AuthState>(getInitialState());
 
   const loadStoredAuth = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = sessionStorage.getItem(TOKEN_KEY);
     if (!token) {
       setState(prev => ({ ...prev, isLoading: false, isAuthenticated: false }));
       return;
@@ -51,7 +51,7 @@ export function useAuth() {
         isLoading: false,
       });
 
-      localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+      sessionStorage.setItem(USER_KEY, JSON.stringify(freshUser));
     } catch (error: any) {
       if (error.response?.status === 401) {
         logout();
@@ -70,8 +70,8 @@ export function useAuth() {
       const { data } = await authApi.login({ email, password: pass });
       const { access_token, user } = data;
       
-      localStorage.setItem(TOKEN_KEY, access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
       
       setState({
         user,
@@ -86,8 +86,8 @@ export function useAuth() {
   };
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
     setState({
       user: null,
       company: null,
@@ -100,8 +100,8 @@ export function useAuth() {
     try {
       const { data } = await authApi.register({ name, email, password: pass, role, companyName });
       const { access_token, user } = data;
-      localStorage.setItem(TOKEN_KEY, access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
       setState({
         user,
         company: user.company || null,
@@ -119,7 +119,7 @@ export function useAuth() {
       const { data } = await authApi.joinCompany(inviteCode);
       const user = data.user || data;
       setState(prev => ({ ...prev, user, company: user.company }));
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
       return true;
     } catch (error) {
       return false;
@@ -131,7 +131,7 @@ export function useAuth() {
       const { data } = await usersApi.updateMe(updates);
       const updatedUser = { ...state.user, ...data };
       setState(prev => ({ ...prev, user: updatedUser }));
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
       return true;
     } catch (error) {
       return false;
@@ -152,7 +152,7 @@ export function useAuth() {
       const { data } = await usersApi.uploadAvatar(file);
       const updatedUser = { ...state.user, ...data };
       setState(prev => ({ ...prev, user: updatedUser }));
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
       return true;
     } catch (error) {
       return false;

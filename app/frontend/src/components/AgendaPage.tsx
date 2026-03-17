@@ -38,6 +38,8 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
   const [isNavigating, setIsNavigating] = useState<string | null>(null);
   const [direction, setDirection] = useState(0);
 
+  const [showCalendar, setShowCalendar] = useState(false);
+
   useEffect(() => {
     loadAgenda();
   }, [loadAgenda]);
@@ -176,8 +178,8 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Lado izquierdo: Hoja Diaria */}
-        <div className="lg:col-span-4">
+        {/* Lado izquierdo: Hoja Diaria y Calendario Desplegable */}
+        <div className="lg:col-span-4 space-y-4">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={date.toISOString()}
@@ -188,52 +190,118 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
               exit="exit"
               transition={{ duration: 0.2 }}
             >
-              <Card className="border-none shadow-md overflow-hidden bg-card rounded-3xl group relative">
+              <Card className="border-none shadow-xl overflow-hidden bg-card rounded-[32px] group relative">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
                 
-                <div className="pt-8 pb-4 text-center">
-                  <span className="text-primary text-xs font-bold uppercase tracking-widest">
-                    {format(date, 'EEEE', { locale: es })}
-                  </span>
-                </div>
-                
-                <CardContent className="flex flex-col items-center justify-center pb-10 pt-2">
-                  <div className="relative mb-4">
-                    <span className="text-8xl font-bold text-foreground tracking-tighter select-none">
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <div className="relative mb-2">
+                    <span className="text-8xl font-black text-foreground tracking-tighter select-none">
                       {format(date, 'd')}
                     </span>
                     {isToday(date) && (
-                      <div className="absolute -top-2 -right-4 p-1.5 bg-primary rounded-full border-2 border-card shadow-lg">
-                        <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2} />
+                      <div className="absolute -top-2 -right-4 p-2 bg-primary rounded-full border-4 border-card shadow-lg">
+                        <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
                       </div>
                     )}
                   </div>
                   
-                  <div className="text-center space-y-0.5">
-                    <p className="text-xl font-bold text-muted-foreground capitalize">
-                      {format(date, 'MMMM', { locale: es })}
+                  <div className="text-center space-y-1 mb-8">
+                    <p className="text-2xl font-black text-foreground capitalize tracking-tight">
+                      {format(date, 'EEEE', { locale: es })}
                     </p>
-                    <p className="text-sm font-bold text-muted-foreground/50">
-                      {format(date, 'yyyy')}
+                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                      {format(date, 'MMMM yyyy', { locale: es })}
                     </p>
                   </div>
+
+                  <Button 
+                    variant={showCalendar ? "secondary" : "outline"}
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    className="w-full rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 gap-2 shadow-sm transition-all"
+                  >
+                    {showCalendar ? (
+                      <>
+                        <ChevronLeft className="w-4 h-4" />
+                        Ocultar Calendario
+                      </>
+                    ) : (
+                      <>
+                        <CalendarDays className="w-4 h-4 text-primary" />
+                        Ver Calendario Completo
+                      </>
+                    )}
+                  </Button>
                   
-                  <div className="mt-10 pt-8 border-t border-border w-full flex justify-center gap-8">
+                  <div className="mt-8 pt-8 border-t border-border w-full flex justify-center gap-10">
                     <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Citas</p>
-                      <p className="text-2xl font-bold text-foreground">{filteredMeetings.length}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Citas</p>
+                      <p className="text-3xl font-black text-foreground">{filteredMeetings.length}</p>
                     </div>
-                    <div className="w-px h-10 bg-border" />
+                    <div className="w-px h-12 bg-border" />
                     <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Estado</p>
-                      <Badge variant={filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
-                        {filteredMeetings.length > 0 ? 'OCUPADO' : 'LIBRE'}
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Estado</p>
+                      <Badge variant={filteredMeetings.length > 3 ? 'destructive' : filteredMeetings.length > 0 ? 'warning' : 'success'} className="font-black px-3 py-1 rounded-xl text-[10px] shadow-sm">
+                        {filteredMeetings.length > 3 ? 'SATURADO' : filteredMeetings.length > 0 ? 'OCUPADO' : 'LIBRE'}
                       </Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showCalendar && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -20 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                <Card className="border-none shadow-2xl bg-card rounded-[32px] overflow-hidden p-4">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => {
+                      if (d) {
+                        setDirection(d > date ? 1 : -1);
+                        setDate(d);
+                      }
+                    }}
+                    locale={es}
+                    className="w-full"
+                    classNames={{
+                      months: "flex flex-col space-y-4 w-full",
+                      month: "space-y-4 w-full",
+                      caption: "flex justify-center pt-1 relative items-center px-4",
+                      caption_label: "text-lg font-black tracking-tight text-foreground capitalize",
+                      nav: "space-x-1 flex items-center",
+                      nav_button: cn(
+                        "h-10 w-10 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity rounded-xl hover:bg-muted"
+                      ),
+                      nav_button_previous: "absolute left-1",
+                      nav_button_next: "absolute right-1",
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "flex w-full mt-2 justify-between",
+                      head_cell: "text-muted-foreground rounded-md w-full font-bold text-[10px] uppercase tracking-widest",
+                      row: "flex w-full mt-2 justify-between",
+                      cell: cn(
+                        "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-primary/5 first:[&:has([aria-selected])]:rounded-l-xl last:[&:has([aria-selected])]:rounded-r-xl w-full"
+                      ),
+                      day: cn(
+                        "h-10 w-10 p-0 font-bold aria-selected:opacity-100 rounded-xl hover:bg-muted transition-all flex items-center justify-center mx-auto"
+                      ),
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground shadow-lg shadow-primary/30 scale-110",
+                      day_today: "bg-muted text-primary",
+                      day_outside: "text-muted-foreground opacity-30",
+                      day_disabled: "text-muted-foreground opacity-30",
+                      day_hidden: "invisible",
+                    }}
+                  />
+                </Card>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
