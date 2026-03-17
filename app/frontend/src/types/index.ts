@@ -136,6 +136,7 @@ export interface Meeting {
   scheduledAt: string;
   duration: number;
   type: string;
+  meetingLink?: string;
   status: MeetingStatus;
   ticketId: string;
   ticket?: {

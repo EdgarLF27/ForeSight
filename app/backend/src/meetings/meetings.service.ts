@@ -36,6 +36,11 @@ export class MeetingsService {
     }
   }
 
+  private generateMeetingLink(ticketId: string): string {
+    const roomName = `ForeSight-${ticketId.replace(/-/g, '').slice(0, 10)}`;
+    return `https://meet.jit.si/${roomName}`;
+  }
+
   async createProposal(technicianId: string, dto: CreateMeetingDto) {
     const { ticketId, scheduledAt, duration = 60 } = dto;
     const startTime = new Date(scheduledAt);
@@ -56,6 +61,7 @@ export class MeetingsService {
         scheduledAt: startTime,
         duration,
         type: dto.type,
+        meetingLink: dto.type === 'VIRTUAL' ? this.generateMeetingLink(ticketId) : null,
         status: 'PROPOSED',
         ticketId,
         technicianId,
