@@ -2,7 +2,6 @@ import axios, { type AxiosInstance, type AxiosError } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -10,12 +9,9 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Buscar el token en las llaves conocidas
-    const token = localStorage.getItem('foresight_token') || localStorage.getItem('token');
-    
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,109 +20,66 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    // Si el error es 401, el hook useAuth se encargará de validar si debe desloguear
-    return Promise.reject(error);
-  }
-);
-
-// Auth API
 export const authApi = {
-  setToken: (token: string | null) => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  },
-
-  login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
-  
-  register: (data: {
-    email: string;
-    password: string;
-    name: string;
-    role: 'EMPRESA' | 'EMPLEADO';
-    companyName?: string;
-  }) => api.post('/auth/register', data),
-  
-  joinCompany: (inviteCode: string) =>
-    api.post('/auth/join-company', { inviteCode }),
-  
+  login: (data: { email: string; password: string }) => api.post('/auth/login', data),
+  register: (data: any) => api.post('/auth/register', data),
+  joinCompany: (inviteCode: string) => api.post('/auth/join-company', { inviteCode }),
   getProfile: () => api.get('/auth/me'),
 };
 
-// Users API
 export const usersApi = {
-  getAll: (companyId?: string) =>
-    api.get('/users', { params: { companyId } }),
-  
+  getAll: (companyId?: string) => api.get('/users', { params: { companyId } }),
   getById: (id: string) => api.get(`/users/${id}`),
-  
   getMe: () => api.get('/users/me'),
-  
-  updateMe: (data: { name?: string; email?: string; avatar?: string }) =>
-    api.put('/users/me', data),
-
-  updateUserRole: (id: string, roleId: string) => 
-    api.patch(`/users/${id}/role`, { roleId }),
-
-  updateUserArea: (id: string, areaId: string | null) => 
-    api.patch(`/users/${id}/area`, { areaId }),
-
-  getTechnicians: (areaId?: string) => 
-    api.get('/users/technicians', { params: { areaId } }),
+  updateMe: (data: { name?: string; email?: string }) => api.put('/users/me', data),
+  updatePassword: (data: any) => api.patch('/users/me/password', data),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/users/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  updateUserRole: (id: string, roleId: string) => api.patch(`/users/${id}/role`, { roleId }),
+  updateUserArea: (id: string, areaId: string | null) => api.patch(`/users/${id}/area`, { areaId }),
+  getTechnicians: (areaId?: string) => api.get('/users/technicians', { params: { areaId } }),
 };
 
-// Companies API
+export const getFileUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const base = API_URL.replace('/api', '');
+  return `${base}${path}`;
+};
+
 export const companiesApi = {
   getById: (id: string) => api.get(`/companies/${id}`),
-  
   getStats: (id: string) => api.get(`/companies/${id}/stats`),
-  
-  regenerateCode: (id: string) =>
-    api.post(`/companies/${id}/regenerate-code`),
-  
-  verifyCode: (code: string) => api.get(`/companies/verify-code/${code}`),
+  update: (id: string, data: { name?: string; description?: string; information?: string }) => 
+    api.patch(`/companies/${id}`, data),
+  uploadLogo: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/companies/${id}/logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  regenerateCode: (id: string) => api.post(`/companies/${id}/regenerate-code`),
 };
 
-// Tickets API
 export const ticketsApi = {
-  getAll: (myTickets?: boolean) =>
-    api.get('/tickets', { params: { myTickets } }),
-  
+  getAll: (myTickets?: boolean) => api.get('/tickets', { params: { myTickets } }),
   getStats: () => api.get('/tickets/stats'),
-  
   getById: (id: string) => api.get(`/tickets/${id}`),
-  
-  create: (data: {
-    title: string;
-    description: string;
-    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-    category?: string;
-    assignedToId?: string;
-    areaId?: string;
-  }) => api.post('/tickets', data),
-  
+  create: (data: any) => api.post('/tickets', data),
   update: (id: string, data: any) => api.put(`/tickets/${id}`, data),
-  
   claim: (id: string) => api.put(`/tickets/${id}/claim`),
-  
   delete: (id: string) => api.delete(`/tickets/${id}`),
 };
 
-// Comments API
 export const commentsApi = {
-  getByTicket: (ticketId: string) =>
-    api.get(`/comments/ticket/${ticketId}`),
-  
-  create: (data: { content: string; ticketId: string }) =>
-    api.post('/comments', data),
-  
+  getByTicket: (ticketId: string) => api.get(`/comments/ticket/${ticketId}`),
+  create: (data: { content: string; ticketId: string }) => api.post('/comments', data),
   delete: (id: string) => api.delete(`/comments/${id}`),
 };
 
@@ -141,17 +94,9 @@ export const meetingsApi = {
   getByTicket: (ticketId: string) => api.get(`/meetings/ticket/${ticketId}`),
   getMyMeetings: () => api.get('/meetings/my-meetings'),
   getAgenda: () => api.get('/meetings/agenda'),
-  createProposal: (data: {
-    title: string;
-    description?: string;
-    scheduledAt: string;
-    duration?: number;
-    type: string;
-    ticketId: string;
-  }) => api.post('/meetings', data),
+  createProposal: (data: any) => api.post('/meetings', data),
   updateStatus: (id: string, status: string) => api.put(`/meetings/${id}/status`, { status }),
-  repropose: (id: string, data: { scheduledAt: string; duration?: number }) =>
-    api.put(`/meetings/${id}/repropose`, data),
+  repropose: (id: string, data: any) => api.put(`/meetings/${id}/repropose`, data),
 };
 
 export const notificationsApi = {

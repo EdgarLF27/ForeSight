@@ -86,12 +86,9 @@ export class TicketsController {
     @Request() req,
   ) {
     const companyId = req.user.user.companyId;
-<<<<<<< HEAD
-    return this.ticketsService.update(id, updateDto, companyId, req.user.user);
-=======
     const userId = req.user.userId;
-    return this.ticketsService.update(id, updateDto, companyId, userId);
->>>>>>> 278b74513601766d9abb83716e970dfe6464c789
+    // Pasamos tanto el objeto usuario (para permisos) como el userId (para historial)
+    return this.ticketsService.update(id, updateDto, companyId, userId, req.user.user);
   }
 
   @Delete(':id')

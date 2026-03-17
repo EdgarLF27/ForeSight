@@ -77,6 +77,8 @@ model Company {
   id          String @id @default(uuid())
   name        String
   description String?
+  information String?  // Nueva sección de información detallada
+  logo        String?  // Ruta de la imagen del logo
   inviteCode  String @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -188,6 +190,7 @@ model Notification {
   title     String
   message   String
   type      String
+  link      String?  // Nuevo campo para redirección (ej: ticket id)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -231,6 +234,7 @@ enum TicketStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+  CANCELLED
 }
 
 enum TicketPriority {

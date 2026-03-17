@@ -6,7 +6,8 @@ import {
   Clock,
   MapPin,
   Inbox,
-  ChevronRight
+  ChevronRight,
+  ArrowUpDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,88 +76,50 @@ export function TicketsPage({
 
   const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Administrador') || currentUser.role === 'EMPRESA';
   const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Empleado') || currentUser.role === 'EMPLEADO';
+  const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico');
 
   const filteredTickets = tickets
     .filter(ticket => {
-      // Búsqueda por palabra clave
       const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (!matchesSearch) return false;
 
-<<<<<<< HEAD
-    if (currentUser.role === 'Técnico' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico')) {
-      return !ticket.assignedToId || ticket.assignedToId === currentUser.id;
-    }
-
-    if (isEmployee) {
-      return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
-    }
-
-    return true;
-  });
-=======
-      // Filtro de Estado
       if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
-
-      // Filtro de Prioridad
       if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
-
-      // Filtro de Área
       if (areaFilter !== 'all' && ticket.areaId !== areaFilter) return false;
 
-      // Filtro de Fecha
       if (dateFilter !== 'all') {
         const ticketDate = new Date(ticket.createdAt);
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        if (dateFilter === 'today') {
-          if (ticketDate < startOfToday) return false;
-        } else if (dateFilter === 'week') {
+        if (dateFilter === 'today' && ticketDate < startOfToday) return false;
+        if (dateFilter === 'week') {
           const weekAgo = new Date();
           weekAgo.setDate(now.getDate() - 7);
           if (ticketDate < weekAgo) return false;
-        } else if (dateFilter === 'month') {
-          const monthAgo = new Date();
-          monthAgo.setMonth(now.getMonth() - 1);
-          if (ticketDate < monthAgo) return false;
         }
       }
 
-      // Lógica de visibilidad para Técnicos
       if (isTechnician) {
-        const isUnclaimed = !ticket.assignedToId;
-        const isMyClaimed = ticket.assignedToId === currentUser.id;
-        return isUnclaimed || isMyClaimed;
+        return !ticket.assignedToId || ticket.assignedToId === currentUser.id;
       }
 
-      // Para Empleados, solo sus propios tickets
       if (isEmployee) {
         return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
       }
 
-      // Admins ven todo
       return true;
     })
     .sort((a, b) => {
-      // Lógica de ordenamiento
       if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      
       if (sortBy === 'priority') {
         const priorityMap = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
         return priorityMap[b.priority as keyof typeof priorityMap] - priorityMap[a.priority as keyof typeof priorityMap];
       }
-
-      if (sortBy === 'status') {
-        const statusMap = { OPEN: 4, IN_PROGRESS: 3, RESOLVED: 2, CLOSED: 1 };
-        return statusMap[b.status as keyof typeof statusMap] - statusMap[a.status as keyof typeof statusMap];
-      }
-
       return 0;
     });
->>>>>>> 278b74513601766d9abb83716e970dfe6464c789
 
   const handleCreateTicket = async () => {
     if (!newTicket.title || !newTicket.description || !newTicket.areaId) return;
@@ -169,17 +132,17 @@ export function TicketsPage({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-1">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Tickets</h1>
-          <p className="text-muted-foreground">Administra y haz seguimiento de todas las incidencias</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground uppercase">Gestión de Tickets</h1>
+          <p className="text-muted-foreground font-medium">Administra y haz seguimiento de todas las incidencias</p>
         </div>
         {(isAdmin || isEmployee) && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 px-6 h-11 font-bold transition-all">
-                <Plus className="h-5 w-5 mr-2" />
+                <Plus className="h-5 w-5 mr-2" strokeWidth={3} />
                 Nuevo Ticket
               </Button>
             </DialogTrigger>
@@ -188,23 +151,23 @@ export function TicketsPage({
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                   <Inbox size={100} />
                 </div>
-                <DialogTitle className="text-2xl font-bold">Nueva Incidencia</DialogTitle>
-                <DialogDescription className="text-primary-foreground/80 mt-1">
+                <DialogTitle className="text-2xl font-bold uppercase tracking-tight">Nueva Incidencia</DialogTitle>
+                <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
                   Completa los detalles para reportar un nuevo problema.
                 </DialogDescription>
               </div>
               <div className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground/80 ml-1">Asunto</label>
+                  <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Asunto</label>
                   <Input
                     placeholder="Título descriptivo del problema"
                     value={newTicket.title}
                     onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-                    className="h-11 rounded-xl border-border bg-muted/30 focus:ring-primary/20"
+                    className="h-11 rounded-xl border-border bg-muted/30 focus:ring-primary/20 font-bold"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground/80 ml-1">Descripción</label>
+                  <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Descripción</label>
                   <textarea
                     placeholder="Proporciona detalles técnicos sobre la incidencia..."
                     value={newTicket.description}
@@ -214,11 +177,11 @@ export function TicketsPage({
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                    <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground/80 ml-1">Área</label>
+                    <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Área</label>
                     <select
                       value={newTicket.areaId}
                       onChange={(e) => setNewTicket({ ...newTicket, areaId: e.target.value })}
-                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none uppercase"
                     >
                       <option value="">Seleccionar área...</option>
                       {areas.map(area => (
@@ -227,11 +190,11 @@ export function TicketsPage({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground/80 ml-1">Prioridad</label>
+                    <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Prioridad</label>
                     <select
                       value={newTicket.priority}
                       onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
-                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none uppercase"
                     >
                       <option value="LOW">Baja</option>
                       <option value="MEDIUM">Media</option>
@@ -241,9 +204,9 @@ export function TicketsPage({
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">Cancelar</Button>
+                  <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground uppercase text-xs tracking-widest">Cancelar</Button>
                   <Button 
-                    className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-8 font-bold"
+                    className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-8 font-bold uppercase text-xs tracking-widest"
                     onClick={handleCreateTicket}
                     disabled={!newTicket.title || !newTicket.description || !newTicket.areaId}
                   >
@@ -256,103 +219,73 @@ export function TicketsPage({
         )}
       </div>
 
-<<<<<<< HEAD
-      {/* Barra de Búsqueda y Filtros */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Buscar por título o descripción..." 
-            className="pl-11 h-12 rounded-2xl border-border bg-card/50 shadow-sm focus:ring-primary/20"
-=======
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5f6368]" />
-          <Input 
-            placeholder="Buscar por título o descripción..." 
-            className="pl-10 h-10 border-[#dadce0] focus:ring-[#1a73e8]"
->>>>>>> 278b74513601766d9abb83716e970dfe6464c789
+            className="pl-11 h-12 rounded-2xl border-border bg-card shadow-sm focus:ring-primary/20 font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-<<<<<<< HEAD
-        <Button variant="outline" className="h-12 px-6 rounded-2xl border-border bg-card shadow-sm hover:bg-muted font-bold gap-2">
-          <Filter className="h-4 w-4" />
-          Filtros
-        </Button>
-      </div>
-
-      {/* Lista de Tickets - Minimalista */}
-      <Card className="border-none shadow-md overflow-hidden bg-card">
-=======
         <div className="flex gap-2">
           <Button 
             variant={showFilters ? "secondary" : "outline"} 
-            className={`flex items-center gap-2 h-10 ${showFilters ? 'bg-blue-50 text-[#1a73e8] border-blue-200' : 'text-[#5f6368]'}`}
+            className={`h-12 px-6 rounded-2xl border-border bg-card shadow-sm font-bold gap-2 transition-all ${showFilters ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-4 w-4" />
             Filtros
-            {(statusFilter !== 'all' || priorityFilter !== 'all' || areaFilter !== 'all') && (
-              <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-[#1a73e8]">
-                !
-              </Badge>
-            )}
           </Button>
-
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="h-10 px-3 py-2 text-sm border border-[#dadce0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#1a73e8] bg-white text-[#5f6368] font-medium"
+            className="h-12 px-4 rounded-2xl border border-border bg-card shadow-sm font-bold text-sm focus:ring-primary/20 transition-all outline-none"
           >
             <option value="newest">Más recientes</option>
             <option value="oldest">Más antiguos</option>
-            <option value="priority">Por Prioridad</option>
-            <option value="status">Por Estado</option>
+            <option value="priority">Prioridad alta</option>
           </select>
         </div>
       </div>
 
-      {/* Panel de Filtros */}
       {showFilters && (
-        <div className="p-4 bg-gray-50/50 border border-[#dadce0] rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Estado</label>
+        <Card className="p-6 border-none shadow-md bg-card rounded-2xl grid grid-cols-1 sm:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-2">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Estado</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
             >
-              <option value="all">Todos los estados</option>
+              <option value="all">Todos</option>
               <option value="OPEN">Abiertos</option>
               <option value="IN_PROGRESS">En progreso</option>
               <option value="RESOLVED">Resueltos</option>
               <option value="CLOSED">Cerrados</option>
             </select>
           </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Prioridad</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Prioridad</label>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
             >
-              <option value="all">Todas las prioridades</option>
+              <option value="all">Todas</option>
               <option value="URGENT">Urgente</option>
               <option value="HIGH">Alta</option>
               <option value="MEDIUM">Media</option>
               <option value="LOW">Baja</option>
             </select>
           </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Área</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Área</label>
             <select
               value={areaFilter}
               onChange={(e) => setAreaFilter(e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
+              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
             >
               <option value="all">Todas las áreas</option>
               {areas.map(area => (
@@ -360,50 +293,28 @@ export function TicketsPage({
               ))}
             </select>
           </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-[#5f6368] uppercase ml-1">Fecha de creación</label>
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-[#dadce0] rounded-lg focus:ring-2 focus:ring-[#1a73e8] bg-white"
-            >
-              <option value="all">Cualquier fecha</option>
-              <option value="today">Hoy</option>
-              <option value="week">Última semana</option>
-              <option value="month">Último mes</option>
-            </select>
-          </div>
-          
-          <div className="sm:col-span-1 flex justify-end items-end pb-1">
+          <div className="flex items-end">
             <Button 
               variant="ghost" 
-              size="sm" 
-              className="text-xs text-[#1a73e8] h-7 hover:bg-blue-50"
-              onClick={() => {
-                setStatusFilter('all');
-                setPriorityFilter('all');
-                setAreaFilter('all');
-                setDateFilter('all');
-              }}
+              className="w-full h-10 font-bold text-xs text-primary uppercase"
+              onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); setAreaFilter('all'); }}
             >
-              Limpiar filtros
+              Limpiar Filtros
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-white border border-[#dadce0] rounded-xl overflow-hidden shadow-sm">
->>>>>>> 278b74513601766d9abb83716e970dfe6464c789
+      <Card className="border-none shadow-md overflow-hidden bg-card rounded-3xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Ticket</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Área</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Prioridad</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticket</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Área</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Estado</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prioridad</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Fecha</th>
                 <th className="px-6 py-4 w-10"></th>
               </tr>
             </thead>
@@ -416,39 +327,39 @@ export function TicketsPage({
                 >
                   <td className="px-6 py-5">
                     <div className="flex flex-col gap-0.5">
-                      <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                      <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">
                         {ticket.title}
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
+                      <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs font-medium">
                         {ticket.description}
                       </p>
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     {ticket.area ? (
-                      <div className="flex items-center gap-2 text-muted-foreground font-medium text-xs">
+                      <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase">
                         <MapPin size={12} className="text-primary/40" />
                         {ticket.area.name}
                       </div>
-                    ) : <span className="text-xs text-muted-foreground/50 italic">N/A</span>}
+                    ) : <span className="text-[10px] text-muted-foreground/50 italic font-bold">N/A</span>}
                   </td>
                   <td className="px-6 py-5">
-                    <Badge variant={statusConfig[ticket.status].variant} className="font-bold">
+                    <Badge variant={statusConfig[ticket.status].variant} className="font-bold text-[9px] uppercase tracking-wider">
                       {statusConfig[ticket.status].label}
                     </Badge>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${priorityConfig[ticket.priority].color.replace('text-', 'bg-')}`} />
-                      <span className={`text-xs font-bold ${priorityConfig[ticket.priority].color}`}>{priorityConfig[ticket.priority].label}</span>
+                      <span className={`text-[10px] font-bold uppercase ${priorityConfig[ticket.priority].color}`}>{priorityConfig[ticket.priority].label}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-foreground">
+                      <span className="text-[10px] font-bold text-foreground uppercase">
                         {new Date(ticket.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
                         {ticket.createdBy?.name?.split(' ')[0] || 'Sistema'}
                       </span>
                     </div>
@@ -464,10 +375,10 @@ export function TicketsPage({
                 <tr>
                   <td colSpan={6} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="p-4 rounded-full bg-muted">
-                         <Inbox className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="p-4 rounded-3xl bg-muted/50">
+                         <Inbox className="h-8 w-8 text-muted-foreground/30" />
                       </div>
-                      <p className="text-muted-foreground font-medium">No se encontraron tickets</p>
+                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No hay tickets</p>
                     </div>
                   </td>
                 </tr>

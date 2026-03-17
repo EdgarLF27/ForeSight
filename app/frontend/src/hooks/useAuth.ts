@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { authApi, usersApi } from '@/services/api';
 import type { UserRole, AuthState } from '@/types';
 
-const TOKEN_KEY = 'foresight_token';
+const TOKEN_KEY = 'token';
 const USER_KEY = 'foresight_user';
 
 export function useAuth() {
-  // INICIALIZACIÓN SINCRÓNICA: Leer del storage antes de que React respire
   const getInitialState = (): AuthState => {
     const token = localStorage.getItem(TOKEN_KEY);
     const userStr = localStorage.getItem(USER_KEY);
@@ -14,7 +13,6 @@ export function useAuth() {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        // Validar que el usuario tenga los campos mínimos (como name)
         if (user && user.name) {
           return {
             user,
@@ -23,15 +21,13 @@ export function useAuth() {
             isLoading: false,
           };
         }
-      } catch (e) {
-        console.error("Error parseando cache:", e);
-      }
+      } catch (e) {}
     }
     return {
       user: null,
       company: null,
       isAuthenticated: false,
-      isLoading: true, // Empezamos en loading solo si no hay cache
+      isLoading: true,
     };
   };
 
@@ -45,9 +41,8 @@ export function useAuth() {
     }
 
     try {
-      // Validar silenciosamente con el servidor
       const response = await authApi.getProfile();
-      const freshUser = response.data.user || response.data; // Manejar si el objeto viene envuelto
+      const freshUser = response.data.user || response.data;
 
       setState({
         user: freshUser,
@@ -59,10 +54,8 @@ export function useAuth() {
       localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
     } catch (error: any) {
       if (error.response?.status === 401) {
-        console.warn("Token inválido al refrescar, cerrando sesión.");
         logout();
       } else {
-        // Error de red, mantenemos lo que tenemos en cache
         setState(prev => ({ ...prev, isLoading: false }));
       }
     }
@@ -80,8 +73,6 @@ export function useAuth() {
       localStorage.setItem(TOKEN_KEY, access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       
-      authApi.setToken(access_token);
-
       setState({
         user,
         company: user.company || null,
@@ -90,7 +81,6 @@ export function useAuth() {
       });
       return true;
     } catch (error) {
-      console.error("Login hook error:", error);
       return false;
     }
   };
@@ -98,8 +88,6 @@ export function useAuth() {
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem('foresight_auth'); // Limpiar llave vieja
-    authApi.setToken(null);
     setState({
       user: null,
       company: null,
@@ -112,12 +100,8 @@ export function useAuth() {
     try {
       const { data } = await authApi.register({ name, email, password: pass, role, companyName });
       const { access_token, user } = data;
-      
       localStorage.setItem(TOKEN_KEY, access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
-      
-      authApi.setToken(access_token);
-
       setState({
         user,
         company: user.company || null,
@@ -131,47 +115,44 @@ export function useAuth() {
   };
 
   const joinCompany = async (inviteCode: string) => {
-    if (!state.user) return false;
     try {
       const { data } = await authApi.joinCompany(inviteCode);
-      const { user } = data;
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        company: user.company,
-      }));
-      
-      // Actualizar localStorage
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const authData = JSON.parse(stored);
-        authData.user = user;
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-      }
-      
+      const user = data.user || data;
+      setState(prev => ({ ...prev, user, company: user.company }));
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       return true;
     } catch (error) {
       return false;
     }
   };
 
-  const updateUser = async (updates: { name?: string; email?: string; avatar?: string }) => {
+  const updateUser = async (updates: { name?: string; email?: string }) => {
     try {
       const { data } = await usersApi.updateMe(updates);
-      
-      setState(prev => ({
-        ...prev,
-        user: { ...prev.user, ...data },
-      }));
+      const updatedUser = { ...state.user, ...data };
+      setState(prev => ({ ...prev, user: updatedUser }));
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
 
-      // Actualizar localStorage
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const authData = JSON.parse(stored);
-        authData.user = { ...authData.user, ...data };
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-      }
+  const updatePassword = async (data: any) => {
+    try {
+      await usersApi.updatePassword(data);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const uploadAvatar = async (file: File) => {
+    try {
+      const { data } = await usersApi.uploadAvatar(file);
+      const updatedUser = { ...state.user, ...data };
+      setState(prev => ({ ...prev, user: updatedUser }));
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
       return true;
     } catch (error) {
       return false;
@@ -185,5 +166,7 @@ export function useAuth() {
     register,
     joinCompany,
     updateUser,
+    updatePassword,
+    uploadAvatar
   };
 }
