@@ -42,7 +42,6 @@ interface AuthPageProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
   onRegister: (name: string, email: string, password: string, role: UserRole, companyName?: string) => Promise<boolean>;
   onJoinCompany: (code: string) => Promise<boolean>;
-  onBack?: () => void;
 }
 
 // Componente: Red de Líneas de Datos Tecnológicas
