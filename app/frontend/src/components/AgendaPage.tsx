@@ -26,12 +26,14 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Ticket, Meeting } from '@/types';
 import { toast } from 'sonner';
+import { VideoCallDialog } from './VideoCallDialog';
 
 interface AgendaPageProps {
   onViewTicket?: (ticket: Ticket) => void;
+  currentUser?: any;
 }
 
-export function AgendaPage({ onViewTicket }: AgendaPageProps) {
+export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
   const { agenda, isLoading, loadAgenda } = useMeetings();
   const { getTicketById } = useTickets();
   const [date, setDate] = React.useState<Date>(new Date());
@@ -39,6 +41,7 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
   const [direction, setDirection] = useState(0);
 
   const [showCalendar, setShowCalendar] = useState(false);
+  const [activeCall, setActiveCall] = useState<{ room: string; title: string } | null>(null);
 
   useEffect(() => {
     loadAgenda();
@@ -373,7 +376,18 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
                           </div>
                         </div>
 
-                        <div className="flex-shrink-0 md:pl-4">
+                        <div className="flex-shrink-0 md:pl-4 flex gap-2">
+                          {meeting.type === 'VIRTUAL' && meeting.meetingLink && (
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={() => setActiveCall({ room: meeting.meetingLink!, title: meeting.title })}
+                              className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 px-4 shadow-lg shadow-emerald-500/20"
+                            >
+                              <Video className="h-4 w-4" />
+                              <span className="text-xs uppercase tracking-widest">Unirse</span>
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -400,6 +414,13 @@ export function AgendaPage({ onViewTicket }: AgendaPageProps) {
           </Card>
         </div>
       </div>
+
+      <VideoCallDialog
+        isOpen={!!activeCall}
+        onClose={() => setActiveCall(null)}
+        roomName={activeCall?.room || ''}
+        userName={currentUser?.name || 'Usuario ForeSight'}
+      />
     </div>
   );
 }

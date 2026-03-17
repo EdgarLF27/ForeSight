@@ -229,7 +229,7 @@ function App() {
 
       case 'roles': return isAdminRole ? <RolesPage /> : null;
       case 'areas': return isAdminRole ? <AreasPage /> : null;
-      case 'agenda': return <AgendaPage onViewTicket={setSelectedTicket} />;
+      case 'agenda': return <AgendaPage onViewTicket={setSelectedTicket} currentUser={user} />;
       case 'settings': return <SettingsPage user={user} company={company} onUpdateUser={updateUser} />;
       default: return null;
     }

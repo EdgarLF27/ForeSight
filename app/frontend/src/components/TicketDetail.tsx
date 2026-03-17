@@ -69,6 +69,7 @@ import { useMeetings } from '@/hooks/useMeetings';
 import { getFileUrl } from '@/services/api';
 import type { Ticket, Comment, User, TicketStatus, Meeting } from '@/types';
 import { toast } from 'sonner';
+import { VideoCallDialog } from './VideoCallDialog';
 
 interface TicketDetailProps {
   ticket: Ticket;
@@ -126,6 +127,8 @@ export function TicketDetail({
     type: 'VIRTUAL',
     duration: 60
   });
+
+  const [activeCall, setActiveCall] = useState<{ room: string; title: string } | null>(null);
 
   useEffect(() => {
     loadMeetingsByTicket(ticket.id);
@@ -362,13 +365,24 @@ export function TicketDetail({
                               </div>
                             </div>
                           </div>
-                          {m.status === 'PROPOSED' && m.lastProposedById !== currentUser.id && (
-                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                              <Button size="sm" variant="outline" className="rounded-xl h-10 font-black text-[10px] uppercase flex-1 sm:flex-none" onClick={() => openReproposeDialog(m)}>Reprogramar</Button>
-                              <Button size="sm" variant="outline" className="rounded-xl h-10 border-destructive/20 text-destructive hover:bg-destructive/10 font-black text-[10px] uppercase flex-1 sm:flex-none" onClick={() => updateStatus(m.id, 'REJECTED')}>Rechazar</Button>
-                              <Button size="sm" className="bg-emerald-600 text-white rounded-xl h-10 px-6 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 flex-1 sm:flex-none" onClick={() => updateStatus(m.id, 'ACCEPTED')}>Aceptar</Button>
-                            </div>
-                          )}
+                          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                            {m.status === 'ACCEPTED' && m.type === 'VIRTUAL' && m.meetingLink && (
+                              <Button 
+                                size="sm" 
+                                className="bg-emerald-600 text-white rounded-xl h-10 px-5 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 flex-1 sm:flex-none gap-2"
+                                onClick={() => setActiveCall({ room: m.meetingLink!, title: m.title })}
+                              >
+                                <Video className="h-4 w-4" /> Unirse a la llamada
+                              </Button>
+                            )}
+                            {m.status === 'PROPOSED' && m.lastProposedById !== currentUser.id && (
+                              <>
+                                <Button size="sm" variant="outline" className="rounded-xl h-10 font-black text-[10px] uppercase flex-1 sm:flex-none" onClick={() => openReproposeDialog(m)}>Reprogramar</Button>
+                                <Button size="sm" variant="outline" className="rounded-xl h-10 border-destructive/20 text-destructive hover:bg-destructive/10 font-black text-[10px] uppercase flex-1 sm:flex-none" onClick={() => updateStatus(m.id, 'REJECTED')}>Rechazar</Button>
+                                <Button size="sm" className="bg-emerald-600 text-white rounded-xl h-10 px-6 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 flex-1 sm:flex-none" onClick={() => updateStatus(m.id, 'ACCEPTED')}>Aceptar</Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -509,6 +523,13 @@ export function TicketDetail({
           </div>
         </DialogContent>
       </Dialog>
+
+      <VideoCallDialog
+        isOpen={!!activeCall}
+        onClose={() => setActiveCall(null)}
+        roomName={activeCall?.room || ''}
+        userName={currentUser?.name || 'Usuario ForeSight'}
+      />
     </div>
   );
 }
