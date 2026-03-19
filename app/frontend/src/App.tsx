@@ -5,7 +5,6 @@ import { useComments } from '@/hooks/useComments';
 import { useTeam } from '@/hooks/useTeam';
 import { Layout } from '@/components/Layout';
 import { AuthPage } from '@/components/AuthPage';
-import { LandingPage } from '@/components/LandingPage';
 import { DashboardAdmin } from '@/components/DashboardAdmin';
 import { DashboardEmployee } from '@/components/DashboardEmployee';
 import { TicketDetail } from '@/components/TicketDetail';
@@ -38,6 +37,25 @@ function App() {
     joinCompany,
     updateUser 
   } = useAuth();
+
+  // CERRAR SESIÓN AL DAR ATRÁS EN EL NAVEGADOR
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isAuthenticated) {
+        logout();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    if (isAuthenticated) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isAuthenticated, logout]);
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -189,21 +207,18 @@ function App() {
   if (isLoading) return <LoadingState />;
 
   if (!isAuthenticated || !user) {
-    if (showAuth) {
-      return (
-        <>
-          <AuthPage 
-            onLogin={login} 
-            onRegister={register} 
-            onJoinCompany={joinCompany} 
-            onGoogleLogin={googleLogin}
-            onBack={() => setShowAuth(false)} 
-          />
-          <Toaster position="top-right" />
-        </>
-      );
-    }
-    return <LandingPage onNavigateToAuth={() => setShowAuth(true)} />;
+    return (
+      <>
+        <AuthPage 
+          onLogin={login} 
+          onRegister={register} 
+          onJoinCompany={joinCompany} 
+          onGoogleLogin={googleLogin}
+          onBack={() => {}} 
+        />
+        <Toaster position="top-right" />
+      </>
+    );
   }
 
   const renderPage = () => {
