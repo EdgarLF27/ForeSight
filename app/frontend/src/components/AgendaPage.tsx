@@ -141,33 +141,14 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
             Hoy
           </Button>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 px-4 gap-2 border-border bg-muted/30 font-bold rounded-xl hover:bg-muted transition-all text-foreground"
-              >
-                <CalendarDays className="h-4 w-4 text-primary" strokeWidth={2} />
-                <span className="capitalize">{format(date, "d 'de' MMMM", { locale: es })}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl border-border bg-card shadow-2xl" align="end">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => {
-                  if (d) {
-                    setDirection(d > date ? 1 : -1);
-                    setDate(d);
-                  }
-                }}
-                initialFocus
-                locale={es}
-                className="rounded-2xl"
-              />
-            </PopoverContent>
-          </Popover>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 px-4 gap-2 border-border bg-muted/30 font-bold rounded-xl hover:bg-muted transition-all text-foreground cursor-default"
+          >
+            <CalendarDays className="h-4 w-4 text-primary" strokeWidth={2} />
+            <span className="capitalize">{format(date, "d 'de' MMMM", { locale: es })}</span>
+          </Button>
 
           <Button 
             variant="ghost" 
