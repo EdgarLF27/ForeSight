@@ -37,8 +37,28 @@ function App() {
     updateUser 
   } = useAuth();
 
+  // CERRAR SESIÓN AL DAR ATRÁS EN EL NAVEGADOR
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isAuthenticated) {
+        logout();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    if (isAuthenticated) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isAuthenticated, logout]);
+
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
   const [company, setCompany] = useState<Company | null>(authCompany);
 
   const { 
@@ -168,7 +188,7 @@ function App() {
   if (!isAuthenticated || !user) {
     return (
       <>
-        <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} />
+        <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} onBack={() => {}} />
         <Toaster position="top-right" />
       </>
     );

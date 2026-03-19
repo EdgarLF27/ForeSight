@@ -28,14 +28,32 @@ export class RolesService {
   }
 
   async findAll(companyId: string) {
-    return this.prisma.role.findMany({
+    const roles = await this.prisma.role.findMany({
       where: {
         OR: [
           { companyId },
           { isSystem: true },
         ],
       },
-      include: { permissions: true, _count: { select: { users: true } } },
+      include: { permissions: true },
+    });
+
+    // Obtener los conteos de usuarios por rol FILTRADOS por empresa
+    const userCounts = await this.prisma.user.groupBy({
+      by: ['roleId'],
+      where: { companyId },
+      _count: { id: true },
+    });
+
+    // Mapear los conteos a sus respectivos roles
+    return roles.map(role => {
+      const countData = userCounts.find(c => c.roleId === role.id);
+      return {
+        ...role,
+        _count: {
+          users: countData ? countData._count.id : 0
+        }
+      };
     });
   }
 
