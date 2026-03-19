@@ -140,6 +140,13 @@ model Ticket {
   comments   Comment[]
   activities TicketActivity[]
 
+  // AI Insights
+  aiSentiment         String?
+  aiSummary           String?
+  aiReasoning         String?
+  aiSuggestedArea     String?
+  aiSuggestedPriority String?
+
   @@map("tickets")
 }
 

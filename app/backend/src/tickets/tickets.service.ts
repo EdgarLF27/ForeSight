@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private aiService: AiService,
   ) {}
 
   async findAll(companyId: string, user: any) {
@@ -136,6 +138,23 @@ export class TicketsService {
     await this.prisma.ticketActivity.create({
       data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado' },
     });
+
+    // ANÁLISIS POR IA EN SEGUNDO PLANO
+    // No usamos 'await' aquí para que el usuario reciba su ticket de inmediato
+    this.aiService.analyzeTicket(data.description).then(async (analysis) => {
+      if (analysis) {
+        await this.prisma.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            aiSentiment: analysis.sentiment,
+            aiSummary: analysis.summary,
+            aiReasoning: analysis.ai_reasoning,
+            aiSuggestedArea: analysis.suggestedArea,
+            aiSuggestedPriority: analysis.suggestedPriority,
+          }
+        }).catch(err => console.error('Error guardando análisis IA:', err));
+      }
+    }).catch(err => console.error('Error en proceso IA:', err));
 
     return ticket;
   }

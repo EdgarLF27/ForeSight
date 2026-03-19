@@ -11,6 +11,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { AreasModule } from './areas/areas.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AreasModule, // Registro de áreas para gestión de tickets
     MeetingsModule,
     NotificationsModule,
+    AiModule,
   ],
 })
 export class AppModule {}
