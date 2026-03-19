@@ -14,15 +14,11 @@ async function bootstrap() {
     origin: (origin, callback) => {
       const allowedOrigins = configService
         .get("FRONTEND_URL", "http://localhost:5173,http://localhost:5174")
-        .split(",")
-        .map(url => url.trim().replace(/\/$/, ""));
+        .split(",");
       
-      const cleanOrigin = origin ? origin.replace(/\/$/, "") : null;
-      
-      if (!origin || allowedOrigins.includes(cleanOrigin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.log("CORS Bloqueado para origen:", origin);
         callback(new Error('Not allowed by CORS'));
       }
     },

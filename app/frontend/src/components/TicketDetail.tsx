@@ -3,6 +3,7 @@ import {
   ArrowLeft, 
   Clock, 
   User as UserIcon, 
+  Calendar, 
   MessageSquare, 
   Send,
   CheckCircle,
@@ -10,20 +11,22 @@ import {
   XCircle,
   MapPin,
   Video,
+  CalendarPlus,
+  Check,
+  X,
+  Calendar as CalendarIcon,
+  AlertTriangle,
   ChevronDown,
   History,
-  Loader2,
   Circle,
-  CalendarPlus,
-  Calendar as CalendarIcon,
-  AlertTriangle
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-
+import { Textarea } from '@/components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,12 +137,12 @@ export function TicketDetail({
   const status = statusConfig[ticket.status] || statusConfig.OPEN;
   const priority = priorityConfig[ticket.priority];
   const assignee = teamMembers.find(m => m.id === ticket.assignedToId);
-  const creator = typeof ticket.createdBy === 'object' ? ticket.createdBy : { id: ticket.createdBy as string, name: 'Usuario', avatar: undefined };
+  const creator = typeof ticket.createdBy === 'object' ? ticket.createdBy : { id: ticket.createdBy as string, name: 'Usuario' };
 
   const isAdmin = currentUser.role === 'EMPRESA' || (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Administrador');
   const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Técnico');
   const isAssignedToMe = ticket.assignedToId === currentUser.id;
-  const isCreator = ticket.createdById === currentUser.id || (typeof ticket.createdBy === 'object' && (ticket.createdBy as any).id === currentUser.id);
+  const isCreator = ticket.createdById === currentUser.id || (typeof ticket.createdBy === 'object' && ticket.createdBy.id === currentUser.id);
 
   const getInitials = (name?: any) => {
     if (typeof name !== 'string' || !name.trim()) return '??';

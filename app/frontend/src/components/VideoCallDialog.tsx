@@ -1,10 +1,13 @@
+import React from 'react';
 import { JitsiMeeting } from '@jitsi/react-sdk';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, X } from 'lucide-react';
 
 interface VideoCallDialogProps {
   isOpen: boolean;
@@ -30,9 +33,9 @@ export function VideoCallDialog({ isOpen, onClose, roomName, userName }: VideoCa
         <div className="absolute top-0 left-0 right-0 z-50 p-0 bg-slate-900/40 backdrop-blur-md border-b border-white/5 flex flex-row items-center justify-between h-9 px-4 opacity-0 hover:opacity-100 transition-opacity duration-300">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-            <DialogTitle className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">
               Live Session
-            </DialogTitle>
+            </span>
           </div>
           <button 
             onClick={onClose}
@@ -54,16 +57,16 @@ export function VideoCallDialog({ isOpen, onClose, roomName, userName }: VideoCa
               disableModeratorIndicator: true,
               startScreenSharing: false,
               enableEmailInStats: false,
-              prejoinPageEnabled: false, 
+              prejoinPageEnabled: false, // Salta la página de pre-unión para entrar directo
             }}
             interfaceConfigOverwrite={{
               DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
             }}
             userInfo={{
               displayName: userName,
-              email: 'user@foresight.io' // El SDK requiere email, usamos uno genérico si no lo tenemos
             }}
             onApiReady={(externalApi) => {
+              // Aquí podrías añadir listeners de eventos si lo necesitas
               externalApi.addEventListener('readyToClose', () => {
                 onClose();
               });
@@ -72,6 +75,12 @@ export function VideoCallDialog({ isOpen, onClose, roomName, userName }: VideoCa
               iframeRef.style.height = '100%';
               iframeRef.style.width = '100%';
             }}
+            loadingComponent={() => (
+              <div className="flex flex-col items-center justify-center h-full space-y-4 bg-slate-900 text-white">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-xs font-black uppercase tracking-widest">Iniciando Sala Segura...</p>
+              </div>
+            )}
           />
         </div>
       </DialogContent>

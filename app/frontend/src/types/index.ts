@@ -1,58 +1,41 @@
 // Tipos de usuario y roles
 export type UserRole = 'EMPRESA' | 'EMPLEADO';
 
-export interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  companyId?: string;
-  permissions?: Permission[];
-}
-
-export interface Permission {
-  id: string;
-  name: string;
-  module: string;
-  description: string;
-}
-
 export interface User {
   id: string;
   name: string;
   email: string;
-  password?: string;
-  role: UserRole | Role | any;
+  password: string;
+  role: UserRole;
   avatar?: string;
   companyId?: string;
-  areaId?: string;
-  area?: Area;
-  company?: Company;
-  createdAt?: string;
-  _count?: {
-    assignedTickets?: number;
-  };
+  createdAt: string;
+  updatedAt: string;
 }
 
+// Tipos de empresa
 export interface Company {
   id: string;
   name: string;
-  inviteCode: string;
-  logo?: string;
   description?: string;
-  information?: string;
-  ownerId?: string;
+  inviteCode: string;
+  ownerId: string;
   createdAt: string;
+  updatedAt: string;
 }
+
+// Tipos de tickets
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Area {
   id: string;
   name: string;
   description?: string;
   companyId: string;
+  createdAt: string;
+  updatedAt: string;
 }
-
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'CANCELLED';
-export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Ticket {
   id: string;
@@ -60,52 +43,90 @@ export interface Ticket {
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
-  createdById: string;
+  category: string;
+  areaId?: string;
+  area?: {
+    id: string;
+    name: string;
+  };
   createdBy: {
     id: string;
     name: string;
-    avatar?: string;
   };
   assignedToId?: string;
-  assignedTo?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  areaId?: string;
-  area?: Area;
   companyId: string;
-  activities?: TicketActivity[];
+  attachments: string[];
   createdAt: string;
   updatedAt: string;
+  activities?: TicketActivity[];
 }
 
 export interface TicketActivity {
   id: string;
   ticketId: string;
   userId: string;
-  action: string;
-  details: string;
-  createdAt: string;
-  user?: {
-    name: string;
-  };
-}
-
-export interface Comment {
-  id: string;
-  content: string;
-  ticketId: string;
-  userId: string;
-  user?: {
+  user: {
     id: string;
     name: string;
     avatar?: string;
-    role: any;
   };
+  action: string;
+  details: string;
   createdAt: string;
 }
 
+// Tipos de comentarios
+export interface Comment {
+  id: string;
+  ticketId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+    role?: {
+      name: string;
+    } | string;
+  };
+  content: string;
+  createdAt: string;
+}
+
+// Tipos de notificación
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  read: boolean;
+  type: 'TICKET_CREATED' | 'TICKET_UPDATED' | 'TICKET_ASSIGNED' | 'COMMENT_ADDED';
+  relatedId?: string;
+  createdAt: string;
+}
+
+// Estado de autenticación
+export interface AuthState {
+  user: User | null;
+  company: Company | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+// Props comunes
+export interface DashboardStats {
+  totalTickets: number;
+  openTickets: number;
+  inProgressTickets: number;
+  resolvedTickets: number;
+}
+
+export interface TicketWithDetails extends Ticket {
+  createdByName: string;
+  assignedToName?: string;
+  commentsCount: number;
+}
+
+// Tipos de reuniones
 export type MeetingStatus = 'PROPOSED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 
 export interface Meeting {
@@ -119,7 +140,6 @@ export interface Meeting {
   status: MeetingStatus;
   ticketId: string;
   ticket?: {
-    id: string;
     title: string;
   };
   technicianId: string;
@@ -142,14 +162,6 @@ export interface Notification {
   title: string;
   message: string;
   type: string;
-  link?: string;
   read: boolean;
   createdAt: string;
-}
-
-export interface AuthState {
-  user: User | null;
-  company: Company | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
 }

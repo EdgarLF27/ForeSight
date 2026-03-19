@@ -13,18 +13,20 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { getFileUrl } from '@/services/api';
 import type { Ticket as TicketType, Company, Area } from '@/types';
+import { toast } from 'sonner';
 
 interface DashboardEmployeeProps {
   company: Company | null;
@@ -34,6 +36,13 @@ interface DashboardEmployeeProps {
   onViewTicket: (ticket: TicketType) => void;
   onJoinCompany: (code: string) => Promise<boolean>;
 }
+
+const statusConfig: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "success" | "warning" | "info" }> = {
+  OPEN: { label: 'Abierto', variant: 'destructive' },
+  IN_PROGRESS: { label: 'En progreso', variant: 'warning' },
+  RESOLVED: { label: 'Resuelto', variant: 'success' },
+  CLOSED: { label: 'Cerrado', variant: 'secondary' },
+};
 
 const priorityConfig = {
   LOW: { label: 'Baja', color: 'text-muted-foreground' },

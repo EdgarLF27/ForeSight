@@ -17,6 +17,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   CalendarDays, 
+  ExternalLink, 
   Loader2,
   Sparkles
 } from 'lucide-react';
