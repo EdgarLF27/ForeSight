@@ -69,7 +69,7 @@ export const Tutorial: React.FC<TutorialProps> = ({ user }) => {
       content: (
         <div className="text-left">
           <h3 className="text-lg font-black uppercase tracking-tight text-primary mb-2">¡HOLA, {user.name.split(' ')[0]}! 👋</h3>
-          <p className="text-sm font-medium text-muted-foreground">Bienvenido a la red. Antes de empezar a reportar incidencias, debemos vincularte a tu organización.</p>
+          <p className="text-sm font-medium text-muted-foreground">Bienvenido a ForeSight. Antes de empezar a reportar incidencias, debemos vincularte a tu organización.</p>
         </div>
       ),
       disableBeacon: true,
