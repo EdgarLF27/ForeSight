@@ -25,6 +25,7 @@ export const authApi = {
   register: (data: any) => api.post('/auth/register', data),
   joinCompany: (inviteCode: string) => api.post('/auth/join-company', { inviteCode }),
   getProfile: () => api.get('/auth/me'),
+  googleLogin: (token: string) => api.post('/auth/google-login', { token }),
 };
 
 export const usersApi = {
@@ -43,6 +44,7 @@ export const usersApi = {
   updateUserRole: (id: string, roleId: string) => api.patch(`/users/${id}/role`, { roleId }),
   updateUserArea: (id: string, areaId: string | null) => api.patch(`/users/${id}/area`, { areaId }),
   getTechnicians: (areaId?: string) => api.get('/users/technicians', { params: { areaId } }),
+  delete: (id: string) => api.delete(`/users/${id}`),
 };
 
 export const getFileUrl = (path: string | null | undefined) => {
@@ -55,6 +57,7 @@ export const getFileUrl = (path: string | null | undefined) => {
 export const companiesApi = {
   getById: (id: string) => api.get(`/companies/${id}`),
   getStats: (id: string) => api.get(`/companies/${id}/stats`),
+  create: (data: { name: string }) => api.post('/companies', data), // NUEVO MÉTODO
   update: (id: string, data: { name?: string; description?: string; information?: string }) => 
     api.patch(`/companies/${id}`, data),
   uploadLogo: (id: string, file: File) => {

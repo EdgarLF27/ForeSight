@@ -117,6 +117,21 @@ export class TicketsService {
   }
 
   async create(data: any) {
+    // EVITAR DUPLICADOS: Buscar si existe un ticket idéntico creado hace menos de 1 minuto
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const existingDuplicate = await this.prisma.ticket.findFirst({
+      where: {
+        title: data.title,
+        description: data.description,
+        createdById: data.createdById,
+        createdAt: { gte: oneMinuteAgo },
+      }
+    });
+
+    if (existingDuplicate) {
+      throw new BadRequestException('Ya has enviado un ticket idéntico recientemente. Por favor, espera un momento.');
+    }
+
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,

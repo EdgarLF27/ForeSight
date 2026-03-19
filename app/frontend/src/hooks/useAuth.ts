@@ -85,6 +85,26 @@ export function useAuth() {
     }
   };
 
+  const googleLogin = async (token: string) => {
+    try {
+      const { data } = await authApi.googleLogin(token);
+      const { access_token, user } = data;
+      
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      
+      setState({
+        user,
+        company: user.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
   const logout = () => {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
@@ -162,6 +182,7 @@ export function useAuth() {
   return {
     ...state,
     login,
+    googleLogin,
     logout,
     register,
     joinCompany,

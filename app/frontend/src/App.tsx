@@ -33,6 +33,7 @@ function App() {
     isLoading, 
     login, 
     register, 
+    googleLogin,
     logout, 
     joinCompany,
     updateUser 
@@ -53,7 +54,16 @@ function App() {
   } = useTickets();
 
   const { comments, addComment, loadComments } = useComments();
-  const { members: teamMembers, technicians, loadMembers, loadTechnicians, regenerateInviteCode, changeUserRole, changeUserArea } = useTeam(company?.id);
+  const { 
+    members: teamMembers, 
+    technicians, 
+    loadMembers, 
+    loadTechnicians, 
+    regenerateInviteCode, 
+    changeUserRole, 
+    changeUserArea,
+    deleteMember
+  } = useTeam(company?.id);
   const { areas, loadAreas } = useAreas();
 
   const isAdmin = user?.role === 'Administrador' || (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'EMPRESA';
@@ -165,13 +175,30 @@ function App() {
     }
   };
 
+  const handleCreateCompany = async (name: string): Promise<boolean> => {
+    try {
+      const { data } = await companiesApi.create({ name });
+      // Al crear empresa, el backend debería devolver el usuario actualizado o 
+      // podemos simplemente forzar una recarga para obtener el nuevo rol de Admin
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
   if (isLoading) return <LoadingState />;
 
   if (!isAuthenticated || !user) {
     if (showAuth) {
       return (
         <>
-          <AuthPage onLogin={login} onRegister={register} onJoinCompany={joinCompany} onBack={() => setShowAuth(false)} />
+          <AuthPage 
+            onLogin={login} 
+            onRegister={register} 
+            onJoinCompany={joinCompany} 
+            onGoogleLogin={googleLogin}
+            onBack={() => setShowAuth(false)} 
+          />
           <Toaster position="top-right" />
         </>
       );
@@ -205,6 +232,7 @@ function App() {
             onCreateTicket={handleCreateTicket}
             onViewTicket={setSelectedTicket}
             onJoinCompany={joinCompany}
+            onCreateCompany={handleCreateCompany}
           />
         );
 
@@ -227,9 +255,10 @@ function App() {
             user={user}
             company={company}
             teamMembers={teamMembers}
-            onRegenerateCode={() => regenerateInviteCode(company.id)}
+            onRegenerateCode={regenerateInviteCode}
             onChangeRole={changeUserRole}
             onChangeArea={changeUserArea}
+            onDeleteMember={deleteMember}
           />
         ) : null;
 

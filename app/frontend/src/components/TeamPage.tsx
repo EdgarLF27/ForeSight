@@ -13,7 +13,8 @@ import {
   MapPin,
   ChevronRight,
   Loader2,
-  Inbox
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -34,6 +36,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -54,6 +66,7 @@ interface TeamPageProps {
   onRegenerateCode: () => Promise<string | null>;
   onChangeRole: (userId: string, roleId: string) => Promise<boolean>;
   onChangeArea: (userId: string, areaId: string | null) => Promise<boolean>;
+  onDeleteMember?: (userId: string) => Promise<boolean>; // Nueva prop opcional
 }
 
 export function TeamPage({ 
@@ -62,7 +75,8 @@ export function TeamPage({
   teamMembers, 
   onRegenerateCode, 
   onChangeRole,
-  onChangeArea 
+  onChangeArea,
+  onDeleteMember
 }: TeamPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
@@ -72,10 +86,12 @@ export function TeamPage({
   const { areas, loadAreas } = useAreas();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<User | null>(null);
   const [newRoleId, setNewRoleId] = useState<string>('');
   const [newAreaId, setNewAreaId] = useState<string>('none');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadAreas();
@@ -90,13 +106,14 @@ export function TeamPage({
     navigator.clipboard.writeText(inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    toast.success('Código copiado al portapapeles');
   };
 
   const handleRegenerateCode = async () => {
     const newCode = await onRegenerateCode();
     if (newCode) {
       setInviteCode(newCode);
-      toast.success('Código regenerado');
+      toast.success('Código de invitación actualizado');
     }
   };
 
@@ -106,6 +123,11 @@ export function TeamPage({
     setNewRoleId(currentRoleId || '');
     setNewAreaId((member as any).areaId || 'none');
     setIsEditDialogOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (member: User) => {
+    setSelectedMember(member);
+    setIsDeleteDialogOpen(true);
   };
 
   const handleSaveChanges = async () => {
@@ -128,8 +150,19 @@ export function TeamPage({
 
     setIsSaving(false);
     if (success) {
-      toast.success('Cambios guardados');
+      toast.success('Cambios guardados correctamente');
       setIsEditDialogOpen(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedMember || !onDeleteMember) return;
+    setIsDeleting(true);
+    const success = await onDeleteMember(selectedMember.id);
+    setIsDeleting(false);
+    if (success) {
+      toast.success('Miembro eliminado del equipo');
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -181,10 +214,10 @@ export function TeamPage({
                 </code>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" onClick={handleCopyCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
+                <Button variant="outline" size="icon" title="Copiar código" onClick={handleCopyCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
                   {copied ? <CheckCircle className="h-5 w-5 text-emerald-500" strokeWidth={2} /> : <Copy className="h-5 w-5" strokeWidth={2} />}
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleRegenerateCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
+                <Button variant="outline" size="icon" title="Regenerar código" onClick={handleRegenerateCode} className="h-12 w-12 rounded-xl border-border bg-card hover:bg-primary/10 hover:text-primary transition-all">
                   <RefreshCw className="h-5 w-5" strokeWidth={2} />
                 </Button>
               </div>
@@ -212,7 +245,7 @@ export function TeamPage({
         <CardContent className="p-0">
           <div className="divide-y divide-border/50">
             {filteredMembers.length === 0 ? (
-              <div className="text-center py-20"><Users className="h-8 w-8 text-muted-foreground/30 mx-auto mb-4" /><p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No hay miembros</p></div>
+              <div className="text-center py-20"><Users className="h-8 w-8 text-muted-foreground/30 mx-auto mb-4" /><p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No hay miembros encontrados</p></div>
             ) : (
               filteredMembers.map((member) => (
                 <div key={member.id} className="flex items-center gap-5 p-6 hover:bg-muted/30 transition-all group relative">
@@ -239,8 +272,17 @@ export function TeamPage({
                     {(user.role === 'EMPRESA' || isAdminMember(user)) && member.id !== company.ownerId && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl opacity-0 group-hover:opacity-100"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 bg-card border-border shadow-xl">
-                          <DropdownMenuItem onClick={() => handleOpenEditDialog(member)} className="rounded-lg py-2 cursor-pointer font-bold text-xs uppercase"><RefreshCw className="h-4 w-4 mr-2.5" /> Editar miembro</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-52 rounded-xl p-1 bg-card border-border shadow-xl">
+                          <DropdownMenuItem onClick={() => handleOpenEditDialog(member)} className="rounded-lg py-2 cursor-pointer font-bold text-xs uppercase flex items-center">
+                            <RefreshCw className="h-4 w-4 mr-2.5 text-primary" /> Editar miembro
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-border/50" />
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenDeleteDialog(member)} 
+                            className="rounded-lg py-2 cursor-pointer font-bold text-xs uppercase text-destructive focus:text-destructive focus:bg-destructive/10 flex items-center"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2.5" /> Eliminar del equipo
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -253,12 +295,13 @@ export function TeamPage({
         </CardContent>
       </Card>
 
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[440px] rounded-3xl p-0 overflow-hidden bg-card border-border shadow-2xl">
           <div className="bg-primary p-8 text-primary-foreground relative">
             <div className="absolute -right-4 -top-4 opacity-10 rotate-12"><Users size={100} /></div>
             <DialogTitle className="text-2xl font-bold uppercase">Editar Miembro</DialogTitle>
-            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">Ajusta el perfil de este colaborador.</DialogDescription>
+            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">Ajusta los permisos y el área de este colaborador.</DialogDescription>
           </div>
           <div className="p-8 space-y-8">
             <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-2xl border border-border">
@@ -273,7 +316,7 @@ export function TeamPage({
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Rol</label>
+                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Rol en la empresa</label>
                 <Select value={newRoleId} onValueChange={setNewRoleId}>
                   <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 font-bold text-xs uppercase"><SelectValue placeholder="Selecciona un rol" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-border bg-card shadow-xl">
@@ -282,11 +325,11 @@ export function TeamPage({
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Área</label>
+                <label className="text-xs font-bold text-foreground/80 uppercase tracking-widest ml-1">Área asignada</label>
                 <Select value={newAreaId} onValueChange={setNewAreaId}>
                   <SelectTrigger className="bg-muted/30 border-border rounded-xl h-11 font-bold text-xs uppercase"><SelectValue placeholder="Selecciona un área" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-border bg-card shadow-xl">
-                    <SelectItem value="none" className="font-bold text-[10px] uppercase">Sin área</SelectItem>
+                    <SelectItem value="none" className="font-bold text-[10px] uppercase">Sin área específica</SelectItem>
                     {areas.map((area) => (<SelectItem key={area.id} value={area.id} className="font-bold text-[10px] uppercase">{area.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -301,6 +344,37 @@ export function TeamPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2.5 text-destructive uppercase font-bold">
+              <AlertTriangle className="h-5 w-5" />
+              ¿Eliminar miembro del equipo?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground font-medium pt-2">
+              Esta acción eliminará a <span className="font-bold text-foreground">{selectedMember?.name}</span> de la empresa. 
+              El usuario ya no tendrá acceso a los tickets ni a la plataforma de <span className="text-primary font-bold">{company.name}</span>.
+              <br /><br />
+              <span className="text-xs font-bold uppercase text-destructive/80">Esta acción no se puede deshacer.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3 pt-4">
+            <AlertDialogCancel className="rounded-xl h-11 px-6 font-bold text-muted-foreground uppercase text-xs border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteConfirm();
+              }} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-11 px-8 rounded-xl font-bold uppercase text-xs shadow-lg shadow-destructive/20"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sí, eliminar miembro'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

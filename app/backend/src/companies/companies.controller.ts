@@ -24,6 +24,11 @@ import { existsSync, mkdirSync } from 'fs';
 export class CompaniesController {
   constructor(private companiesService: CompaniesService) {}
 
+  @Post()
+  async create(@Body() data: { name: string }, @Request() req) {
+    return this.companiesService.create(req.user.userId, data);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
     if (req.user.user.companyId !== id) throw new ForbiddenException('Acceso denegado');

@@ -31,4 +31,9 @@ export class AuthController {
   async getProfile(@Request() req) {
     return req.user;
   }
+
+  @Post('google-login')
+  async googleLogin(@Body('token') token: string) {
+    return this.authService.googleLogin(token);
+  }
 }

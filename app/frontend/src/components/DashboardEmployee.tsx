@@ -35,6 +35,7 @@ interface DashboardEmployeeProps {
   onCreateTicket: (ticket: any) => Promise<boolean>;
   onViewTicket: (ticket: TicketType) => void;
   onJoinCompany: (code: string) => Promise<boolean>;
+  onCreateCompany?: (name: string) => Promise<boolean>; // NUEVA PROP
 }
 
 const statusConfig: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "success" | "warning" | "info" }> = {
@@ -57,12 +58,15 @@ export function DashboardEmployee({
   areas,
   onCreateTicket, 
   onViewTicket,
-  onJoinCompany 
+  onJoinCompany,
+  onCreateCompany // NUEVA PROP
 }: DashboardEmployeeProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [joinCode, setJoinCode] = useState('');
-  const [joinError, setJoinError] = useState('');
-  const [joinSuccess, setJoinSuccess] = useState(false);
+  const [companyName, setCompanyName] = useState(''); // PARA CREAR EMPRESA
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [onboardingView, setOnboardingView] = useState<'selection' | 'join' | 'create'>('selection');
+  const [actionError, setActionError] = useState('');
   
   const [newTicket, setNewTicket] = useState({
     title: '',
@@ -75,33 +79,92 @@ export function DashboardEmployee({
   if (!company) {
     return (
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md w-full">
-          <Card id="join-company-card" className="border-none shadow-2xl rounded-[2rem] overflow-hidden bg-card">
-            <CardContent className="p-8 md:p-12 text-center">
-              <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner"><Building2 className="h-12 w-12 text-primary" strokeWidth={1.5} /></div>
-              <h2 className="text-2xl md:text-3xl font-black text-foreground mb-4 uppercase tracking-tighter">Acceso Corporativo</h2>
-              <p className="text-muted-foreground font-medium mb-10 leading-relaxed italic text-sm">Introduce el código de invitación para vincularte a tu organización.</p>
-              {joinError && <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-2xl text-xs font-bold border border-destructive/20 uppercase tracking-widest">{joinError}</div>}
-              {joinSuccess ? (
-                <div className="p-8 bg-emerald-500/10 rounded-3xl border border-emerald-500/20">
-                  <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                  <p className="text-foreground text-xl font-black mb-1 uppercase tracking-tight">¡Éxito!</p>
-                  <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.2em]">Recargando sistema...</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl w-full">
+          {onboardingView === 'selection' && (
+            <div className="space-y-12">
+              <div className="text-center space-y-4">
+                <h1 className="text-5xl font-black text-foreground uppercase tracking-tighter">Bienvenido a ForeSight</h1>
+                <p className="text-muted-foreground text-lg font-medium italic">Para comenzar, necesitamos vincular tu cuenta a una organización.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* OPCIÓN UNIRSE */}
+                <Card onClick={() => setOnboardingView('join')} className="border-2 border-transparent hover:border-primary/50 cursor-pointer transition-all duration-500 bg-card/50 backdrop-blur-xl group overflow-hidden">
+                  <CardContent className="p-10 text-center space-y-6">
+                    <div className="w-20 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <Inbox className="h-10 w-10 text-primary" strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase tracking-tight">Unirme a un Equipo</h3>
+                      <p className="text-muted-foreground text-sm font-medium italic">Tengo un código de invitación de mi empresa.</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full px-8 font-black text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary hover:text-white transition-all">Seleccionar</Button>
+                  </CardContent>
+                </Card>
+
+                {/* OPCIÓN CREAR */}
+                <Card onClick={() => setOnboardingView('create')} className="border-2 border-transparent hover:border-emerald-500/50 cursor-pointer transition-all duration-500 bg-card/50 backdrop-blur-xl group overflow-hidden">
+                  <CardContent className="p-10 text-center space-y-6">
+                    <div className="w-20 h-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <Building2 className="h-10 w-10 text-emerald-500" strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase tracking-tight">Crear mi Empresa</h3>
+                      <p className="text-muted-foreground text-sm font-medium italic">Quiero registrar mi propia organización y ser administrador.</p>
+                    </div>
+                    <Button variant="outline" className="rounded-full px-8 font-black text-[10px] uppercase tracking-widest border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all">Seleccionar</Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {onboardingView === 'join' && (
+            <Card className="max-w-md mx-auto border-none shadow-2xl rounded-[2.5rem] bg-card overflow-hidden">
+              <div className="bg-primary p-10 text-center text-primary-foreground relative">
+                <Button variant="ghost" onClick={() => setOnboardingView('selection')} className="absolute left-4 top-4 text-white hover:bg-white/10 rounded-full h-10 w-10 p-0"><ChevronRight className="rotate-180 h-5 w-5" /></Button>
+                <h2 className="text-3xl font-black uppercase tracking-tight">Vincular Código</h2>
+                <p className="text-white/70 text-xs font-bold uppercase tracking-widest mt-2">Introduce las 6 cifras</p>
+              </div>
+              <CardContent className="p-10 space-y-8">
+                {actionError && <div className="p-4 bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-widest text-center border border-destructive/20 rounded-2xl">{actionError}</div>}
+                <Input placeholder="------" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} className="text-center text-4xl tracking-[0.5em] font-black h-20 rounded-3xl border-border bg-muted/30 focus:ring-primary/20 uppercase" maxLength={6} />
+                <Button className="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20" disabled={isLoadingAction || joinCode.length < 6} onClick={async () => {
+                  setIsLoadingAction(true);
+                  setActionError('');
+                  const success = await onJoinCompany(joinCode);
+                  if (success) { toast.success("Vinculación exitosa"); setTimeout(() => window.location.reload(), 1000); }
+                  else { setActionError("Código inválido o expirado"); setIsLoadingAction(false); }
+                }}>{isLoadingAction ? "Validando..." : "Vincular Cuenta"}</Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {onboardingView === 'create' && (
+            <Card className="max-w-md mx-auto border-none shadow-2xl rounded-[2.5rem] bg-card overflow-hidden">
+              <div className="bg-emerald-600 p-10 text-center text-white relative">
+                <Button variant="ghost" onClick={() => setOnboardingView('selection')} className="absolute left-4 top-4 text-white hover:bg-white/10 rounded-full h-10 w-10 p-0"><ChevronRight className="rotate-180 h-5 w-5" /></Button>
+                <h2 className="text-3xl font-black uppercase tracking-tight">Nueva Empresa</h2>
+                <p className="text-white/70 text-xs font-bold uppercase tracking-widest mt-2">Registra tu identidad corporativa</p>
+              </div>
+              <CardContent className="p-10 space-y-8">
+                {actionError && <div className="p-4 bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-widest text-center border border-destructive/20 rounded-2xl">{actionError}</div>}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Nombre Comercial</label>
+                  <Input placeholder="Ej. Tech Solutions S.A." value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="h-14 rounded-2xl bg-muted/30 border-border font-bold text-lg" />
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <Input id="invite-code-input" placeholder="CÓDIGO" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} className="text-center text-3xl tracking-[0.5em] font-black h-16 rounded-2xl border-border bg-muted/30 focus:ring-primary/20 uppercase" maxLength={6} />
-                  <Button id="join-btn" className="w-full h-14 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl text-xs font-black shadow-xl shadow-primary/20 uppercase tracking-[0.2em]" onClick={async () => {
-                    setJoinError('');
-                    if (!joinCode) return setJoinError('Código requerido');
-                    const success = await onJoinCompany(joinCode);
-                    if (success) { setJoinSuccess(true); setTimeout(() => window.location.reload(), 1500); }
-                    else setJoinError('Código no válido');
-                  }}>Vincular cuenta</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                <Button className="w-full h-16 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20" disabled={isLoadingAction || !companyName} onClick={async () => {
+                  setIsLoadingAction(true);
+                  setActionError('');
+                  if (onCreateCompany) {
+                    const success = await onCreateCompany(companyName);
+                    if (success) { toast.success("Empresa creada correctamente"); setTimeout(() => window.location.reload(), 1000); }
+                    else { setActionError("Error al crear la empresa"); setIsLoadingAction(false); }
+                  }
+                }}>{isLoadingAction ? "Creando..." : "Registrar Empresa"}</Button>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
     );
