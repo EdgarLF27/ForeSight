@@ -146,10 +146,12 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
     setGeneralError('');
     setSuccessMessage('');
     try {
-      const success = await onLogin(data.email, data.password);
-      if (!success) setGeneralError('Credenciales inválidas');
+      const result = await onLogin(data.email, data.password) as any;
+      if (result.success === false) {
+        setGeneralError(result.message || 'Credenciales inválidas');
+      }
     } catch (err) {
-      setGeneralError('Error de conexión con el servidor');
+      setGeneralError('Error inesperado en el sistema');
     }
   };
 

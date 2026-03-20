@@ -38,29 +38,21 @@ function App() {
     updateUser 
   } = useAuth();
 
-  // CERRAR SESIÓN AL DAR ATRÁS EN EL NAVEGADOR
-  useEffect(() => {
-    const handlePopState = () => {
-      if (isAuthenticated) {
-        logout();
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    
-    if (isAuthenticated) {
-      window.history.pushState(null, '', window.location.pathname);
-    }
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [isAuthenticated, logout]);
-
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [company, setCompany] = useState<Company | null>(authCompany);
+
+  // LIMPIAR ESTADO AL CERRAR SESIÓN
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCompany(null);
+      setSelectedTicket(null);
+      setCurrentPage('dashboard');
+    } else {
+      setCompany(authCompany);
+    }
+  }, [isAuthenticated, authCompany]);
 
   const { 
     tickets, 
@@ -224,9 +216,13 @@ function App() {
   const renderPage = () => {
     const isAdminRole = user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador') || user.role === 'EMPRESA';
     
+    // Filtramos tickets para que el técnico vea los que puede atender y el empleado los suyos
+    const isTechnicianRole = (typeof user.role === 'object' && (user.role as any).name === 'Técnico');
+    const displayTickets = isTechnicianRole ? tickets : myTickets;
+
     switch (currentPage) {
       case 'dashboard':
-        if (isAdminRole || isTechnician) {
+        if (isAdminRole) {
           return (
             <DashboardAdmin
               company={company}
@@ -242,7 +238,7 @@ function App() {
         return (
           <DashboardEmployee
             company={company}
-            tickets={myTickets}
+            tickets={displayTickets}
             areas={areas}
             onCreateTicket={handleCreateTicket}
             onViewTicket={setSelectedTicket}

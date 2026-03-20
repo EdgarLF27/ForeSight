@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Ticket, 
   Plus, 
@@ -14,8 +14,23 @@ import {
   Info,
   Save,
   Loader2,
-  Inbox
+  Inbox,
+  PieChart as PieChartIcon,
+  TrendingUp
 } from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Tooltip, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid,
+  Legend
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +122,20 @@ export function DashboardAdmin({
     inProgress: visibleTickets.filter(t => t.status === 'IN_PROGRESS').length,
     resolved: visibleTickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length,
   };
+
+  // DATOS PARA LOS GRÁFICOS
+  const statusData = useMemo(() => [
+    { name: 'Abiertos', value: stats.open, color: '#ef4444' },
+    { name: 'En Progreso', value: stats.inProgress, color: '#f59e0b' },
+    { name: 'Resueltos', value: stats.resolved, color: '#10b981' },
+  ].filter(d => d.value > 0), [stats]);
+
+  const areaData = useMemo(() => {
+    return areas.map(area => ({
+      name: area.name,
+      tickets: visibleTickets.filter(t => t.areaId === area.id).length
+    })).sort((a, b) => b.tickets - a.tickets);
+  }, [areas, visibleTickets]);
 
   const handleCreateTicket = async () => {
     if (!newTicket.title || !newTicket.description) return;
@@ -210,6 +239,100 @@ export function DashboardAdmin({
         <StatCard title="Abiertos" value={stats.open} icon={<AlertCircle className="h-5 w-5 text-destructive" />} />
         <StatCard title="En Proceso" value={stats.inProgress} icon={<Clock className="h-5 w-5 text-amber-500" />} />
         <StatCard title="Resueltos" value={stats.resolved} icon={<CheckCircle className="h-5 w-5 text-emerald-500" />} />
+      </div>
+
+      {/* SECCIÓN DE ANALYTICS PRO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* GRÁFICO CIRCULAR - ESTADOS */}
+        <Card className="border-none shadow-xl bg-card rounded-[2.5rem] overflow-hidden group">
+          <CardHeader className="px-8 pt-8 pb-0">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <PieChartIcon className="h-5 w-5 text-primary" /> Distribución de Estados
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest opacity-50">Resumen porcentual de incidencias</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[300px] p-4">
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={8}
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1500}
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: 'none', color: '#fff', fontWeight: 'bold' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{value}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center opacity-20">
+                <Inbox className="h-12 w-12 mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Sin datos suficientes</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* GRÁFICO DE BARRAS - ÁREAS */}
+        <Card className="border-none shadow-xl bg-card rounded-[2.5rem] overflow-hidden group">
+          <CardHeader className="px-8 pt-8 pb-0">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-emerald-500" /> Carga por Departamento
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest opacity-50">Volumen de tickets por área técnica</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[300px] p-6">
+            {areaData.some(a => a.tickets > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={areaData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 'bold', fill: 'currentColor', opacity: 0.5 }} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 'bold', fill: 'currentColor', opacity: 0.5 }}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 10 }}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: 'none', color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="tickets" fill="#0070f3" radius={[10, 10, 0, 0]} barSize={40} animationDuration={2000} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center opacity-20">
+                <BarChart3 className="h-12 w-12 mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Sin actividad en departamentos</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

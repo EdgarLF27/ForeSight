@@ -130,14 +130,9 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    const isCompanyRegistration = data.role === 'EMPRESA' && data.companyName && data.companyName.trim() !== '';
-    let roleName = 'Empleado'; 
-    if (isCompanyRegistration) {
-      roleName = 'Administrador';
-    }
-
+    // Todos los registros manuales inician como 'Empleado' base sin empresa asignada
     const role = await this.prisma.role.findFirst({
-      where: { name: roleName, isSystem: true }
+      where: { name: 'Empleado', isSystem: true }
     });
 
     const user = await this.prisma.user.create({
@@ -155,46 +150,6 @@ export class AuthService {
         }
       },
     });
-
-    if (isCompanyRegistration) {
-      const inviteCode = this.generateInviteCode();
-
-      const company = await this.prisma.company.create({
-        data: {
-          name: data.companyName,
-          inviteCode,
-          ownerId: user.id,
-        },
-      });
-
-      // CREAR ÁREA GENERAL AUTOMÁTICAMENTE
-      const defaultArea = await this.prisma.area.create({
-        data: {
-          name: 'General',
-          description: 'Área predeterminada de la empresa',
-          companyId: company.id,
-        }
-      });
-
-      const updatedUser = await this.prisma.user.update({
-        where: { id: user.id },
-        data: { 
-          companyId: company.id,
-          areaId: defaultArea.id // ASIGNAR ÁREA AL DUEÑO
-        },
-        include: { 
-          company: true,
-          area: true, 
-          role: {
-            include: { permissions: true }
-          }
-        }
-      });
-
-      const { password: _, ...result } = updatedUser;
-      return this.login(result);
-    }
-
 
     const { password: _, ...result } = user;
     return this.login(result);

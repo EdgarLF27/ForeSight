@@ -79,9 +79,10 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
-      return true;
-    } catch (error) {
-      return false;
+      return { success: true };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error de conexión con el servidor';
+      return { success: false, message: Array.isArray(message) ? message[0] : message };
     }
   };
 

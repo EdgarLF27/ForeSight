@@ -9,16 +9,28 @@ interface TutorialProps {
 
 export const Tutorial: React.FC<TutorialProps> = ({ user }) => {
   const [run, setRun] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const tutorialCompleted = localStorage.getItem(`foresight_tutorial_${user.id}`);
     if (!tutorialCompleted) {
+      // Esperar a que la página se estabilice antes de verificar elementos
       const timer = setTimeout(() => {
-        setRun(true);
-      }, 1500);
+        // Verificar si al menos un elemento crítico está presente antes de arrancar
+        const criticalElement = document.getElementById('sidebar-nav') || document.getElementById('stats-overview');
+        if (criticalElement) {
+          setRun(true);
+        } else {
+          // Si no está, reintentar una vez más
+          setTimeout(() => setRun(true), 2000);
+        }
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [user.id]);
+
+  if (!mounted) return null;
 
   const isAdmin = user.role === 'EMPRESA' || user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador');
   const hasCompany = !!user.companyId;
