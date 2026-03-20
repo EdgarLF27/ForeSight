@@ -9,6 +9,7 @@ import {
   Request, 
   Query, 
   Post, 
+  Delete,
   UseInterceptors, 
   UploadedFile,
   BadRequestException
@@ -99,5 +100,11 @@ export class UsersController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Permissions('users:edit')
+  @Delete(':id')
+  async delete(@Param('id') id: string, @Request() req) {
+    return this.usersService.delete(id, req.user.companyId);
   }
 }

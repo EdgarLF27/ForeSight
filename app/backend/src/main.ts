@@ -4,9 +4,16 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import { join } from 'path';
 import * as express from 'express';
+import { loggerConfig } from './common/logger.config';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: loggerConfig,
+  });
+  
+  // USAR FILTRO DE EXCEPCIONES GLOBAL
+  app.useGlobalFilters(new AllExceptionsFilter());
   const configService = app.get(ConfigService);
 
   // Enable CORS

@@ -78,4 +78,43 @@ export class CompaniesService {
     for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
     return code;
   }
+
+  async create(userId: string, data: { name: string }) {
+    const inviteCode = this.generateInviteCode();
+
+    // 1. Crear la empresa
+    const company = await this.prisma.company.create({
+      data: {
+        name: data.name,
+        inviteCode,
+        ownerId: userId,
+      },
+    });
+
+    // 2. Crear área por defecto
+    const defaultArea = await this.prisma.area.create({
+      data: {
+        name: 'General',
+        description: 'Área predeterminada',
+        companyId: company.id,
+      }
+    });
+
+    // 3. Buscar el rol de Administrador
+    const adminRole = await this.prisma.role.findFirst({
+      where: { name: 'Administrador', isSystem: true }
+    });
+
+    // 4. Actualizar al usuario como dueño y admin
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { 
+        companyId: company.id,
+        areaId: defaultArea.id,
+        roleId: adminRole?.id || undefined
+      },
+    });
+
+    return company;
+  }
 }

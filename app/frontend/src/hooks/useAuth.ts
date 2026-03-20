@@ -79,6 +79,27 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+      return { success: true };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error de conexión con el servidor';
+      return { success: false, message: Array.isArray(message) ? message[0] : message };
+    }
+  };
+
+  const googleLogin = async (token: string) => {
+    try {
+      const { data } = await authApi.googleLogin(token);
+      const { access_token, user } = data;
+      
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      
+      setState({
+        user,
+        company: user.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
       return true;
     } catch (error) {
       return false;
@@ -162,6 +183,7 @@ export function useAuth() {
   return {
     ...state,
     login,
+    googleLogin,
     logout,
     register,
     joinCompany,
