@@ -9,7 +9,10 @@ const GOOGLE_CLIENT_ID = "433426856774-t1e521993r6fs4ug2f3oi76o0rtia64n.apps.goo
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider 
+      clientId={GOOGLE_CLIENT_ID}
+      useFedCM={true}
+    >
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <App />
       </ThemeProvider>

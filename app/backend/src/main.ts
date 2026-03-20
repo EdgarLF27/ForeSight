@@ -25,14 +25,12 @@ async function bootstrap() {
         .map(url => url.trim())
         .filter(url => url.length > 0);
 
-      // En desarrollo permitimos localhost, en producción solo lo configurado
       const defaultOrigins = ["http://localhost:5173", "http://localhost:5174", "https://foresight-ten.vercel.app"];
       const finalAllowed = [...new Set([...allowedOrigins, ...defaultOrigins])];
 
       if (!origin || finalAllowed.includes(origin)) {
         callback(null, true);
       } else {
-        console.error(`CORS bloqueado para el origen: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -41,6 +39,12 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
+  // Middleware para COOP y COEP (Solución definitiva al error de Google)
+  app.use((req, res, next) => {
+    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
