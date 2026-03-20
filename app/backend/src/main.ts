@@ -16,33 +16,18 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
   const configService = app.get(ConfigService);
 
-  // Enable CORS
+  // Configuración de CORS ultra-compatible
   app.enableCors({
-    origin: (origin, callback) => {
-      const configOrigins = configService.get<string>("FRONTEND_URL", "");
-      const allowedOrigins = configOrigins
-        .split(",")
-        .map(url => url.trim())
-        .filter(url => url.length > 0);
-
-      const defaultOrigins = ["http://localhost:5173", "http://localhost:5174", "https://foresight-ten.vercel.app"];
-      const finalAllowed = [...new Set([...allowedOrigins, ...defaultOrigins])];
-
-      if (!origin || finalAllowed.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true, // Permite cualquier origen (temporal para depuración)
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
   });
 
-  // Middleware para COOP y COEP (Solución definitiva al error de Google)
+  // Forzar cabeceras de seguridad para Google Login en el middleware
   app.use((req, res, next) => {
-    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
   });
   app.useGlobalPipes(
