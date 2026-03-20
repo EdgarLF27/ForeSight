@@ -19,17 +19,26 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = configService
-        .get("FRONTEND_URL", "https://foresight-ten.vercel.apP")
-        .split(",");
+      const configOrigins = configService.get<string>("FRONTEND_URL", "");
+      const allowedOrigins = configOrigins
+        .split(",")
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
 
-      if (!origin || allowedOrigins.includes(origin)) {
+      // En desarrollo permitimos localhost, en producción solo lo configurado
+      const defaultOrigins = ["http://localhost:5173", "http://localhost:5174", "https://foresight-ten.vercel.app"];
+      const finalAllowed = [...new Set([...allowedOrigins, ...defaultOrigins])];
+
+      if (!origin || finalAllowed.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        console.error(`CORS bloqueado para el origen: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
       }
     },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   app.useGlobalPipes(
