@@ -116,6 +116,7 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleGoogleClick = useGoogleLogin({
+    use_fedcm: true,
     onSuccess: async (tokenResponse) => {
       if (onGoogleLogin) {
         const success = await onGoogleLogin(tokenResponse.access_token);
