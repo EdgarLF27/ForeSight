@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { MeetingStatus } from '@prisma/client';
@@ -44,6 +44,11 @@ export class MeetingsService {
   async createProposal(technicianId: string, dto: CreateMeetingDto) {
     const { ticketId, scheduledAt, duration = 60 } = dto;
     const startTime = new Date(scheduledAt);
+    
+    if (startTime < new Date()) {
+      throw new BadRequestException('No puedes programar una reunión en una fecha pasada.');
+    }
+
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     const ticket = await this.prisma.ticket.findUnique({
@@ -98,6 +103,10 @@ export class MeetingsService {
     }
 
     const startTime = new Date(scheduledAt);
+    if (startTime < new Date()) {
+      throw new BadRequestException('La nueva fecha no puede ser en el pasado.');
+    }
+
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     if (userId === meeting.technicianId) {

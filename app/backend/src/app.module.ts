@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +12,7 @@ import { AreasModule } from './areas/areas.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -27,10 +28,16 @@ import { AiModule } from './ai/ai.module';
     CommentsModule,
     RolesModule,
     PermissionsModule,
-    AreasModule, // Registro de áreas para gestión de tickets
+    AreasModule, 
     MeetingsModule,
     NotificationsModule,
     AiModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*'); // Loguea absolutamente todas las rutas
+  }
+}

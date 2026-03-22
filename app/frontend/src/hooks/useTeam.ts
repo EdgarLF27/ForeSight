@@ -75,6 +75,20 @@ export function useTeam(companyId?: string) {
     }
   }, [loadMembers]);
 
+  const deleteMember = useCallback(async (userId: string) => {
+    try {
+      setIsLoading(true);
+      await usersApi.delete(userId);
+      await loadMembers();
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al eliminar miembro');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadMembers]);
+
   return {
     members,
     technicians,
@@ -85,5 +99,6 @@ export function useTeam(companyId?: string) {
     regenerateInviteCode,
     changeUserRole,
     changeUserArea,
+    deleteMember,
   };
 }
