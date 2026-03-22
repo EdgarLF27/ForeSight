@@ -16,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,87 +130,82 @@ export function AreasPage() {
   if (isLoading && areas.length === 0) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={2} />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-primary" strokeWidth={2} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
+    <div className="space-y-10 max-w-7xl mx-auto pb-12 px-1 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-              <Building2 className="h-6 w-6 text-primary" strokeWidth={2} />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Áreas</h1>
-          </div>
-          <p className="text-muted-foreground font-medium">Organiza tu empresa en departamentos y unidades.</p>
+          <h1 className="text-3xl font-black tracking-tighter text-slate-800 dark:text-foreground uppercase italic">Gestión de Áreas</h1>
+          <p className="text-slate-500 dark:text-muted-foreground font-bold text-[10px] uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="w-6 h-[1px] bg-slate-300 dark:bg-white/20"></span> Organiza tu empresa en departamentos y unidades.
+          </p>
         </div>
-        <Button onClick={handleOpenAdd} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold">
-          <Plus className="h-4 w-4 mr-2" strokeWidth={3} />
+        <Button onClick={handleOpenAdd} className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white rounded-2xl shadow-[0_4px_14px_rgba(59,130,246,0.4)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)] px-8 h-12 font-black uppercase text-xs tracking-widest transition-all active:scale-95">
+          <Plus className="h-5 w-5 mr-2" strokeWidth={3} />
           Nueva Área
         </Button>
       </div>
 
       {/* Búsqueda */}
       <div className="relative group max-w-2xl">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" strokeWidth={2} />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
         <Input
           placeholder="Buscar áreas por nombre o descripción..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-11 bg-card border-border rounded-xl focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium"
+          className="pl-12 h-14 rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none bg-white dark:bg-card focus:ring-2 focus:ring-blue-500/20 text-sm font-medium text-slate-800 dark:text-foreground transition-all"
         />
       </div>
 
       {/* Grid de Áreas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredAreas.map((area) => (
-          <Card key={area.id} className="group border-none shadow-md hover:shadow-lg transition-all duration-300 bg-card rounded-3xl overflow-hidden relative">
-            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card key={area.id} className="group border-none shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] dark:shadow-none bg-[#f8fafc] dark:bg-card rounded-[2rem] overflow-hidden relative transition-all duration-500 hover:scale-[1.02]">
+            <div className="absolute left-0 top-0 bottom-0 w-[5px] bg-blue-600 dark:bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)] opacity-0 group-hover:opacity-100 transition-all duration-500" />
             
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-5">
-                <div className="w-11 h-11 bg-muted rounded-xl flex items-center justify-center text-primary border border-border group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                  <Building2 className="h-5 w-5" strokeWidth={2} />
+            <CardContent className="p-8">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-14 h-14 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center text-blue-600 dark:text-primary border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none group-hover:scale-110 transition-all duration-500">
+                  <Building2 className="h-6 w-6" strokeWidth={3} />
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
-                      <MoreVertical className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-white/5 transition-all">
+                      <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-xl p-1 border-border bg-card shadow-xl">
-                    <DropdownMenuItem onClick={() => handleOpenEdit(area)} className="rounded-lg cursor-pointer py-2 px-3 focus:bg-primary/10 focus:text-primary">
-                      <Edit2 className="h-3.5 w-3.5 mr-2.5" /> 
-                      <span className="font-bold text-xs uppercase tracking-tight">Editar</span>
+                  <DropdownMenuContent align="end" className="w-48 rounded-2xl border-none shadow-2xl bg-white dark:bg-[#050505]/95 backdrop-blur-xl p-1.5">
+                    <DropdownMenuItem onClick={() => handleOpenEdit(area)} className="rounded-xl py-3 cursor-pointer font-black text-[10px] uppercase text-slate-600 dark:text-slate-300 flex items-center">
+                      <Edit2 className="h-4 w-4 mr-3 text-blue-600 dark:text-primary" /> Editar Área
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleOpenDelete(area)} className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer py-2 px-3">
-                      <Trash2 className="h-3.5 w-3.5 mr-2.5" /> 
-                      <span className="font-bold text-xs uppercase tracking-tight">Eliminar</span>
+                    <DropdownMenuItem onClick={() => handleOpenDelete(area)} className="rounded-xl py-3 cursor-pointer font-black text-[10px] uppercase text-rose-500 focus:text-rose-500 focus:bg-rose-500/10 flex items-center">
+                      <Trash2 className="h-4 w-4 mr-3" /> Eliminar Área
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              <h3 className="text-lg font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors uppercase tracking-tight">{area.name}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px] mb-6 font-medium leading-relaxed">
-                {area.description || 'Sin descripción'}
+              <h3 className="text-xl font-black text-slate-800 dark:text-foreground mb-2 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{area.name}</h3>
+              <p className="text-xs text-slate-400 dark:text-muted-foreground line-clamp-2 min-h-[40px] mb-8 font-medium leading-relaxed italic">
+                "{area.description || 'Sin definición operativa'}"
               </p>
 
-              <div className="flex items-center gap-4 pt-4 border-t border-border">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                  <Users className="h-3.5 w-3.5 text-primary/40" strokeWidth={2} />
-                  <span>{(area as any)._count?.users || 0} Miembros</span>
+              <div className="flex items-center gap-6 pt-6 border-t border-slate-50 dark:border-white/5">
+                <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 dark:text-muted-foreground uppercase tracking-widest">
+                  <Users className="h-3.5 w-3.5 text-blue-400/40 dark:text-primary/40" strokeWidth={3} />
+                  <span>{(area as any)._count?.users || 0} Nodos</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                  <Ticket className="h-3.5 w-3.5 text-primary/40" strokeWidth={2} />
-                  <span>{(area as any)._count?.tickets || 0} Tickets</span>
+                <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 dark:text-muted-foreground uppercase tracking-widest">
+                  <Ticket className="h-3.5 w-3.5 text-blue-400/40 dark:text-primary/40" strokeWidth={3} />
+                  <span>{(area as any)._count?.tickets || 0} Flujos</span>
                 </div>
-                <div className="ml-auto opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
-                  <ChevronRight className="h-4 w-4 text-primary" strokeWidth={2} />
+                <div className="ml-auto text-slate-200 group-hover:text-blue-600 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
+                  <ChevronRight className="h-5 w-5" strokeWidth={3} />
                 </div>
               </div>
             </CardContent>
@@ -219,11 +213,11 @@ export function AreasPage() {
         ))}
 
         {filteredAreas.length === 0 && !isLoading && (
-          <div className="col-span-full py-20 text-center bg-card rounded-3xl border-2 border-dashed border-border">
-            <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border">
-              <Building2 className="h-8 w-8 text-muted-foreground/30" strokeWidth={1.5} />
+          <div className="col-span-full py-24 text-center bg-white/20 dark:bg-muted/5 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-border/50">
+            <div className="w-20 h-20 bg-white dark:bg-muted/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_10px_#d1d9e6,-4px_-4px_10px_#ffffff] dark:shadow-none">
+              <Inbox className="h-10 w-10 text-slate-300 dark:text-muted-foreground/30" strokeWidth={1.5} />
             </div>
-            <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No se encontraron áreas</p>
+            <p className="text-slate-400 dark:text-muted-foreground font-black uppercase tracking-[0.5em] text-xs">No hay sectores configurados</p>
           </div>
         )}
       </div>
@@ -235,42 +229,42 @@ export function AreasPage() {
           if (!v) { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }
         }}
       >
-        <DialogContent className="sm:max-w-[425px] rounded-3xl p-0 overflow-hidden border-border bg-card shadow-2xl">
-          <div className="bg-primary p-8 text-primary-foreground relative">
-            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
-              <Building2 size={100} strokeWidth={1} />
+        <DialogContent className="sm:max-w-[480px] rounded-[3rem] p-0 overflow-hidden bg-[#f8fafc] dark:bg-card border-none shadow-2xl">
+          <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] p-10 text-white relative">
+            <div className="absolute -right-6 -top-6 opacity-10 rotate-12">
+              <Building2 size={120} strokeWidth={1} />
             </div>
-            <DialogTitle className="text-2xl font-bold">{isAddDialogOpen ? 'Nueva Área' : 'Editar Área'}</DialogTitle>
-            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
-              Define el nombre y la descripción del departamento.
+            <DialogTitle className="text-3xl font-extrabold uppercase italic tracking-tighter">{isAddDialogOpen ? 'Nueva Área' : 'Editar Área'}</DialogTitle>
+            <DialogDescription className="text-white/80 mt-2 font-medium italic">
+              Define los parámetros del sector operativo.
             </DialogDescription>
           </div>
-          <form onSubmit={handleSave} className="p-8 space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Nombre del área</label>
+          <form onSubmit={handleSave} className="p-10 space-y-10">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 dark:text-foreground/40 uppercase tracking-widest ml-1 italic">Nombre del Sector</label>
               <Input
-                placeholder="Ej: Soporte Técnico, Redes, etc."
+                placeholder="Ej: Operaciones, Infraestructura..."
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20 font-bold"
+                className="h-14 rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none bg-white dark:bg-muted/30 font-black text-slate-800 dark:text-white px-6 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Descripción</label>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 dark:text-foreground/40 uppercase tracking-widest ml-1 italic">Descripción</label>
               <textarea
-                placeholder="¿De qué se encarga este departamento?"
+                placeholder="¿Cuál es el alcance de este sector?"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-muted/30 min-h-[120px] resize-none text-sm transition-all font-medium text-foreground"
+                className="w-full h-40 rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none bg-white dark:bg-muted/30 font-medium text-sm text-slate-600 dark:text-slate-300 p-6 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none italic"
               />
             </div>
-            <DialogFooter className="pt-4 flex gap-3">
-              <Button type="button" variant="ghost" onClick={() => { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">
+            <DialogFooter className="pt-4 flex gap-4">
+              <Button type="button" variant="ghost" onClick={() => { setIsAddDialogOpen(false); setIsEditDialogOpen(false); }} className="rounded-2xl h-14 px-8 font-black text-slate-400 uppercase text-xs tracking-widest hover:text-slate-800 transition-all">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isActionLoading} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20 min-w-[120px]">
-                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Área'}
+              <Button type="submit" disabled={isActionLoading} className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white rounded-2xl h-14 px-10 font-black uppercase text-xs shadow-lg shadow-blue-500/20 flex-1 transition-transform active:scale-95">
+                {isActionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Guardar Sector'}
               </Button>
             </DialogFooter>
           </form>
@@ -279,27 +273,26 @@ export function AreasPage() {
 
       {/* Alerta de Eliminación */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-2xl p-6">
+        <AlertDialogContent className="rounded-[3rem] border-none bg-[#f8fafc] dark:bg-card shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff] dark:shadow-2xl p-12">
           <AlertDialogHeader>
-            <div className="w-12 h-12 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive mb-4 border border-destructive/20">
-              <AlertCircle className="h-6 w-6" strokeWidth={2} />
+            <div className="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-rose-500 mb-8 border border-rose-500/20 shadow-lg shadow-rose-500/10">
+              <AlertCircle className="h-8 w-8" strokeWidth={3} />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-foreground uppercase tracking-tight">
-              ¿Eliminar esta área?
+            <AlertDialogTitle className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">
+              ¿Eliminar sector?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
-              Esta acción eliminará el área <strong>{selectedArea?.name}</strong> permanentemente. 
-              No podrás eliminarla si tiene empleados o tickets vinculados por integridad del sistema.
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400 font-medium text-base leading-relaxed italic mt-4">
+              Esta acción eliminará el sector <strong>{selectedArea?.name}</strong> permanentemente. Los flujos vinculados quedarán sin asignación jerárquica.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 flex gap-3">
-            <AlertDialogCancel className="rounded-xl h-11 px-6 font-bold border-border">Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="mt-10 flex gap-4">
+            <AlertDialogCancel className="rounded-2xl h-14 px-8 font-black border-none bg-white dark:bg-transparent shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] dark:shadow-none text-slate-400 uppercase text-[10px] tracking-widest hover:text-slate-800 transition-all">Regresar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete} 
-              className="bg-destructive text-destructive-foreground hover:opacity-90 rounded-xl h-11 px-6 font-bold shadow-lg shadow-destructive/20"
+              className="bg-rose-600 text-white hover:opacity-90 h-14 px-10 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-rose-500/20"
               disabled={isActionLoading}
             >
-              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar Permanentemente'}
+              {isActionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Confirmar Baja'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
