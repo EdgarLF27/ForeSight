@@ -11,6 +11,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { AreasModule } from './areas/areas.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AiModule } from './ai/ai.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
@@ -30,6 +31,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     AreasModule, 
     MeetingsModule,
     NotificationsModule,
+    AiModule,
   ],
 })
 export class AppModule implements NestModule {

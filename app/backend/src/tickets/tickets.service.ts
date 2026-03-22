@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private aiService: AiService,
   ) {}
 
   async findAll(companyId: string, user: any) {
@@ -152,6 +154,50 @@ export class TicketsService {
       data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado' },
     });
 
+    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO EN SEGUNDO PLANO
+    // No usamos 'await' aquí para que el usuario reciba su ticket de inmediato
+    const processAiAnalytics = async () => {
+      try {
+        // 1. Análisis de Sentimiento y Clasificación
+        const analysis = await this.aiService.analyzeTicket(data.description);
+        
+        // 2. Machine Learning: Predicción de Tiempo (Día 2)
+        // Buscamos tickets similares resueltos recientemente en la misma empresa
+        const history = await this.prisma.ticket.findMany({
+          where: { 
+            companyId: data.companyId, 
+            status: { in: ['RESOLVED', 'CLOSED'] },
+            resolvedAt: { not: null }
+          },
+          take: 10,
+          orderBy: { resolvedAt: 'desc' },
+          include: { area: { select: { name: true } } }
+        });
+
+        const prediction = await this.aiService.predictResolutionTime(ticket, history);
+
+        if (analysis || prediction) {
+          await this.prisma.ticket.update({
+            where: { id: ticket.id },
+            data: {
+              aiSentiment: analysis?.sentiment,
+              aiSummary: analysis?.summary,
+              aiReasoning: analysis?.ai_reasoning,
+              aiSuggestedArea: analysis?.suggestedArea,
+              aiSuggestedPriority: analysis?.suggestedPriority,
+              // Campos de ML
+              aiEstimatedTime: prediction?.estimatedMinutes,
+              aiConfidence: prediction?.confidence,
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error en proceso de inteligencia de ticket:', err);
+      }
+    };
+
+    processAiAnalytics();
+
     return ticket;
   }
 
@@ -179,9 +225,17 @@ export class TicketsService {
       this.validateStatusTransition(ticket.status, data.status);
     }
 
+    const updateData = { ...data };
+    if (data.status === 'RESOLVED' && ticket.status !== 'RESOLVED') {
+      updateData.resolvedAt = new Date();
+    } else if (data.status && data.status !== 'RESOLVED' && ticket.status === 'RESOLVED') {
+      // Si se reabre, limpiamos la fecha de resolución
+      updateData.resolvedAt = null;
+    }
+
     const updated = await this.prisma.ticket.update({
       where: { id },
-      data,
+      data: updateData,
       include: { 
         area: { select: { name: true } }, 
         assignedTo: { select: { id: true, name: true } },

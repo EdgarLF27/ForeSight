@@ -28,7 +28,7 @@
     "prisma:seed:reset": "ts-node prisma/seed.ts --full-reset"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",

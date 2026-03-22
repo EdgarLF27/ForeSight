@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Clock, 
@@ -9,15 +10,11 @@ import {
   ChevronDown,
   History,
   Circle,
-  Hash,
-  Activity,
-  XCircle,
-  CalendarPlus,
-  PlayCircle,
-  CheckCircle,
-  Video,
   Loader2,
-  AlertTriangle
+  Sparkles,
+  Zap,
+  Target,
+  Quote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +56,7 @@ import { getFileUrl } from '@/services/api';
 import type { Ticket, Comment, User, TicketStatus } from '@/types';
 import { toast } from 'sonner';
 import { VideoCallDialog } from './VideoCallDialog';
+import { cn } from '@/lib/utils';
 
 interface TicketDetailProps {
   ticket: Ticket;
@@ -88,13 +86,11 @@ const priorityConfig = {
   URGENT: { label: 'Urgente', color: 'bg-rose-500' },
 };
 
-function GlassContainer({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  return (
-    <div className={`bg-[#f8fafc] dark:bg-white/[0.02] backdrop-blur-xl border-none rounded-[2rem] overflow-hidden shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] dark:shadow-none transition-all duration-300 ${className}`}>
-      {children}
-    </div>
-  );
-}
+const sentimentConfig: Record<string, { label: string, icon: string, color: string, bg: string }> = {
+  calm: { label: 'Calmado', icon: '😊', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  frustrated: { label: 'Frustrado', icon: '😐', color: 'text-amber-600', bg: 'bg-amber-50' },
+  angry: { label: 'Enojado', icon: '😡', color: 'text-red-600', bg: 'bg-red-50' },
+};
 
 export function TicketDetail({
   ticket,
@@ -410,20 +406,123 @@ export function TicketDetail({
           </Tabs>
         </div>
 
-        {/* SIDEBAR DERECHO (25%) */}
-        <div className="space-y-8 sticky top-24">
-          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] ml-2 flex items-center gap-2 italic">
-            <Activity size={12} className="text-blue-600 dark:text-cyan-500" /> Atributos de Gestión
-          </h3>
-          
-          <GlassContainer className="p-8 space-y-8">
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest block ml-1">Estado Operativo</label>
-              <div className={`p-4 rounded-2xl ${currentStatus.bg} border-none shadow-sm dark:shadow-none dark:border dark:border-white/5 flex items-center justify-between`}>
-                <span className={`text-[11px] font-black uppercase tracking-tighter ${currentStatus.color}`}>{currentStatus.label}</span>
-                <Circle className={`h-2 w-2 fill-current ${currentStatus.color}`} />
+        <div className="lg:col-span-4 space-y-8">
+          {/* AI INSIGHTS CARD */}
+          {(ticket.aiSentiment || ticket.aiSummary) && (
+            <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-slate-950 text-white relative">
+              <div className="absolute top-0 right-0 p-6 opacity-20 rotate-12">
+                <Sparkles size={80} className="text-primary" />
               </div>
-            </div>
+              <CardHeader className="p-8 pb-4 relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5">
+                    AI Powered
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                  AI Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 pt-0 space-y-8 relative z-10">
+                {ticket.aiSentiment && (
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Análisis de Sentimiento</label>
+                    <div className={cn(
+                      "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest",
+                      sentimentConfig[ticket.aiSentiment]?.bg || 'bg-slate-800',
+                      sentimentConfig[ticket.aiSentiment]?.color || 'text-slate-300'
+                    )}>
+                      <span className="text-lg">{sentimentConfig[ticket.aiSentiment]?.icon}</span>
+                      {sentimentConfig[ticket.aiSentiment]?.label}
+                    </div>
+                  </div>
+                )}
+
+                {ticket.aiSummary && (
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Resumen Ejecutivo</label>
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl italic text-sm text-slate-300 font-medium leading-relaxed">
+                      "{ticket.aiSummary}"
+                    </div>
+                  </div>
+                )}
+
+                {ticket.aiReasoning && (
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Razonamiento de Prioridad</label>
+                    <div className="flex gap-3 text-xs text-slate-400 font-medium leading-tight bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                      <Target size={16} className="text-primary shrink-0" />
+                      {ticket.aiReasoning}
+                    </div>
+                  </div>
+                )}
+
+                {(ticket.aiSuggestedArea || ticket.aiSuggestedPriority) && (
+                  <div className="pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
+                    {ticket.aiSuggestedArea && (
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-slate-500 uppercase">Área Sugerida</label>
+                        <p className="text-[10px] font-black uppercase text-primary tracking-wider">{ticket.aiSuggestedArea}</p>
+                      </div>
+                    )}
+                    {ticket.aiSuggestedPriority && (
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-slate-500 uppercase">Prioridad Sugerida</label>
+                        <p className="text-[10px] font-black uppercase text-amber-500 tracking-wider">{ticket.aiSuggestedPriority}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {ticket.aiEstimatedTime && (
+                  <div className="pt-6 border-t border-white/10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiempo Estimado</span>
+                      </div>
+                      <span className="text-lg font-black text-white">
+                        {ticket.aiEstimatedTime < 60 
+                          ? `${ticket.aiEstimatedTime}m` 
+                          : `${(ticket.aiEstimatedTime / 60).toFixed(1)}h`}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-tighter">
+                        <span className="text-slate-500">Confianza del Modelo</span>
+                        <span className={cn(
+                          ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "text-emerald-500" : "text-amber-500"
+                        )}>
+                          {Math.round((ticket.aiConfidence || 0) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(ticket.aiConfidence || 0) * 100}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className={cn(
+                            "h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.3)]",
+                            ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "bg-emerald-500" : "bg-primary"
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-card border border-border/50">
+            <CardHeader className="bg-muted/30 border-b border-border p-8 pb-6"><CardTitle className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-4 bg-primary rounded-full" /> Atributos de Gestión</CardTitle></CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Estado actual</label><Badge variant={status.variant} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-sm">{status.label}</Badge></div>
+              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Nivel de Prioridad</label><div className="flex items-center gap-3 bg-muted/20 p-3 rounded-2xl border border-border/50"><div className={`w-3 h-3 rounded-full ${priority.color.replace('bg-', 'bg-')}`} /><span className="text-xs font-black text-foreground uppercase tracking-tight">{priority.label}</span></div></div>
+              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Área Técnica</label>{ticket.area ? (<div className="flex items-center gap-3 text-primary font-black text-xs uppercase bg-primary/5 p-3 rounded-2xl border border-primary/10"><MapPin size={16} strokeWidth={3} /> {ticket.area.name}</div>) : <span className="text-xs text-muted-foreground italic font-bold uppercase p-3 block">No asignada</span>}</div>
+            </CardContent>
+          </Card>
 
             <div className="space-y-3">
               <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest block ml-1">Prioridad del Vector</label>
