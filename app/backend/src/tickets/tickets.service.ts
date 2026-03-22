@@ -115,6 +115,34 @@ export class TicketsService {
       throw new ForbiddenException('Sin permiso para ver este ticket');
     }
 
+    // ANÁLISIS POR IA BAJO DEMANDA: Si no tiene resumen ni sentimiento, lo analizamos ahora
+    if (!ticket.aiSummary && !ticket.aiSentiment && ticket.description) {
+      const processLazyAi = async () => {
+        try {
+          console.log(`TicketsService: Iniciando análisis diferido para ticket ${ticket.id}`);
+          const analysis = await this.aiService.analyzeTicket(ticket.description);
+          
+          if (analysis) {
+            await this.prisma.ticket.update({
+              where: { id: ticket.id },
+              data: {
+                aiSentiment: analysis.sentiment,
+                aiSummary: analysis.summary,
+                aiReasoning: analysis.ai_reasoning,
+                aiSuggestedArea: analysis.suggestedArea,
+                aiSuggestedPriority: analysis.suggestedPriority,
+              }
+            });
+            console.log(`TicketsService: Análisis diferido completado para ticket ${ticket.id}`);
+          }
+        } catch (err) {
+          console.error('Error en análisis IA diferido:', err);
+        }
+      };
+      
+      processLazyAi();
+    }
+
     return ticket;
   }
 

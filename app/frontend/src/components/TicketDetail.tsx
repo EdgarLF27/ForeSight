@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -14,12 +14,26 @@ import {
   Sparkles,
   Zap,
   Target,
-  Quote
+  Quote,
+  XCircle,
+  CalendarPlus,
+  PlayCircle,
+  CheckCircle,
+  Hash,
+  AlertTriangle,
+  Video,
+  VideoIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,10 +77,8 @@ interface TicketDetailProps {
   comments: Comment[];
   currentUser: User;
   teamMembers: User[];
-  technicians?: any[]; 
   onBack: () => void;
   onUpdateStatus: (status: TicketStatus) => void;
-  onAssign: (userId: string) => void;
   onClaim?: () => void;
   onAddComment: (content: string) => void;
 }
@@ -91,6 +103,17 @@ const sentimentConfig: Record<string, { label: string, icon: string, color: stri
   frustrated: { label: 'Frustrado', icon: '😐', color: 'text-amber-600', bg: 'bg-amber-50' },
   angry: { label: 'Enojado', icon: '😡', color: 'text-red-600', bg: 'bg-red-50' },
 };
+
+function GlassContainer({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      "bg-white/40 dark:bg-white/[0.02] backdrop-blur-xl border border-white/40 dark:border-white/5 rounded-[2rem] shadow-xl",
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
 
 export function TicketDetail({
   ticket,
@@ -196,8 +219,8 @@ export function TicketDetail({
     }
   };
 
-  const currentStatus = statusConfig[ticket.status] || statusConfig.OPEN;
-  const currentPriority = priorityConfig[ticket.priority];
+  const status = statusConfig[ticket.status] || statusConfig.OPEN;
+  const priority = priorityConfig[ticket.priority] || priorityConfig.MEDIUM;
   const assignedTech = useMemo(() => teamMembers.find(m => m.id === ticket.assignedToId), [teamMembers, ticket.assignedToId]);
 
   const isAdmin = currentUser.role === 'EMPRESA' || (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Administrador');
@@ -216,8 +239,8 @@ export function TicketDetail({
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-black tracking-tighter uppercase text-slate-800 dark:text-white truncate italic">{ticket.title}</h1>
-              <div className={`px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm dark:shadow-none border border-white dark:border-none ${currentStatus.bg} ${currentStatus.color}`}>
-                {currentStatus.label}
+              <div className={`px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm dark:shadow-none border border-white dark:border-none ${status.bg} ${status.color}`}>
+                {status.label}
               </div>
             </div>
             <div className="flex items-center gap-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
@@ -278,11 +301,10 @@ export function TicketDetail({
               <TabsTrigger value="history" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3b82f6] data-[state=active]:to-[#1d4ed8] data-[state=active]:text-white text-[10px] font-black uppercase tracking-widest transition-all text-slate-400">Historial</TabsTrigger>
             </TabsList>
 
-            {/* TAB: CONVERSACIÓN (TIMELINE) */}
+            {/* TAB: CONVERSACIÓN */}
             <TabsContent value="comments" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
               <div className="absolute left-[23px] top-4 bottom-0 w-[1px] bg-gradient-to-b from-blue-500/20 to-transparent pointer-events-none" />
               
-              {/* DESCRIPCIÓN ORIGINAL */}
               <div className="flex gap-6 relative">
                 <div className="z-10">
                   <Avatar className="h-12 w-12 border-2 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
@@ -299,7 +321,6 @@ export function TicketDetail({
                 </div>
               </div>
 
-              {/* COMENTARIOS */}
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-6 relative group animate-in slide-in-from-left-2">
                   <div className="z-10">
@@ -323,7 +344,6 @@ export function TicketDetail({
                 </div>
               ))}
 
-              {/* INPUT DE RESPUESTA FIJO */}
               <div className="pt-10">
                 <form onSubmit={handleSubmitComment} className="sticky bottom-6 z-20">
                   <div className="flex items-center gap-4 bg-white/80 dark:bg-[#050505]/80 backdrop-blur-2xl p-2.5 rounded-full border-none shadow-[10px_10px_30px_#bebebe,-10px_-10px_30px_#ffffff] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
@@ -365,7 +385,7 @@ export function TicketDetail({
                       <div className="flex flex-wrap gap-3 w-full md:w-auto">
                         {m.status === 'ACCEPTED' && m.type === 'VIRTUAL' && m.meetingLink && (
                           <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl h-11 px-6 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 flex-1 sm:flex-none gap-2" onClick={() => setActiveCall({ room: m.meetingLink!, title: m.title })}>
-                            <Video className="h-4 w-4" /> Unirse a la llamada
+                            <VideoIcon className="h-4 w-4" /> Unirse a la llamada
                           </Button>
                         )}
                         {m.status === 'PROPOSED' && m.lastProposedById !== currentUser.id && (
@@ -406,141 +426,133 @@ export function TicketDetail({
           </Tabs>
         </div>
 
-        <div className="lg:col-span-4 space-y-8">
+        <div className="lg:col-span-1 space-y-8">
           {/* AI INSIGHTS CARD */}
-          {(ticket.aiSentiment || ticket.aiSummary) && (
-            <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-slate-950 text-white relative">
-              <div className="absolute top-0 right-0 p-6 opacity-20 rotate-12">
-                <Sparkles size={80} className="text-primary" />
+          <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-slate-900 dark:bg-slate-950 text-white relative border border-white/5">
+            <div className="absolute top-0 right-0 p-6 opacity-20 rotate-12">
+              <Sparkles size={80} className="text-blue-500" />
+            </div>
+            <CardHeader className="p-8 pb-4 relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5">
+                  AI Intelligence
+                </Badge>
               </div>
-              <CardHeader className="p-8 pb-4 relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5">
-                    AI Powered
-                  </Badge>
+              <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                AI Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 pt-0 space-y-8 relative z-10">
+              {!ticket.aiSummary && !ticket.aiSentiment ? (
+                <div className="py-6 text-center space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto opacity-50" />
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Analizando incidencia...</p>
                 </div>
-                <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
-                  AI Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 pt-0 space-y-8 relative z-10">
-                {ticket.aiSentiment && (
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Análisis de Sentimiento</label>
-                    <div className={cn(
-                      "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest",
-                      sentimentConfig[ticket.aiSentiment]?.bg || 'bg-slate-800',
-                      sentimentConfig[ticket.aiSentiment]?.color || 'text-slate-300'
-                    )}>
-                      <span className="text-lg">{sentimentConfig[ticket.aiSentiment]?.icon}</span>
-                      {sentimentConfig[ticket.aiSentiment]?.label}
-                    </div>
-                  </div>
-                )}
-
-                {ticket.aiSummary && (
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Resumen Ejecutivo</label>
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl italic text-sm text-slate-300 font-medium leading-relaxed">
-                      "{ticket.aiSummary}"
-                    </div>
-                  </div>
-                )}
-
-                {ticket.aiReasoning && (
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Razonamiento de Prioridad</label>
-                    <div className="flex gap-3 text-xs text-slate-400 font-medium leading-tight bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                      <Target size={16} className="text-primary shrink-0" />
-                      {ticket.aiReasoning}
-                    </div>
-                  </div>
-                )}
-
-                {(ticket.aiSuggestedArea || ticket.aiSuggestedPriority) && (
-                  <div className="pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
-                    {ticket.aiSuggestedArea && (
-                      <div className="space-y-1">
-                        <label className="text-[8px] font-black text-slate-500 uppercase">Área Sugerida</label>
-                        <p className="text-[10px] font-black uppercase text-primary tracking-wider">{ticket.aiSuggestedArea}</p>
+              ) : (
+                <>
+                  {ticket.aiSentiment && (
+                    <div className="space-y-3">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Análisis de Sentimiento</label>
+                      <div className={cn(
+                        "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest",
+                        sentimentConfig[ticket.aiSentiment]?.bg || 'bg-slate-800',
+                        sentimentConfig[ticket.aiSentiment]?.color || 'text-slate-300'
+                      )}>
+                        <span className="text-lg">{sentimentConfig[ticket.aiSentiment]?.icon}</span>
+                        {sentimentConfig[ticket.aiSentiment]?.label}
                       </div>
-                    )}
-                    {ticket.aiSuggestedPriority && (
-                      <div className="space-y-1">
-                        <label className="text-[8px] font-black text-slate-500 uppercase">Prioridad Sugerida</label>
-                        <p className="text-[10px] font-black uppercase text-amber-500 tracking-wider">{ticket.aiSuggestedPriority}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {ticket.aiEstimatedTime && (
-                  <div className="pt-6 border-t border-white/10 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-primary" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiempo Estimado</span>
-                      </div>
-                      <span className="text-lg font-black text-white">
-                        {ticket.aiEstimatedTime < 60 
-                          ? `${ticket.aiEstimatedTime}m` 
-                          : `${(ticket.aiEstimatedTime / 60).toFixed(1)}h`}
-                      </span>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-tighter">
-                        <span className="text-slate-500">Confianza del Modelo</span>
-                        <span className={cn(
-                          ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "text-emerald-500" : "text-amber-500"
-                        )}>
-                          {Math.round((ticket.aiConfidence || 0) * 100)}%
+                  )}
+
+                  {ticket.aiSummary && (
+                    <div className="space-y-3">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Resumen Ejecutivo</label>
+                      <div className="bg-white/5 border border-white/10 p-4 rounded-2xl italic text-sm text-slate-300 font-medium leading-relaxed">
+                        "{ticket.aiSummary}"
+                      </div>
+                    </div>
+                  )}
+
+                  {ticket.aiReasoning && (
+                    <div className="space-y-3">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block">Razonamiento de Prioridad</label>
+                      <div className="flex gap-3 text-xs text-slate-400 font-medium leading-tight bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10">
+                        <Target size={16} className="text-blue-500 shrink-0" />
+                        {ticket.aiReasoning}
+                      </div>
+                    </div>
+                  )}
+
+                  {(ticket.aiSuggestedArea || ticket.aiSuggestedPriority) && (
+                    <div className="pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
+                      {ticket.aiSuggestedArea && (
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-slate-500 uppercase">Área Sugerida</label>
+                          <p className="text-[10px] font-black uppercase text-blue-400 tracking-wider">{ticket.aiSuggestedArea}</p>
+                        </div>
+                      )}
+                      {ticket.aiSuggestedPriority && (
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-slate-500 uppercase">Prioridad Sugerida</label>
+                          <p className="text-[10px] font-black uppercase text-amber-500 tracking-wider">{ticket.aiSuggestedPriority}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {ticket.aiEstimatedTime && (
+                    <div className="pt-6 border-t border-white/10 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-blue-400" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiempo Estimado</span>
+                        </div>
+                        <span className="text-lg font-black text-white">
+                          {ticket.aiEstimatedTime < 60 
+                            ? `${ticket.aiEstimatedTime}m` 
+                            : `${(ticket.aiEstimatedTime / 60).toFixed(1)}h`}
                         </span>
                       </div>
-                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(ticket.aiConfidence || 0) * 100}%` }}
-                          transition={{ duration: 1, ease: "easeOut" }}
-                          className={cn(
-                            "h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.3)]",
-                            ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "bg-emerald-500" : "bg-primary"
-                          )}
-                        />
-                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-card border border-border/50">
-            <CardHeader className="bg-muted/30 border-b border-border p-8 pb-6"><CardTitle className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-4 bg-primary rounded-full" /> Atributos de Gestión</CardTitle></CardHeader>
-            <CardContent className="p-8 space-y-8">
-              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Estado actual</label><Badge variant={status.variant} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-sm">{status.label}</Badge></div>
-              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Nivel de Prioridad</label><div className="flex items-center gap-3 bg-muted/20 p-3 rounded-2xl border border-border/50"><div className={`w-3 h-3 rounded-full ${priority.color.replace('bg-', 'bg-')}`} /><span className="text-xs font-black text-foreground uppercase tracking-tight">{priority.label}</span></div></div>
-              <div className="space-y-3"><label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Área Técnica</label>{ticket.area ? (<div className="flex items-center gap-3 text-primary font-black text-xs uppercase bg-primary/5 p-3 rounded-2xl border border-primary/10"><MapPin size={16} strokeWidth={3} /> {ticket.area.name}</div>) : <span className="text-xs text-muted-foreground italic font-bold uppercase p-3 block">No asignada</span>}</div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest block ml-1">Prioridad del Vector</label>
-              <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.03] border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none dark:border dark:border-white/5 flex items-center gap-4">
-                <div className={`w-2.5 h-2.5 rounded-full ${currentPriority.color} shadow-[0_0_10px_currentColor]`} />
-                <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">{currentPriority.label}</span>
+          {/* MANAGEMENT ATTRIBUTES CARD */}
+          <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-card border border-border/50">
+            <CardHeader className="bg-muted/30 border-b border-border p-8 pb-6">
+              <CardTitle className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+                <div className="w-1.5 h-4 bg-primary rounded-full" /> Atributos de Gestión
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Estado actual</label>
+                <Badge variant={status.variant} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-sm">{status.label}</Badge>
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest block ml-1">Área Técnica</label>
-              <div className="p-4 rounded-2xl bg-blue-500/[0.03] dark:bg-cyan-500/[0.03] border border-blue-500/10 dark:border-cyan-500/10 flex items-center gap-4 text-blue-600 dark:text-cyan-400">
-                <MapPin size={14} strokeWidth={3} />
-                <span className="text-[11px] font-black uppercase tracking-tighter italic">{ticket.area?.name || 'Soporte'}</span>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Nivel de Prioridad</label>
+                <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-2xl border border-border/50">
+                  <div className={`w-3 h-3 rounded-full ${priority.color}`} />
+                  <span className="text-xs font-black text-foreground uppercase tracking-tight">{priority.label}</span>
+                </div>
               </div>
-            </div>
-          </GlassContainer>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Área Técnica</label>
+                {ticket.area ? (
+                  <div className="flex items-center gap-3 text-primary font-black text-xs uppercase bg-primary/5 p-3 rounded-2xl border border-primary/10">
+                    <MapPin size={16} strokeWidth={3} /> {ticket.area.name}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic font-bold uppercase p-3 block">No asignada</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
+          {/* ASSIGNED TECH CARD */}
           <GlassContainer className="p-8">
             <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest block ml-1 mb-5 italic">Personal Asignado</label>
             <div className="flex items-center gap-4 p-3 bg-white dark:bg-white/[0.03] rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none dark:border dark:border-white/5 transition-all hover:scale-105">

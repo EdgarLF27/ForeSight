@@ -9,14 +9,16 @@ export class AiService implements OnModuleInit {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY')?.replace(/['"]/g, '').trim();
     if (apiKey) {
-      // Forzamos el uso de la versión estable v1
+      console.log('AiService: Inicializando con API Key detectada.');
       this.genAI = new GoogleGenerativeAI(apiKey);
+    } else {
+      console.error('AiService: GEMINI_API_KEY no encontrada en el entorno.');
     }
   }
 
   async onModuleInit() {
     if (!this.genAI) {
-      console.warn('AiService: GEMINI_API_KEY no configurada.');
+      console.warn('AiService: El servicio de IA no se inició correctamente por falta de API Key.');
     }
   }
 
@@ -25,75 +27,61 @@ export class AiService implements OnModuleInit {
 
     const prompt = `
       Eres un Analista de Soporte Técnico Senior. 
-      Analiza esta descripción y responde ÚNICAMENTE con un JSON:
-      "${description}"
+      Analiza la descripción de este ticket y responde ÚNICAMENTE con un objeto JSON válido.
+      
+      DESCRIPCIÓN: "${description}"
 
+      JSON:
       {
         "sentiment": "calm" | "frustrated" | "angry",
         "suggestedPriority": "LOW" | "MEDIUM" | "HIGH" | "URGENT",
         "suggestedArea": "Sistemas" | "Mantenimiento" | "Limpieza" | "Seguridad" | "Otros",
-        "summary": "Resumen de 10 palabras",
+        "summary": "Resumen corto",
         "ai_reasoning": "Razonamiento corto"
       }
     `;
 
-    try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-      const result = await model.generateContent(prompt);
-      const text = (await result.response).text();
-      
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-    } catch (error) {
-      // Fallback silencioso
-      if (error.message.includes('429') || error.message.includes('404')) {
-        try {
-          const fallbackModel = this.genAI.getGenerativeModel({ model: "gemini-pro-latest" });
-          const result = await fallbackModel.generateContent(prompt);
-          const text = (await result.response).text();
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-        } catch (e) {
-          return null;
+    // Lista de modelos a probar en orden de preferencia
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`AiService: Intentando análisis con modelo ${modelName}...`);
+        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          console.log(`AiService: Éxito con modelo ${modelName}`);
+          return {
+            sentiment: parsed.sentiment || 'calm',
+            suggestedPriority: parsed.suggestedPriority || 'MEDIUM',
+            suggestedArea: parsed.suggestedArea || 'Otros',
+            summary: parsed.summary || 'Procesado',
+            ai_reasoning: parsed.ai_reasoning || 'Análisis automático'
+          };
         }
+      } catch (error) {
+        console.warn(`AiService: Error con modelo ${modelName}:`, error.message);
+        // Continuamos al siguiente modelo
       }
-      return null;
     }
+
+    console.error('AiService: Todos los modelos fallaron.');
+    return null;
   }
 
   async predictResolutionTime(newTicket: any, history: any[]) {
     if (!this.genAI) return null;
 
-    const historyPrompt = history.map(t => {
-      const duration = t.resolvedAt ? Math.round((new Date(t.resolvedAt).getTime() - new Date(t.createdAt).getTime()) / 60000) : 0;
-      return `Ticket: "${t.title}" | Descripción: "${t.description}" | Duración: ${duration} mins`;
-    }).join('\n');
-
-    const prompt = `
-      Eres un motor de Predicción de Machine Learning para un sistema de soporte técnico.
-      Tu tarea es predecir cuánto tiempo (en MINUTOS) tomará resolver el siguiente ticket basándote en el historial proporcionado.
-
-      HISTORIAL DE TICKETS SIMILARES:
-      ${historyPrompt || 'No hay historial disponible todavía.'}
-
-      NUEVO TICKET A PREDECIR:
-      Título: "${newTicket.title}"
-      Descripción: "${newTicket.description}"
-      Prioridad: "${newTicket.priority}"
-      Área: "${newTicket.area?.name || 'No asignada'}"
-
-      Responde ÚNICAMENTE con un objeto JSON:
-      {
-        "estimatedMinutes": número entero,
-        "confidence": número entre 0 y 1,
-        "reasoning": "Breve explicación de por qué estimaste ese tiempo"
-      }
-    `;
+    const prompt = `Predice el tiempo de resolución en minutos para este ticket: ${newTicket.description}. Responde solo JSON: {"estimatedMinutes": 30, "confidence": 0.8, "reasoning": "..."}`;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
-      const text = (await result.response).text();
+      const text = result.response.text();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     } catch (e) {
