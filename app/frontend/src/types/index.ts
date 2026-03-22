@@ -66,6 +66,11 @@ export interface Ticket {
   aiReasoning?: string;
   aiSuggestedArea?: string;
   aiSuggestedPriority?: string;
+  
+  // ML Predictive Fields
+  resolvedAt?: string;
+  aiEstimatedTime?: number;
+  aiConfidence?: number;
 }
 
 export interface TicketActivity {

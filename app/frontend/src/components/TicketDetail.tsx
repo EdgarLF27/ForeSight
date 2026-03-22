@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Clock, 
@@ -490,6 +491,44 @@ export function TicketDetail({
                         <p className="text-[10px] font-black uppercase text-amber-500 tracking-wider">{ticket.aiSuggestedPriority}</p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {ticket.aiEstimatedTime && (
+                  <div className="pt-6 border-t border-white/10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiempo Estimado</span>
+                      </div>
+                      <span className="text-lg font-black text-white">
+                        {ticket.aiEstimatedTime < 60 
+                          ? `${ticket.aiEstimatedTime}m` 
+                          : `${(ticket.aiEstimatedTime / 60).toFixed(1)}h`}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-tighter">
+                        <span className="text-slate-500">Confianza del Modelo</span>
+                        <span className={cn(
+                          ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "text-emerald-500" : "text-amber-500"
+                        )}>
+                          {Math.round((ticket.aiConfidence || 0) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(ticket.aiConfidence || 0) * 100}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className={cn(
+                            "h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.3)]",
+                            ticket.aiConfidence && ticket.aiConfidence > 0.7 ? "bg-emerald-500" : "bg-primary"
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>

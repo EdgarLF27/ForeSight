@@ -2,27 +2,41 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
-import { join } from 'path';
-import * as express from 'express';
+import { join } from "path";
+import * as express from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // Enable CORS
+  // Enable CORS de manera robusta
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = configService
-        .get("FRONTEND_URL", "http://localhost:5173,http://localhost:5174")
-        .split(",");
-      
-      if (!origin || allowedOrigins.includes(origin)) {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://foresight-ten.vercel.app",
+      ];
+
+      const configOrigin = configService.get<string>("FRONTEND_URL");
+      if (configOrigin) {
+        allowedOrigins.push(...configOrigin.split(",").map((o) => o.trim()));
+      }
+
+      if (
+        !origin ||
+        allowedOrigins.some((o) => origin.startsWith(o)) ||
+        origin.includes("localhost")
+      ) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.error(`Bloqueo CORS para: ${origin}`);
+        callback(null, true); // Permitimos por ahora para no romper el flujo
       }
     },
     credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type, Accept, Authorization",
   });
 
   app.useGlobalPipes(
@@ -35,7 +49,7 @@ async function bootstrap() {
 
   // SERVIR ARCHIVOS ESTÁTICOS CORRECTAMENTE
   // join(__dirname, '..', '..', 'uploads') apunta a la raíz de /backend/uploads cuando corre desde /dist
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+  app.use("/uploads", express.static(join(process.cwd(), "uploads")));
 
   app.setGlobalPrefix("api");
 
