@@ -13,6 +13,25 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import type { Ticket, Area, User } from '@/types';
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+
 interface TicketsPageProps {
   tickets: Ticket[];
   areas: Area[];
@@ -31,7 +50,7 @@ const statusConfig: any = {
   CANCELLED: { label: 'Cancelado', color: 'text-rose-500', bg: 'bg-rose-500/10' },
 };
 
-const priorityConfig = {
+const priorityConfig: any = {
   LOW: { label: 'Baja', color: 'text-emerald-400', glow: 'shadow-[0_0_8px_rgba(16,185,129,0.4)]' },
   MEDIUM: { label: 'Media', color: 'text-blue-400', glow: 'shadow-[0_0_8px_rgba(59,130,246,0.4)]' },
   HIGH: { label: 'Alta', color: 'text-amber-400', glow: 'shadow-[0_0_8px_rgba(251,191,36,0.4)]' },
@@ -48,14 +67,42 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode, cl
 
 export function TicketsPage({ 
   tickets = [], 
+  areas = [],
+  currentUser,
+  onCreateTicket,
   onViewTicket 
 }: TicketsPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [newTicket, setNewTicket] = useState({
+    title: '',
+    description: '',
+    priority: 'MEDIUM' as const,
+    areaId: '',
+  });
+
+  const handleCreateTicketSubmit = async () => {
+    if (!newTicket.title || !newTicket.description || !newTicket.areaId) {
+      toast.error("Por favor completa todos los campos requeridos");
+      return;
+    }
+    
+    setIsLoadingAction(true);
+    const success = await onCreateTicket(newTicket);
+    if (success) {
+      setIsCreateDialogOpen(false);
+      setNewTicket({ title: '', description: '', priority: 'MEDIUM', areaId: '' });
+    }
+    setIsLoadingAction(false);
+  };
 
   const filteredTickets = tickets.filter(ticket => 
     (ticket.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (ticket.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const isAdmin = currentUser.role === 'EMPRESA' || (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Administrador');
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -64,9 +111,79 @@ export function TicketsPage({
           <h1 className="text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase italic">Central de Tickets</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Gestión de incidencias y nodos de soporte</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] px-8 h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-          <Plus className="h-4 w-4 mr-2" strokeWidth={3} /> Nuevo Ticket
-        </Button>
+        
+        {!isAdmin && (
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] px-8 h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                <Plus className="h-4 w-4 mr-2" strokeWidth={3} /> Nuevo Ticket
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white dark:bg-[#0a0a0b] backdrop-blur-2xl border-slate-200 dark:border-white/10 rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+               <div className="bg-slate-50 dark:bg-white/[0.02] p-10 border-b border-slate-100 dark:border-white/5">
+                  <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-800 dark:text-white">Reportar Incidencia</DialogTitle>
+                  <DialogDescription className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Describe el problema detectado</DialogDescription>
+               </div>
+               <div className="p-10 space-y-6">
+                  <div className="space-y-4">
+                    <Input 
+                      placeholder="Asunto..." 
+                      value={newTicket.title}
+                      onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+                      className="bg-white dark:bg-white/[0.03] border-slate-200 dark:border-white/10 rounded-xl h-12 text-slate-800 dark:text-white font-bold" 
+                    />
+                    <Textarea 
+                      placeholder="Describe el problema detalladamente..." 
+                      value={newTicket.description}
+                      onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+                      className="bg-white dark:bg-white/[0.03] border-slate-200 dark:border-white/10 rounded-xl min-h-[120px] text-slate-800 dark:text-white italic" 
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <Select 
+                        value={newTicket.priority} 
+                        onValueChange={(val: any) => setNewTicket({ ...newTicket, priority: val })}
+                      >
+                        <SelectTrigger className="bg-white dark:bg-white/[0.03] border-slate-200 dark:border-white/10 h-12 rounded-xl text-slate-800 dark:text-white">
+                          <SelectValue placeholder="Prioridad" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#0a0a0b] border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                          <SelectItem value="LOW">Baja</SelectItem>
+                          <SelectItem value="MEDIUM">Media</SelectItem>
+                          <SelectItem value="HIGH">Alta</SelectItem>
+                          <SelectItem value="URGENT">Urgente</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select 
+                        value={newTicket.areaId} 
+                        onValueChange={(val) => setNewTicket({ ...newTicket, areaId: val })}
+                      >
+                        <SelectTrigger className="bg-white dark:bg-white/[0.03] border-slate-200 dark:border-white/10 h-12 rounded-xl text-slate-800 dark:text-white">
+                          <SelectValue placeholder="Seleccionar Área" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#0a0a0b] border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                          {areas.map(area => (
+                            <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <DialogFooter className="pt-4">
+                    <Button 
+                      onClick={handleCreateTicketSubmit}
+                      disabled={isLoadingAction}
+                      className="bg-blue-600 hover:bg-blue-500 w-full rounded-xl h-14 font-black uppercase text-xs tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)] text-white"
+                    >
+                      {isLoadingAction ? 'Enviando...' : 'Enviar Reporte Oficial'}
+                    </Button>
+                  </DialogFooter>
+               </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">

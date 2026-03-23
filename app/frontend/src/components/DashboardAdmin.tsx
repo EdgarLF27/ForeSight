@@ -218,9 +218,6 @@ export function DashboardAdmin({
               </>
             )}
           </PDFDownloadLink>
-          <button onClick={() => setIsCreateDialogOpen(true)} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 flex items-center gap-2">
-            <Plus className="h-4 w-4" strokeWidth={3} /> Nueva Incidencia
-          </button>
         </div>
       </div>
 
