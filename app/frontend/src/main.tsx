@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { Toaster } from "./components/ui/sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { ThemeProvider } from "next-themes";
 
 // Usar variable de entorno de Vercel/Vite para el ID de Google
 const GOOGLE_CLIENT_ID =
@@ -12,9 +13,11 @@ const GOOGLE_CLIENT_ID =
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} useFedCM={true}>
-      <App />
-      <Toaster position="top-right" richColors closeButton />
-    </GoogleOAuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} useFedCM={true}>
+        <App />
+        <Toaster position="top-right" richColors closeButton />
+      </GoogleOAuthProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );

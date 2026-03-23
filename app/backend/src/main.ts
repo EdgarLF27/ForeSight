@@ -1,73 +1,48 @@
-import { NestFactory } from "@nestjs/core";
-import { ValidationPipe } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { AppModule } from "./app.module";
-import { join } from "path";
-import * as express from "express";
-import { loggerConfig } from "./common/logger.config";
-import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: loggerConfig,
-  });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // USAR FILTRO DE EXCEPCIONES GLOBAL
-  app.useGlobalFilters(new AllExceptionsFilter());
-  const configService = app.get(ConfigService);
-
-  // Enable CORS de manera robusta
+  // Configuración de CORS Robusta
   app.enableCors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://foresight-ten.vercel.app",
-      ];
-
-      const configOrigin = configService.get<string>("FRONTEND_URL");
-      if (configOrigin) {
-        allowedOrigins.push(...configOrigin.split(",").map((o) => o.trim()));
-      }
-
-      if (
-        !origin ||
-        allowedOrigins.some((o) => origin.startsWith(o)) ||
-        origin.includes("localhost")
-      ) {
-        callback(null, true);
-      } else {
-        console.error(`Bloqueo CORS para: ${origin}`);
-        callback(null, true); // Permitimos por ahora para no romper el flujo
-      }
-    },
+    origin: true, // En desarrollo permitimos todo, en prod puedes poner un array con tus dominios
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-    allowedHeaders: "Content-Type, Accept, Authorization",
   });
 
-  // Forzar cabeceras de seguridad para Google Login en el middleware
-  app.use((req, res, next) => {
+  // Prefijo global para la API
+  app.setGlobalPrefix('api');
+
+  // Pipes de validación global
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
+  // Filtro de excepciones global
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Servir archivos estáticos (Avatares, Logos)
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+  // Headers de seguridad manuales para compatibilidad con Google Login
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
   });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: false,
-      transform: true,
-    }),
-  );
 
-  // SERVIR ARCHIVOS ESTÁTICOS CORRECTAMENTE
-  // join(__dirname, '..', '..', 'uploads') apunta a la raíz de /backend/uploads cuando corre desde /dist
-  app.use("/uploads", express.static(join(process.cwd(), "uploads")));
-
-  app.setGlobalPrefix("api");
-
-  const port = configService.get("PORT", 3001);
+  const port = process.env.PORT || 3001;
   await app.listen(port);
+  console.log(`🚀 ForeSight Backend running on: http://localhost:${port}/api`);
 }
-
 bootstrap();

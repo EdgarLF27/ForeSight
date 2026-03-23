@@ -4,11 +4,14 @@ import {
   Eye, 
   EyeOff, 
   ArrowLeft,
-  Loader2 
+  Loader2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useGoogleLogin } from '@react-oauth/google';
+import { useTheme } from 'next-themes';
 import * as z from 'zod';
 import type { UserRole } from '@/types';
 
@@ -110,6 +113,7 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const { theme, setTheme } = useTheme();
 
   const handleGoogleClick = useGoogleLogin({
     use_fedcm: true,
@@ -170,6 +174,18 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
     <div className="min-h-screen bg-background flex font-sans text-foreground selection:bg-blue-600/30 overflow-hidden relative transition-colors duration-300">
       <div className="fixed top-0 left-0 w-[500px] h-full bg-gradient-to-br from-blue-200/40 to-purple-200/30 blur-[120px] pointer-events-none z-0 opacity-100 dark:opacity-0 transition-opacity duration-500" />
       <DataLines />
+
+      {/* Botón de Cambio de Tema */}
+      <div className="absolute top-8 right-8 z-50">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-3 bg-white dark:bg-card/50 rounded-2xl shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] dark:shadow-none text-slate-400 hover:text-blue-600 dark:hover:text-primary transition-all border border-slate-100 dark:border-white/5"
+        >
+          {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+        </motion.button>
+      </div>
 
       {onBack && (
         <motion.button 
