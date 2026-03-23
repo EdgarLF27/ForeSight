@@ -123,6 +123,29 @@ export class TicketsService {
           const analysis = await this.aiService.analyzeTicket(ticket.description);
           
           if (analysis) {
+            // AUTO-CLASIFICACIÓN DIFERIDA
+            let autoAreaId = ticket.areaId;
+            let activityLog = '';
+
+            if (!ticket.areaId && analysis.suggestedArea) {
+              const area = await this.prisma.area.findFirst({
+                where: { 
+                  name: { contains: analysis.suggestedArea, mode: 'insensitive' },
+                  companyId: ticket.companyId 
+                }
+              });
+              if (area) {
+                autoAreaId = area.id;
+                activityLog += `Área auto-asignada a: ${area.name}. `;
+              }
+            }
+
+            let autoPriority = ticket.priority;
+            if (analysis.suggestedPriority && (ticket.priority === 'LOW' || ticket.priority === 'MEDIUM')) {
+              autoPriority = analysis.suggestedPriority as any;
+              activityLog += `Prioridad ajustada a: ${autoPriority}. `;
+            }
+
             await this.prisma.ticket.update({
               where: { id: ticket.id },
               data: {
@@ -131,8 +154,21 @@ export class TicketsService {
                 aiReasoning: analysis.ai_reasoning,
                 aiSuggestedArea: analysis.suggestedArea,
                 aiSuggestedPriority: analysis.suggestedPriority,
+                areaId: autoAreaId,
+                priority: autoPriority,
               }
             });
+
+            if (activityLog) {
+              await this.prisma.ticketActivity.create({
+                data: { 
+                  ticketId: ticket.id, 
+                  userId: ticket.createdById, 
+                  action: 'SYSTEM_AUTO_CLASSIFY', 
+                  details: `IA Core: ${activityLog}` 
+                }
+              });
+            }
             console.log(`TicketsService: Análisis diferido completado para ticket ${ticket.id}`);
           }
         } catch (err) {
@@ -162,15 +198,21 @@ export class TicketsService {
       throw new BadRequestException('Ya has enviado un ticket idéntico recientemente. Por favor, espera un momento.');
     }
 
+    // BUSCAMOS EL ÁREA DEL USUARIO CREADOR
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.createdById },
+      select: { areaId: true }
+    });
+
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
-        priority: data.priority,
+        priority: 'MEDIUM', // Por defecto media, la IA la ajustará si es necesario
         category: data.category || 'General',
         companyId: data.companyId,
         createdById: data.createdById,
-        areaId: data.areaId || null,
+        areaId: user?.areaId || null, // Tomamos el área del empleado
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -179,7 +221,7 @@ export class TicketsService {
     });
 
     await this.prisma.ticketActivity.create({
-      data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado' },
+      data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado desde el área de origen' },
     });
 
     // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO (Síncrono para asegurar funcionamiento)
@@ -201,6 +243,31 @@ export class TicketsService {
       const prediction = await this.aiService.predictResolutionTime(ticket, history);
 
       if (analysis || prediction) {
+        // AUTO-CLASIFICACIÓN: Si la IA sugiere un área técnica específica
+        let autoAreaId = ticket.areaId;
+        let activityLog = '';
+
+        if (analysis?.suggestedArea) {
+          const area = await this.prisma.area.findFirst({
+            where: { 
+              name: { contains: analysis.suggestedArea, mode: 'insensitive' },
+              companyId: data.companyId 
+            }
+          });
+          // Solo cambiamos si encontramos una mejor coincidencia técnica que la del empleado
+          if (area && area.id !== ticket.areaId) {
+            autoAreaId = area.id;
+            activityLog += `Área re-clasificada técnicamente a: ${area.name}. `;
+          }
+        }
+
+        // AUTO-PRIORIDAD: Ajuste basado en urgencia detectada
+        let autoPriority = ticket.priority;
+        if (analysis?.suggestedPriority && (analysis.suggestedPriority === 'HIGH' || analysis.suggestedPriority === 'URGENT')) {
+          autoPriority = analysis.suggestedPriority as any;
+          activityLog += `Prioridad elevada automáticamente a: ${autoPriority}. `;
+        }
+
         const updatedTicket = await this.prisma.ticket.update({
           where: { id: ticket.id },
           data: {
@@ -211,8 +278,22 @@ export class TicketsService {
             aiSuggestedPriority: analysis?.suggestedPriority,
             aiEstimatedTime: prediction?.estimatedMinutes,
             aiConfidence: prediction?.confidence,
+            areaId: autoAreaId ?? ticket.areaId, // Usamos el autoAreaId o mantenemos el del ticket
+            priority: autoPriority ?? ticket.priority, // Usamos el autoPriority o mantenemos el del ticket
           }
         });
+
+        if (activityLog) {
+          await this.prisma.ticketActivity.create({
+            data: { 
+              ticketId: ticket.id, 
+              userId: data.createdById, 
+              action: 'SYSTEM_AUTO_CLASSIFY', 
+              details: `IA Core: ${activityLog}` 
+            }
+          });
+        }
+
         return updatedTicket;
       }
     } catch (err) {

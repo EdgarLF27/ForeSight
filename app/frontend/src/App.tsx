@@ -63,8 +63,10 @@ function App() {
   const { areas, loadAreas } = useAreas();
 
   // DETECCIÓN ROBUSTA DE ROLES
-  const isAdmin = (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'Administrador' || user?.role === 'EMPRESA';
-  const isTechnician = (typeof user?.role === 'object' && user?.role?.name === 'Técnico');
+  const roleName = typeof user?.role === 'object' ? (user?.role as any)?.name : user?.role;
+  const isAdmin = roleName === 'Administrador' || roleName === 'EMPRESA';
+  const isTechnician = roleName === 'Técnico';
+  const isEmployee = roleName === 'Empleado' || roleName === 'EMPLEADO';
 
   // CARGAR DATOS CUANDO TENGAMOS EMPRESA
   useEffect(() => {

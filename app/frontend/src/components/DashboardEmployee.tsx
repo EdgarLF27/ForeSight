@@ -80,12 +80,10 @@ export function DashboardEmployee({
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
-    priority: 'MEDIUM' as const,
-    areaId: '',
   });
 
   const handleCreateTicketSubmit = async () => {
-    if (!newTicket.title || !newTicket.description || !newTicket.areaId) {
+    if (!newTicket.title || !newTicket.description) {
       toast.error("Por favor completa todos los campos requeridos");
       return;
     }
@@ -94,7 +92,7 @@ export function DashboardEmployee({
     const success = await onCreateTicket(newTicket);
     if (success) {
       setIsCreateDialogOpen(false);
-      setNewTicket({ title: '', description: '', priority: 'MEDIUM', areaId: '' });
+      setNewTicket({ title: '', description: '' });
     }
     setIsLoadingAction(false);
   };
@@ -245,33 +243,17 @@ export function DashboardEmployee({
                     className="bg-white/[0.03] border-white/10 rounded-xl min-h-[120px] text-white italic" 
                   />
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar área de origen</label>
                     <Select 
-                      value={newTicket.priority} 
-                      onValueChange={(val: any) => setNewTicket({ ...newTicket, priority: val })}
+                      disabled
+                      value={company?.id ? 'auto' : ''}
                     >
-                      <SelectTrigger className="bg-white/[0.03] border-white/10 h-12 rounded-xl text-white">
-                        <SelectValue placeholder="Prioridad" />
+                      <SelectTrigger className="bg-white/[0.03] border-white/10 h-12 rounded-xl text-white opacity-50">
+                        <SelectValue placeholder="Área a la que perteneces" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#0a0a0b] border-white/10 text-white">
-                        <SelectItem value="LOW">Baja</SelectItem>
-                        <SelectItem value="MEDIUM">Media</SelectItem>
-                        <SelectItem value="HIGH">Alta</SelectItem>
-                        <SelectItem value="URGENT">Urgente</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Select 
-                      value={newTicket.areaId} 
-                      onValueChange={(val) => setNewTicket({ ...newTicket, areaId: val })}
-                    >
-                      <SelectTrigger className="bg-white/[0.03] border-white/10 h-12 rounded-xl text-white">
-                        <SelectValue placeholder="Seleccionar Área" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#0a0a0b] border-white/10 text-white">
-                        {areas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
-                        ))}
+                        <SelectItem value="auto">Detección automática por perfil</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -160,6 +160,7 @@ export function TicketDetail({
       case 'ASSIGNED': return <UserIcon className="h-3.5 w-3.5 text-emerald-500" />;
       case 'PRIORITY_CHANGE': return <Clock className="h-3.5 w-3.5 text-rose-500" />;
       case 'AREA_CHANGE': return <MapPin className="h-3.5 w-3.5 text-blue-500" />;
+      case 'SYSTEM_AUTO_CLASSIFY': return <Sparkles className="h-3.5 w-3.5 text-blue-500" />;
       default: return <Circle className="h-3 w-3 text-slate-400" />;
     }
   };
@@ -223,8 +224,9 @@ export function TicketDetail({
   const priority = priorityConfig[ticket.priority] || priorityConfig.MEDIUM;
   const assignedTech = useMemo(() => teamMembers.find(m => m.id === ticket.assignedToId), [teamMembers, ticket.assignedToId]);
 
-  const isAdmin = currentUser.role === 'EMPRESA' || (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Administrador');
-  const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any).name === 'Técnico');
+  const roleName = typeof currentUser.role === 'object' ? (currentUser.role as any)?.name : currentUser.role;
+  const isAdmin = roleName === 'Administrador' || roleName === 'EMPRESA';
+  const isTechnician = roleName === 'Técnico';
   const isAssignedToMe = ticket.assignedToId === currentUser.id;
   const isCreator = ticket.createdById === currentUser.id || (typeof ticket.createdBy === 'object' && (ticket.createdBy as any).id === currentUser.id);
 
@@ -443,7 +445,7 @@ export function TicketDetail({
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-8 relative z-10">
-              {!ticket.aiSummary && !ticket.aiSentiment ? (
+              {!ticket.aiSummary && !ticket.aiSentiment && !ticket.aiEstimatedTime ? (
                 <div className="py-6 text-center space-y-4">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto opacity-50" />
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Analizando incidencia...</p>
@@ -513,6 +515,33 @@ export function TicketDetail({
                             : `${(ticket.aiEstimatedTime / 60).toFixed(1)}h`}
                         </span>
                       </div>
+                      
+                      {ticket.aiConfidence && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-tighter">
+                            <span className="text-slate-500">Confianza del Modelo</span>
+                            <span className={ticket.aiConfidence > 0.7 ? "text-emerald-500" : "text-amber-500"}>
+                              {Math.round(ticket.aiConfidence * 100)}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${ticket.aiConfidence * 100}%` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                              className={cn(
+                                "h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.3)]",
+                                ticket.aiConfidence > 0.7 ? "bg-emerald-500" : "bg-blue-500"
+                              )}
+                            />
+                          </div>
+                          <p className="text-[7px] text-slate-500 italic leading-tight">
+                            {ticket.aiConfidence > 0.7 
+                              ? "Nivel de precisión óptimo basado en patrones de resolución históricos."
+                              : "Predicción preliminar. La precisión aumentará con más registros en esta área."}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
