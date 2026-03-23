@@ -40,6 +40,6 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
-      .forRoutes('*'); // Loguea absolutamente todas las rutas
+      .forRoutes('*path'); // Nueva sintaxis para capturar todas las rutas en NestJS 11
   }
 }
