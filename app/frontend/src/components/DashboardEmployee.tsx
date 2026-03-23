@@ -55,7 +55,7 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
   return (
     <div 
       onClick={onClick}
-      className={`bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${className}`}
+      className={`bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${className}`}
     >
       {children}
     </div>
