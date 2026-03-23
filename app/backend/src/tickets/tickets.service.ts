@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private aiService: AiService,
   ) {}
 
   async findAll(companyId: string, user: any) {
@@ -113,6 +115,34 @@ export class TicketsService {
       throw new ForbiddenException('Sin permiso para ver este ticket');
     }
 
+    // ANÁLISIS POR IA BAJO DEMANDA: Si no tiene resumen ni sentimiento, lo analizamos ahora
+    if (!ticket.aiSummary && !ticket.aiSentiment && ticket.description) {
+      const processLazyAi = async () => {
+        try {
+          console.log(`TicketsService: Iniciando análisis diferido para ticket ${ticket.id}`);
+          const analysis = await this.aiService.analyzeTicket(ticket.description);
+          
+          if (analysis) {
+            await this.prisma.ticket.update({
+              where: { id: ticket.id },
+              data: {
+                aiSentiment: analysis.sentiment,
+                aiSummary: analysis.summary,
+                aiReasoning: analysis.ai_reasoning,
+                aiSuggestedArea: analysis.suggestedArea,
+                aiSuggestedPriority: analysis.suggestedPriority,
+              }
+            });
+            console.log(`TicketsService: Análisis diferido completado para ticket ${ticket.id}`);
+          }
+        } catch (err) {
+          console.error('Error en análisis IA diferido:', err);
+        }
+      };
+      
+      processLazyAi();
+    }
+
     return ticket;
   }
 
@@ -152,6 +182,43 @@ export class TicketsService {
       data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado' },
     });
 
+    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO (Síncrono para asegurar funcionamiento)
+    try {
+      console.log('TicketsService: Iniciando análisis de IA para nuevo ticket...');
+      const analysis = await this.aiService.analyzeTicket(data.description);
+      
+      const history = await this.prisma.ticket.findMany({
+        where: { 
+          companyId: data.companyId, 
+          status: { in: ['RESOLVED', 'CLOSED'] },
+          resolvedAt: { not: null }
+        },
+        take: 10,
+        orderBy: { resolvedAt: 'desc' },
+        include: { area: { select: { name: true } } }
+      });
+
+      const prediction = await this.aiService.predictResolutionTime(ticket, history);
+
+      if (analysis || prediction) {
+        const updatedTicket = await this.prisma.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            aiSentiment: analysis?.sentiment,
+            aiSummary: analysis?.summary,
+            aiReasoning: analysis?.ai_reasoning,
+            aiSuggestedArea: analysis?.suggestedArea,
+            aiSuggestedPriority: analysis?.suggestedPriority,
+            aiEstimatedTime: prediction?.estimatedMinutes,
+            aiConfidence: prediction?.confidence,
+          }
+        });
+        return updatedTicket;
+      }
+    } catch (err) {
+      console.error('Error en proceso de inteligencia de ticket:', err);
+    }
+
     return ticket;
   }
 
@@ -179,9 +246,17 @@ export class TicketsService {
       this.validateStatusTransition(ticket.status, data.status);
     }
 
+    const updateData = { ...data };
+    if (data.status === 'RESOLVED' && ticket.status !== 'RESOLVED') {
+      updateData.resolvedAt = new Date();
+    } else if (data.status && data.status !== 'RESOLVED' && ticket.status === 'RESOLVED') {
+      // Si se reabre, limpiamos la fecha de resolución
+      updateData.resolvedAt = null;
+    }
+
     const updated = await this.prisma.ticket.update({
       where: { id },
-      data,
+      data: updateData,
       include: { 
         area: { select: { name: true } }, 
         assignedTo: { select: { id: true, name: true } },

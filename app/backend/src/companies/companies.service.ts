@@ -80,41 +80,62 @@ export class CompaniesService {
   }
 
   async create(userId: string, data: { name: string }) {
-    const inviteCode = this.generateInviteCode();
+    let inviteCode = this.generateInviteCode();
+    
+    // Verificar que el código no exista (reintento simple)
+    const existing = await this.prisma.company.findUnique({ where: { inviteCode } });
+    if (existing) inviteCode = this.generateInviteCode();
 
-    // 1. Crear la empresa
-    const company = await this.prisma.company.create({
-      data: {
-        name: data.name,
-        inviteCode,
-        ownerId: userId,
-      },
-    });
+    try {
+      // 1. Crear la empresa
+      const company = await this.prisma.company.create({
+        data: {
+          name: data.name,
+          inviteCode,
+          ownerId: userId,
+        },
+      });
 
-    // 2. Crear área por defecto
-    const defaultArea = await this.prisma.area.create({
-      data: {
-        name: 'General',
-        description: 'Área predeterminada',
-        companyId: company.id,
-      }
-    });
+      // 2. Crear área por defecto
+      const defaultArea = await this.prisma.area.create({
+        data: {
+          name: 'General',
+          description: 'Área predeterminada',
+          companyId: company.id,
+        }
+      });
 
-    // 3. Buscar el rol de Administrador
-    const adminRole = await this.prisma.role.findFirst({
-      where: { name: 'Administrador', isSystem: true }
-    });
+      // 3. Buscar el rol de Administrador de forma muy flexible
+      const adminRole = await this.prisma.role.findFirst({
+        where: { 
+          OR: [
+            { name: { contains: 'Admin', mode: 'insensitive' } },
+            { isSystem: true, name: { contains: 'Administrador', mode: 'insensitive' } }
+          ]
+        }
+      });
 
-    // 4. Actualizar al usuario como dueño y admin
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { 
-        companyId: company.id,
-        areaId: defaultArea.id,
-        roleId: adminRole?.id || undefined
-      },
-    });
+      // 4. Actualizar al usuario
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: { 
+          companyId: company.id,
+          areaId: defaultArea.id,
+          roleId: adminRole?.id || undefined
+        },
+        include: {
+          company: true,
+          area: true,
+          role: {
+            include: { permissions: true }
+          }
+        }
+      });
 
-    return company;
+      return updatedUser;
+    } catch (error) {
+      console.error('Error en CompaniesService.create:', error);
+      throw error;
+    }
   }
 }

@@ -16,12 +16,34 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
   const configService = app.get(ConfigService);
 
-  // Configuración de CORS ultra-compatible
+  // Enable CORS de manera robusta
   app.enableCors({
-    origin: true, // Permite cualquier origen (temporal para depuración)
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://foresight-ten.vercel.app",
+      ];
+
+      const configOrigin = configService.get<string>("FRONTEND_URL");
+      if (configOrigin) {
+        allowedOrigins.push(...configOrigin.split(",").map((o) => o.trim()));
+      }
+
+      if (
+        !origin ||
+        allowedOrigins.some((o) => origin.startsWith(o)) ||
+        origin.includes("localhost")
+      ) {
+        callback(null, true);
+      } else {
+        console.error(`Bloqueo CORS para: ${origin}`);
+        callback(null, true); // Permitimos por ahora para no romper el flujo
+      }
+    },
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type, Accept, Authorization",
   });
 
   // Forzar cabeceras de seguridad para Google Login en el middleware

@@ -111,87 +111,84 @@ export const RolesPage: React.FC = () => {
 
   if (loading) return (
     <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={2} />
+      <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-primary" strokeWidth={2} />
     </div>
   );
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 px-1">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+    <div className="space-y-10 max-w-7xl mx-auto pb-12 px-1 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-              <Shield className="h-6 w-6 text-primary" strokeWidth={2} />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Roles</h1>
-          </div>
-          <p className="text-muted-foreground font-medium">Define qué acciones pueden realizar los diferentes perfiles.</p>
+          <h1 className="text-3xl font-black tracking-tighter text-slate-800 dark:text-foreground uppercase italic">Gestión de Roles</h1>
+          <p className="text-slate-500 dark:text-muted-foreground font-bold text-[10px] uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="w-6 h-[1px] bg-slate-300 dark:bg-white/20"></span> Define qué acciones pueden realizar los diferentes perfiles.
+          </p>
         </div>
-        <Button onClick={handleOpenCreate} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold">
-          <Plus className="h-4 w-4 mr-2" strokeWidth={3} />
+        <Button onClick={handleOpenCreate} className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white rounded-2xl shadow-[0_4px_14px_rgba(59,130,246,0.4)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(59,130,246,0.6)] px-8 h-12 font-black uppercase text-xs tracking-widest transition-all active:scale-95">
+          <Plus className="h-5 w-5 mr-2" strokeWidth={3} />
           Nuevo Rol
         </Button>
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold">
-          <XCircle className="h-5 w-5" strokeWidth={2} /> {error}
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-6 py-4 rounded-2xl flex items-center gap-4 text-xs font-black uppercase tracking-widest italic">
+          <XCircle className="h-5 w-5" strokeWidth={3} /> {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {Array.isArray(roles) && roles.map((role) => (
-          <Card key={role.id} className={`group border-none shadow-md hover:shadow-lg transition-all duration-300 bg-card rounded-2xl overflow-hidden relative ${role.isSystem ? 'bg-muted/30' : ''}`}>
-            <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${role.isSystem ? 'bg-muted-foreground/30' : 'bg-primary'} opacity-0 group-hover:opacity-100 transition-opacity`} />
+          <Card key={role.id} className={`group border-none shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] dark:shadow-none bg-[#f8fafc] dark:bg-card rounded-[2rem] overflow-hidden relative transition-all duration-500 hover:scale-[1.02] ${role.isSystem ? 'opacity-80' : ''}`}>
+            <div className={`absolute left-0 top-0 bottom-0 w-[5px] ${role.isSystem ? 'bg-slate-300 dark:bg-muted-foreground/30' : 'bg-blue-600 dark:bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`} />
             
-            <CardHeader className="pb-4">
+            <CardHeader className="p-8 pb-4">
               <div className="flex justify-between items-start">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-xl font-black text-slate-800 dark:text-foreground group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">
                       {role.name}
                     </CardTitle>
-                    {role.isSystem && <Badge variant="secondary" className="text-[9px] uppercase font-bold px-1.5 py-0 rounded-md">Sistema</Badge>}
+                    {role.isSystem && <div className="px-2 py-0.5 rounded-full text-[8px] font-black bg-slate-100 text-slate-400 uppercase tracking-widest shadow-sm">Sistema</div>}
                   </div>
-                  <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px] font-medium leading-relaxed">
-                    {role.description || 'Sin descripción'}
+                  <CardDescription className="text-xs text-slate-400 dark:text-muted-foreground line-clamp-2 min-h-[40px] font-medium leading-relaxed italic">
+                    "{role.description || 'Sin descripción corporativa'}"
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <div className="flex flex-wrap gap-1.5">
+            <CardContent className="p-8 pt-0">
+              <div className="space-y-6">
+                <div className="flex flex-wrap gap-2">
                   {role.permissions.slice(0, 4).map(p => (
-                    <Badge key={p.id} variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/50 text-muted-foreground">
+                    <div key={p.id} className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 dark:text-muted-foreground shadow-sm">
                       {p.name}
-                    </Badge>
+                    </div>
                   ))}
                   {role.permissions.length > 4 && (
-                    <Badge variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/50 text-muted-foreground">
-                      +{role.permissions.length - 4} más
-                    </Badge>
+                    <div className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 dark:text-muted-foreground shadow-sm">
+                      +{role.permissions.length - 4}
+                    </div>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between pt-5 border-t border-border">
-                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    {role._count?.users || 0} usuarios
-                  </span>
-                  <div className="flex gap-1">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-white/5">
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-primary shadow-[0_0_5px_currentColor]" />
+                    {role._count?.users || 0} Miembros
+                  </div>
+                  <div className="flex gap-2">
                     {!role.isSystem ? (
                       <>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(role)} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                          <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(role)} className="h-10 w-10 rounded-xl text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-primary/10 transition-all">
+                          <Edit2 className="h-4 w-4" strokeWidth={3} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(role.id)} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(role.id)} className="h-10 w-10 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all">
+                          <Trash2 className="h-4 w-4" strokeWidth={3} />
                         </Button>
                       </>
                     ) : (
-                      <div className="h-8 px-2 flex items-center">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
+                      <div className="h-10 px-2 flex items-center">
+                        <ChevronRight className="h-5 w-5 text-slate-200 group-hover:text-blue-600 transition-all translate-x-[-4px] group-hover:translate-x-0" />
                       </div>
                     )}
                   </div>
@@ -203,61 +200,61 @@ export const RolesPage: React.FC = () => {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl p-0 border-border bg-card shadow-2xl flex flex-col">
-          <div className="bg-primary p-8 text-primary-foreground relative flex-shrink-0">
-            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
-              <Shield size={100} strokeWidth={1} />
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden rounded-[3rem] p-0 border-none bg-[#f8fafc] dark:bg-card shadow-2xl flex flex-col">
+          <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] p-10 text-white relative flex-shrink-0">
+            <div className="absolute -right-6 -top-6 opacity-10 rotate-12">
+              <Shield size={140} strokeWidth={1} />
             </div>
-            <DialogTitle className="text-2xl font-bold">{editingRole ? 'Editar Rol' : 'Crear Nuevo Rol'}</DialogTitle>
-            <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
-              Configura el nombre, descripción y permisos del perfil.
+            <DialogTitle className="text-3xl font-extrabold uppercase italic tracking-tighter">{editingRole ? 'Editar Rango' : 'Nuevo Rango'}</DialogTitle>
+            <DialogDescription className="text-white/80 mt-2 font-medium italic">
+              Configura los privilegios operativos del perfil.
             </DialogDescription>
           </div>
           
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 space-y-10">
             <div className="space-y-6">
-              <div className="grid gap-2">
-                <Label htmlFor="name" className="text-sm font-bold text-foreground/80 ml-1">Nombre del Rol</Label>
+              <div className="grid gap-3">
+                <Label htmlFor="name" className="text-[10px] font-black text-slate-400 dark:text-foreground/40 uppercase tracking-widest ml-1 italic">Identificador del Rol</Label>
                 <Input
                   id="name"
-                  placeholder="Ej: Técnico de Nivel 1"
+                  placeholder="Ej: Técnico Senior"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20 font-bold"
+                  className="h-14 rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none bg-white dark:bg-muted/30 font-black text-slate-800 dark:text-white px-6 focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description" className="text-sm font-bold text-foreground/80 ml-1">Descripción</Label>
-                <Input
+              <div className="grid gap-3">
+                <Label htmlFor="description" className="text-[10px] font-black text-slate-400 dark:text-foreground/40 uppercase tracking-widest ml-1 italic">Definición Operativa</Label>
+                <textarea
                   id="description"
-                  placeholder="Descripción de las responsabilidades..."
+                  placeholder="Responsabilidades del perfil..."
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="h-11 bg-muted/30 border-border rounded-xl focus:ring-primary/20"
+                  className="w-full h-32 rounded-2xl border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none bg-white dark:bg-muted/30 font-medium text-sm text-slate-600 dark:text-slate-300 p-6 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none italic"
                 />
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-bold text-foreground ml-1 uppercase tracking-wide">Permisos Asociados</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border border-border p-6 rounded-2xl bg-muted/20">
+            <div className="space-y-6">
+              <Label className="text-xs font-black text-slate-800 dark:text-foreground ml-1 uppercase tracking-[0.2em] italic">Matriz de Permisos</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-none shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:shadow-none p-8 rounded-[2rem] bg-white dark:bg-muted/20">
                 {permissions.map((p) => (
-                  <div key={p.id} className="flex items-start space-x-3 group cursor-pointer" onClick={() => togglePermission(p.id)}>
+                  <div key={p.id} className="flex items-start space-x-4 group cursor-pointer" onClick={() => togglePermission(p.id)}>
                     <Checkbox
                       id={`p-${p.id}`}
                       checked={formData.permissionIds.includes(p.id)}
                       onCheckedChange={() => togglePermission(p.id)}
-                      className="mt-1 rounded-md border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      className="mt-1 rounded-md border-slate-200 dark:border-white/10 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                     />
-                    <div className="grid gap-1 leading-none">
+                    <div className="grid gap-1.5 leading-none">
                       <label
                         htmlFor={`p-${p.id}`}
-                        className="text-sm font-bold text-foreground cursor-pointer group-hover:text-primary transition-colors"
+                        className="text-xs font-black text-slate-700 dark:text-foreground cursor-pointer group-hover:text-blue-600 transition-colors uppercase tracking-tight"
                       >
                         {p.name}
                       </label>
-                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                      <p className="text-[10px] text-slate-400 dark:text-muted-foreground font-medium leading-relaxed italic">
                         {p.description}
                       </p>
                     </div>
@@ -267,33 +264,32 @@ export const RolesPage: React.FC = () => {
             </div>
           </form>
 
-          <DialogFooter className="p-8 border-t border-border bg-muted/10 flex gap-3 flex-shrink-0">
-            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground">
+          <DialogFooter className="p-10 border-t border-slate-100 dark:border-white/5 bg-white/50 dark:bg-muted/10 flex gap-4 flex-shrink-0">
+            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-2xl h-14 px-8 font-black text-slate-400 uppercase text-xs tracking-widest hover:text-slate-800 transition-all">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isActionLoading} className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-10 font-bold shadow-lg shadow-primary/20 min-w-[140px]">
-              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : (editingRole ? 'Actualizar Rol' : 'Crear Rol')}
+            <Button type="submit" onClick={handleSubmit} disabled={isActionLoading} className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white rounded-2xl h-14 px-12 font-black uppercase text-xs tracking-widest shadow-lg min-w-[180px] transition-transform active:scale-95">
+              {isActionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : (editingRole ? 'Guardar Cambios' : 'Generar Rol')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-2xl p-6">
+        <AlertDialogContent className="rounded-[3rem] border-none bg-[#f8fafc] dark:bg-card shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff] dark:shadow-2xl p-12">
           <AlertDialogHeader>
-            <div className="w-12 h-12 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive mb-4 border border-destructive/20">
-              <AlertCircle className="h-6 w-6" strokeWidth={2} />
+            <div className="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-rose-500 mb-8 border border-rose-500/20 shadow-lg shadow-rose-500/10">
+              <AlertCircle className="h-8 w-8" strokeWidth={3} />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-foreground">¿Estás completamente seguro?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground font-medium leading-relaxed">
-              Esta acción no se puede deshacer. Esto eliminará permanentemente el rol del sistema. 
-              Los usuarios con este rol perderán sus permisos asociados.
+            <AlertDialogTitle className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">¿Eliminar Rango?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400 font-medium text-base leading-relaxed italic mt-4">
+              Esta acción es irreversible. Se eliminará el nodo de permisos permanentemente. Los usuarios vinculados perderán su matriz de acceso actual.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 flex gap-3">
-            <AlertDialogCancel className="rounded-xl h-11 px-6 font-bold border-border">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:opacity-90 rounded-xl h-11 px-6 font-bold shadow-lg shadow-destructive/20" disabled={isActionLoading}>
-              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar Rol'}
+          <AlertDialogFooter className="mt-10 flex gap-4">
+            <AlertDialogCancel className="rounded-2xl h-14 px-8 font-black border-none bg-white dark:bg-transparent shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] dark:shadow-none text-slate-400 uppercase text-[10px] tracking-widest hover:text-slate-800 transition-all">Regresar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-rose-600 text-white hover:opacity-90 rounded-2xl h-14 px-10 font-black shadow-xl shadow-rose-500/20 uppercase text-[10px] tracking-widest" disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Confirmar Baja'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

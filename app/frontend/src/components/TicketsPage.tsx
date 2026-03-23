@@ -3,26 +3,15 @@ import {
   Plus, 
   Search, 
   Filter, 
-  Clock,
   MapPin,
   Inbox,
   ChevronRight,
-  ArrowUpDown
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import type { Ticket, Area, User } from '@/types';
-import { toast } from 'sonner';
 
 interface TicketsPageProps {
   tickets: Ticket[];
@@ -34,351 +23,128 @@ interface TicketsPageProps {
   onUpdateTicket: (id: string, data: any) => Promise<boolean>;
 }
 
-const statusConfig = {
-  OPEN: { label: 'Abierto', variant: 'destructive' as const },
-  IN_PROGRESS: { label: 'En progreso', variant: 'warning' as const },
-  RESOLVED: { label: 'Resuelto', variant: 'success' as const },
-  CLOSED: { label: 'Cerrado', variant: 'secondary' as const },
-  CANCELLED: { label: 'Cancelado', variant: 'secondary' as const },
+const statusConfig: any = {
+  OPEN: { label: 'Abierto', color: 'text-rose-400', bg: 'bg-rose-500/10' },
+  IN_PROGRESS: { label: 'En Proceso', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  RESOLVED: { label: 'Resuelto', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  CLOSED: { label: 'Cerrado', color: 'text-slate-400', bg: 'bg-slate-500/10' },
+  CANCELLED: { label: 'Cancelado', color: 'text-rose-500', bg: 'bg-rose-500/10' },
 };
 
 const priorityConfig = {
-  LOW: { label: 'Baja', color: 'text-muted-foreground' },
-  MEDIUM: { label: 'Media', color: 'text-primary' },
-  HIGH: { label: 'Alta', color: 'text-amber-500' },
-  URGENT: { label: 'Urgente', color: 'text-destructive' },
+  LOW: { label: 'Baja', color: 'text-emerald-400', glow: 'shadow-[0_0_8px_rgba(16,185,129,0.4)]' },
+  MEDIUM: { label: 'Media', color: 'text-blue-400', glow: 'shadow-[0_0_8px_rgba(59,130,246,0.4)]' },
+  HIGH: { label: 'Alta', color: 'text-amber-400', glow: 'shadow-[0_0_8px_rgba(251,191,36,0.4)]' },
+  URGENT: { label: 'Urgente', color: 'text-rose-400', glow: 'shadow-[0_0_8px_rgba(244,63,94,0.4)]' },
 };
 
+function GlassCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
+  return (
+    <div className={`bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
 export function TicketsPage({ 
-  tickets, 
-  areas, 
-  currentUser,
-  onCreateTicket, 
+  tickets = [], 
   onViewTicket 
 }: TicketsPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('newest');
-  
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
 
-  const [newTicket, setNewTicket] = useState({
-    title: '',
-    description: '',
-    priority: 'MEDIUM' as const,
-    category: 'General',
-    areaId: '',
-  });
-
-  const isAdmin = currentUser.role === 'Administrador' || (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Administrador') || currentUser.role === 'EMPRESA';
-  const isEmployee = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Empleado') || currentUser.role === 'EMPLEADO';
-  const isTechnician = (typeof currentUser.role === 'object' && (currentUser.role as any)?.name === 'Técnico');
-
-  const filteredTickets = tickets
-    .filter(ticket => {
-      const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (!matchesSearch) return false;
-
-      if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
-      if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
-      if (areaFilter !== 'all' && ticket.areaId !== areaFilter) return false;
-
-      if (dateFilter !== 'all') {
-        const ticketDate = new Date(ticket.createdAt);
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        if (dateFilter === 'today' && ticketDate < startOfToday) return false;
-        if (dateFilter === 'week') {
-          const weekAgo = new Date();
-          weekAgo.setDate(now.getDate() - 7);
-          if (ticketDate < weekAgo) return false;
-        }
-      }
-
-      if (isTechnician) {
-        return !ticket.assignedToId || ticket.assignedToId === currentUser.id;
-      }
-
-      if (isEmployee) {
-        return ticket.createdById === currentUser.id || ticket.createdBy?.id === currentUser.id;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      if (sortBy === 'priority') {
-        const priorityMap = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
-        return priorityMap[b.priority as keyof typeof priorityMap] - priorityMap[a.priority as keyof typeof priorityMap];
-      }
-      return 0;
-    });
-
-  const handleCreateTicket = async () => {
-    if (!newTicket.title || !newTicket.description || !newTicket.areaId) return;
-    const success = await onCreateTicket(newTicket);
-    if (success) {
-      toast.success('Ticket creado correctamente');
-      setNewTicket({ title: '', description: '', priority: 'MEDIUM', category: 'General', areaId: '' });
-      setIsCreateDialogOpen(false);
-    }
-  };
+  const filteredTickets = tickets.filter(ticket => 
+    (ticket.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (ticket.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-8 px-1">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground uppercase">Gestión de Tickets</h1>
-          <p className="text-muted-foreground font-medium">Administra y haz seguimiento de todas las incidencias</p>
+          <h1 className="text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase italic">Central de Tickets</h1>
+          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Gestión de incidencias y nodos de soporte</p>
         </div>
-        {(isAdmin || isEmployee) && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 px-6 h-11 font-bold transition-all">
-                <Plus className="h-5 w-5 mr-2" strokeWidth={3} />
-                Nuevo Ticket
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-xl rounded-3xl border-border bg-card shadow-2xl p-0 overflow-hidden">
-              <div className="bg-primary p-8 text-primary-foreground relative">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <Inbox size={100} />
-                </div>
-                <DialogTitle className="text-2xl font-bold uppercase tracking-tight">Nueva Incidencia</DialogTitle>
-                <DialogDescription className="text-primary-foreground/80 mt-1 font-medium">
-                  Completa los detalles para reportar un nuevo problema.
-                </DialogDescription>
-              </div>
-              <div className="p-8 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Asunto</label>
-                  <Input
-                    placeholder="Título descriptivo del problema"
-                    value={newTicket.title}
-                    onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-                    className="h-11 rounded-xl border-border bg-muted/30 focus:ring-primary/20 font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Descripción</label>
-                  <textarea
-                    placeholder="Proporciona detalles técnicos sobre la incidencia..."
-                    value={newTicket.description}
-                    onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-                    className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-muted/30 min-h-[120px] resize-none text-sm font-medium transition-all"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Área</label>
-                    <select
-                      value={newTicket.areaId}
-                      onChange={(e) => setNewTicket({ ...newTicket, areaId: e.target.value })}
-                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none uppercase"
-                    >
-                      <option value="">Seleccionar área...</option>
-                      {areas.map(area => (
-                        <option key={area.id} value={area.id}>{area.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-foreground/80 ml-1 uppercase tracking-widest">Prioridad</label>
-                    <select
-                      value={newTicket.priority}
-                      onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
-                      className="w-full h-11 px-4 border border-border rounded-xl bg-muted/30 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none uppercase"
-                    >
-                      <option value="LOW">Baja</option>
-                      <option value="MEDIUM">Media</option>
-                      <option value="HIGH">Alta</option>
-                      <option value="URGENT">Urgente</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold text-muted-foreground uppercase text-xs tracking-widest">Cancelar</Button>
-                  <Button 
-                    className="bg-primary text-primary-foreground hover:opacity-90 rounded-xl h-11 px-8 font-bold uppercase text-xs tracking-widest"
-                    onClick={handleCreateTicket}
-                    disabled={!newTicket.title || !newTicket.description || !newTicket.areaId}
-                  >
-                    Crear Ticket
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Button className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] px-8 h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+          <Plus className="h-4 w-4 mr-2" strokeWidth={3} /> Nuevo Ticket
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <Input 
-            placeholder="Buscar por título o descripción..." 
-            className="pl-11 h-12 rounded-2xl border-border bg-card shadow-sm focus:ring-primary/20 font-medium"
+            placeholder="Buscar en la red..." 
+            className="pl-12 h-12 bg-white/50 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-blue-500/50"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant={showFilters ? "secondary" : "outline"} 
-            className={`h-12 px-6 rounded-2xl border-border bg-card shadow-sm font-bold gap-2 transition-all ${showFilters ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
-            Filtros
-          </Button>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="h-12 px-4 rounded-2xl border border-border bg-card shadow-sm font-bold text-sm focus:ring-primary/20 transition-all outline-none"
-          >
-            <option value="newest">Más recientes</option>
-            <option value="oldest">Más antiguos</option>
-            <option value="priority">Prioridad alta</option>
-          </select>
-        </div>
+        <Button variant="outline" className="h-12 px-6 border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 dark:hover:bg-white/5 dark:hover:text-white">
+          <Filter className="h-4 w-4 mr-2" /> Filtros Avanzados
+        </Button>
       </div>
 
-      {showFilters && (
-        <Card className="p-6 border-none shadow-md bg-card rounded-2xl grid grid-cols-1 sm:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Estado</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
-            >
-              <option value="all">Todos</option>
-              <option value="OPEN">Abiertos</option>
-              <option value="IN_PROGRESS">En progreso</option>
-              <option value="RESOLVED">Resueltos</option>
-              <option value="CLOSED">Cerrados</option>
-            </select>
+      <GlassCard>
+        <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.01]">
+          <div className="flex items-center gap-3">
+            <History className="h-4 w-4 text-blue-500" />
+            <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em]">Flujo de Incidencias</h3>
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Prioridad</label>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
-            >
-              <option value="all">Todas</option>
-              <option value="URGENT">Urgente</option>
-              <option value="HIGH">Alta</option>
-              <option value="MEDIUM">Media</option>
-              <option value="LOW">Baja</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Área</label>
-            <select
-              value={areaFilter}
-              onChange={(e) => setAreaFilter(e.target.value)}
-              className="w-full h-10 px-3 text-xs font-bold rounded-xl border border-border bg-muted/30 uppercase"
-            >
-              <option value="all">Todas las áreas</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>{area.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <Button 
-              variant="ghost" 
-              className="w-full h-10 font-bold text-xs text-primary uppercase"
-              onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); setAreaFilter('all'); }}
-            >
-              Limpiar Filtros
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      <Card className="border-none shadow-md overflow-hidden bg-card rounded-3xl">
+          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{filteredTickets.length} Registros Encontrados</div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-muted/30 border-b border-border">
-                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticket</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Área</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Estado</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prioridad</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Fecha</th>
-                <th className="px-6 py-4 w-10"></th>
+              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                <th className="px-8 py-4">Asunto / Nodo</th>
+                <th className="px-8 py-4">Prioridad</th>
+                <th className="px-8 py-4">Estado</th>
+                <th className="px-8 py-4 text-right">Detalles</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
-              {filteredTickets.map((ticket) => (
-                <tr 
-                  key={ticket.id} 
-                  className="hover:bg-muted/30 transition-all cursor-pointer group"
-                  onClick={() => onViewTicket(ticket)}
-                >
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-tight">
-                        {ticket.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs font-medium">
-                        {ticket.description}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    {ticket.area ? (
-                      <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase">
-                        <MapPin size={12} className="text-primary/40" />
-                        {ticket.area.name}
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {filteredTickets.map((ticket) => {
+                const config = statusConfig[ticket.status] || statusConfig.OPEN;
+                return (
+                  <tr 
+                    key={ticket.id} 
+                    className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                    onClick={() => onViewTicket(ticket)}
+                  >
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-tight italic">{ticket.title}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <MapPin size={10} className="text-slate-400" />
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">{ticket.area?.name || 'Gral.'}</span>
+                        </div>
                       </div>
-                    ) : <span className="text-[10px] text-muted-foreground/50 italic font-bold">N/A</span>}
-                  </td>
-                  <td className="px-6 py-5">
-                    <Badge variant={statusConfig[ticket.status].variant} className="font-bold text-[9px] uppercase tracking-wider">
-                      {statusConfig[ticket.status].label}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${priorityConfig[ticket.priority].color.replace('text-', 'bg-')}`} />
-                      <span className={`text-[10px] font-bold uppercase ${priorityConfig[ticket.priority].color}`}>{priorityConfig[ticket.priority].label}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-foreground uppercase">
-                        {new Date(ticket.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
-                      </span>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
-                        {ticket.createdBy?.name?.split(' ')[0] || 'Sistema'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="p-1.5 rounded-lg text-muted-foreground/30 group-hover:text-primary group-hover:bg-primary/10 transition-all">
-                      <ChevronRight size={18} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className={`flex items-center gap-2 ${priorityConfig[ticket.priority]?.color || 'text-slate-400'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full bg-current ${priorityConfig[ticket.priority]?.glow || ''}`} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{priorityConfig[ticket.priority]?.label || 'Media'}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className={`inline-flex px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${config.bg} ${config.color}`}>
+                        {config.label}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 group-hover:border-blue-500/30 group-hover:bg-blue-500/10 transition-all">
+                        <ChevronRight size={16} className="text-slate-600 group-hover:text-blue-400" />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredTickets.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="p-4 rounded-3xl bg-muted/50">
-                         <Inbox className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">No hay tickets</p>
+                  <td colSpan={4} className="py-24 text-center">
+                    <div className="flex flex-col items-center gap-4 opacity-20">
+                      <Inbox size={48} className="text-slate-400" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.5em]">Sector Vacío</p>
                     </div>
                   </td>
                 </tr>
@@ -386,7 +152,7 @@ export function TicketsPage({
             </tbody>
           </table>
         </div>
-      </Card>
+      </GlassCard>
     </div>
   );
 }

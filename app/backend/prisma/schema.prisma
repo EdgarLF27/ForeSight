@@ -140,6 +140,18 @@ model Ticket {
   comments   Comment[]
   activities TicketActivity[]
 
+  // AI Insights
+  aiSentiment         String?
+  aiSummary           String?
+  aiReasoning         String?
+  aiSuggestedArea     String?
+  aiSuggestedPriority String?
+  
+  // ML Predictive Fields
+  resolvedAt          DateTime? // Momento exacto de resolución para métricas
+  aiEstimatedTime     Int?      // Estimación en minutos
+  aiConfidence        Float?    // Nivel de confianza (0-1)
+
   @@map("tickets")
 }
 

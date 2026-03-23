@@ -28,7 +28,7 @@
     "prisma:seed:reset": "ts-node prisma/seed.ts --full-reset"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
@@ -40,6 +40,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "exceljs": "^4.4.0",
     "google-auth-library": "^10.6.2",
     "nest-winston": "^1.10.2",
     "passport": "^0.7.0",

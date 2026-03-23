@@ -18,15 +18,20 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CompaniesService } from './companies.service';
 import { existsSync, mkdirSync } from 'fs';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('companies')
 @UseGuards(AuthGuard('jwt'))
 export class CompaniesController {
-  constructor(private companiesService: CompaniesService) {}
+  constructor(
+    private companiesService: CompaniesService,
+    private authService: AuthService
+  ) {}
 
   @Post()
   async create(@Body() data: { name: string }, @Request() req) {
-    return this.companiesService.create(req.user.userId, data);
+    const user = await this.companiesService.create(req.user.userId, data);
+    return this.authService.login(user);
   }
 
   @Get(':id')

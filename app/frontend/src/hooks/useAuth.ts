@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authApi, usersApi } from '@/services/api';
+import { authApi, usersApi, companiesApi } from '@/services/api';
 import type { UserRole, AuthState } from '@/types';
 
 const TOKEN_KEY = 'token';
@@ -138,12 +138,42 @@ export function useAuth() {
   const joinCompany = async (inviteCode: string) => {
     try {
       const { data } = await authApi.joinCompany(inviteCode);
-      const user = data.user || data;
-      setState(prev => ({ ...prev, user, company: user.company }));
-      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      const { access_token, user: freshUser } = data;
+      
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+      
+      setState({
+        user: freshUser,
+        company: freshUser.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
       return true;
     } catch (error) {
       return false;
+    }
+  };
+
+  const createCompany = async (name: string) => {
+    try {
+      const { data } = await companiesApi.create({ name });
+      const { access_token, user: freshUser } = data;
+      
+      sessionStorage.setItem(TOKEN_KEY, access_token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+      
+      setState({
+        user: freshUser,
+        company: freshUser.company || null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error detallado en createCompany:', error);
+      const message = error.response?.data?.message || 'Error de conexión';
+      return { success: false, message: Array.isArray(message) ? message[0] : message };
     }
   };
 
@@ -187,6 +217,7 @@ export function useAuth() {
     logout,
     register,
     joinCompany,
+    createCompany, // <--- AHORA SÍ ESTÁ AQUÍ
     updateUser,
     updatePassword,
     uploadAvatar

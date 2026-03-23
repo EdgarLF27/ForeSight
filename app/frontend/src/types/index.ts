@@ -59,6 +59,18 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   activities?: TicketActivity[];
+  
+  // AI Insights
+  aiSentiment?: string;
+  aiSummary?: string;
+  aiReasoning?: string;
+  aiSuggestedArea?: string;
+  aiSuggestedPriority?: string;
+  
+  // ML Predictive Fields
+  resolvedAt?: string;
+  aiEstimatedTime?: number;
+  aiConfidence?: number;
 }
 
 export interface TicketActivity {
