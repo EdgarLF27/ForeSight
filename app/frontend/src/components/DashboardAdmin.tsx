@@ -36,7 +36,9 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { getFileUrl, reportsApi } from '@/services/api';
+import { getFileUrl } from '@/services/api';
+import { AdminReportPDF } from './AdminReportPDF';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import type { Ticket, Company, Area as AreaType, User } from '@/types';
 import { toast } from 'sonner';
 
@@ -104,10 +106,22 @@ export function DashboardAdmin({
   onViewTicket 
 }: DashboardAdminProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [period, setPeriod] = useState('Semana');
   const [metric, setMetric] = useState('Volumen');
   const [category, setCategory] = useState('Todos');
+
+  // FILTRO DE FECHAS PARA REPORTE
+  const [dateRange, setDateRange] = useState({
+    start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0], // Últimos 30 días por defecto
+    end: new Date().toISOString().split('T')[0]
+  });
+
+  const filteredTicketsForReport = useMemo(() => {
+    return tickets.filter(t => {
+      const ticketDate = t.createdAt.split('T')[0];
+      return ticketDate >= dateRange.start && ticketDate <= dateRange.end;
+    });
+  }, [tickets, dateRange]);
 
   const stats = useMemo(() => ({
     open: tickets.filter(t => t.status === 'OPEN').length,
@@ -159,29 +173,6 @@ export function DashboardAdmin({
     if (success) setIsCreateDialogOpen(false);
   };
 
-  const handleDownloadReport = async () => {
-    try {
-      setIsDownloading(true);
-      const response = await reportsApi.downloadAdminReport();
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Reporte_ForeSight_${new Date().toISOString().split('T')[0]}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Reporte descargado correctamente');
-    } catch (error) {
-      console.error('Error downloading report:', error);
-      toast.error('Error al generar el reporte');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const CurrentMetricIcon = metricConfig[metric].icon;
 
   return (
@@ -191,15 +182,42 @@ export function DashboardAdmin({
           <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Panel General</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Terminal de Control Operativo</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleDownloadReport} 
-            disabled={isDownloading}
-            className="px-6 py-3 bg-white/[0.03] hover:bg-white/[0.08] text-white border border-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5">
+            <span className="text-[8px] font-black text-slate-400 uppercase italic">Desde:</span>
+            <input 
+              type="date" 
+              value={dateRange.start} 
+              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              className="bg-transparent text-[10px] font-black text-slate-800 dark:text-white outline-none"
+            />
+            <span className="text-[8px] font-black text-slate-400 uppercase italic ml-2">Hasta:</span>
+            <input 
+              type="date" 
+              value={dateRange.end} 
+              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              className="bg-transparent text-[10px] font-black text-slate-800 dark:text-white outline-none"
+            />
+          </div>
+
+          <PDFDownloadLink 
+            document={
+              <AdminReportPDF 
+                tickets={filteredTicketsForReport} 
+                company={company} 
+                generatedDate={`${dateRange.start} al ${dateRange.end}`} 
+              />
+            }
+            fileName={`Reporte_ForeSight_${dateRange.start}_a_${dateRange.end}.pdf`}
+            className="px-6 py-3 bg-white/50 dark:bg-white/[0.03] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center gap-2"
           >
-            <Download className={`h-4 w-4 ${isDownloading ? 'animate-bounce' : ''}`} strokeWidth={3} /> 
-            {isDownloading ? 'Generando...' : 'Reporte'}
-          </button>
+            {({ loading }) => (
+              <>
+                <Download className={`h-4 w-4 ${loading ? 'animate-bounce' : ''}`} strokeWidth={3} /> 
+                {loading ? 'Generando...' : 'Reporte PDF'}
+              </>
+            )}
+          </PDFDownloadLink>
           <button onClick={() => setIsCreateDialogOpen(true)} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 flex items-center gap-2">
             <Plus className="h-4 w-4" strokeWidth={3} /> Nueva Incidencia
           </button>
