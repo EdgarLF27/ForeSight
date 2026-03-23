@@ -13,6 +13,7 @@ import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     MeetingsModule,
     NotificationsModule,
     AiModule,
+    ReportsModule,
   ],
 })
 export class AppModule implements NestModule {

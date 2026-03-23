@@ -13,9 +13,15 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -45,35 +51,22 @@ const priorityConfig = {
   URGENT: { label: 'Urgente', color: 'text-rose-400', bg: 'bg-rose-500/10' },
 };
 
-function GlassCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
+function GlassCard({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) {
   return (
-    <div className={`bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${className}`}>
+    <div 
+      onClick={onClick}
+      className={`bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${className}`}
+    >
       {children}
     </div>
   );
 }
 
-function StatSummaryCard({ label, count, icon, colorClass }: { label: string, count: number, icon: React.ReactNode, colorClass: string }) {
-  return (
-    <GlassCard className="p-6 group hover:bg-white/[0.05]">
-      <div className="flex items-center gap-6">
-        <div className={`p-4 rounded-2xl bg-white/[0.03] border border-white/5 ${colorClass} drop-shadow-[0_0_8px_currentColor] group-hover:scale-110 transition-transform`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-3xl font-black text-white tracking-tighter leading-none">{count}</p>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2">{label}</p>
-        </div>
-      </div>
-    </GlassCard>
-  );
-}
-
 export function DashboardEmployee({ 
   company, 
-  tickets, 
-  areas,
-  onCreateTicket, 
+  tickets = [], 
+  areas = [],
+  onCreateTicket,
   onViewTicket,
   onJoinCompany,
   onCreateCompany 
@@ -83,14 +76,28 @@ export function DashboardEmployee({
   const [companyName, setCompanyName] = useState(''); 
   const [isLoadingAction, setIsLoadingAction] = useState(false);
   const [onboardingView, setOnboardingView] = useState<'selection' | 'join' | 'create'>('selection');
-  
+
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
     priority: 'MEDIUM' as const,
-    category: 'General',
     areaId: '',
   });
+
+  const handleCreateTicketSubmit = async () => {
+    if (!newTicket.title || !newTicket.description || !newTicket.areaId) {
+      toast.error("Por favor completa todos los campos requeridos");
+      return;
+    }
+    
+    setIsLoadingAction(true);
+    const success = await onCreateTicket(newTicket);
+    if (success) {
+      setIsCreateDialogOpen(false);
+      setNewTicket({ title: '', description: '', priority: 'MEDIUM', areaId: '' });
+    }
+    setIsLoadingAction(false);
+  };
 
   if (!company) {
     return (
@@ -124,17 +131,86 @@ export function DashboardEmployee({
               </div>
             </div>
           )}
-          {/* Vistas de Join/Create omitidas por brevedad pero mantienen la lógica interna */}
+
+          {onboardingView === 'join' && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-md mx-auto">
+               <GlassCard className="p-10 space-y-8">
+                  <div className="flex items-center gap-4 mb-4">
+                    <button onClick={() => setOnboardingView('selection')} className="p-2 hover:bg-white/5 rounded-xl text-slate-500 transition-colors">
+                      <ChevronRight className="h-5 w-5 rotate-180" />
+                    </button>
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Unirse a Equipo</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ingresa el código de 6 dígitos</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Input 
+                      placeholder="CÓDIGO-ID" 
+                      value={joinCode} 
+                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      className="bg-white/[0.03] border-white/10 rounded-2xl h-14 text-center text-xl font-mono tracking-[0.5em] text-blue-400"
+                    />
+                    <Button 
+                      disabled={isLoadingAction || joinCode.length < 3}
+                      onClick={async () => {
+                        setIsLoadingAction(true);
+                        const success = await onJoinCompany(joinCode);
+                        if (success) toast.success("Te has unido al equipo correctamente");
+                        else toast.error("Código inválido o error al unirse");
+                        setIsLoadingAction(false);
+                      }}
+                      className="w-full bg-blue-600 h-14 rounded-2xl font-black uppercase tracking-widest"
+                    >
+                      {isLoadingAction ? 'Procesando...' : 'Vincular Nodo'}
+                    </Button>
+                  </div>
+               </GlassCard>
+            </motion.div>
+          )}
+
+          {onboardingView === 'create' && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-md mx-auto">
+               <GlassCard className="p-10 space-y-8">
+                  <div className="flex items-center gap-4 mb-4">
+                    <button onClick={() => setOnboardingView('selection')} className="p-2 hover:bg-white/5 rounded-xl text-slate-500 transition-colors">
+                      <ChevronRight className="h-5 w-5 rotate-180" />
+                    </button>
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Nueva Entidad</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Registra tu infraestructura</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Input 
+                      placeholder="Nombre de la Empresa" 
+                      value={companyName} 
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="bg-white/[0.03] border-white/10 rounded-2xl h-14 text-white font-bold"
+                    />
+                    <Button 
+                      disabled={isLoadingAction || companyName.length < 3}
+                      onClick={async () => {
+                        setIsLoadingAction(true);
+                        if (onCreateCompany) {
+                          await onCreateCompany(companyName);
+                        }
+                        setIsLoadingAction(false);
+                      }}
+                      className="w-full bg-emerald-600 h-14 rounded-2xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                    >
+                      {isLoadingAction ? 'Inicializando...' : 'Fundar Organización'}
+                    </Button>
+                  </div>
+               </GlassCard>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     );
   }
-
-  const ticketsByStatus = {
-    OPEN: tickets.filter(t => t.status === 'OPEN'),
-    IN_PROGRESS: tickets.filter(t => t.status === 'IN_PROGRESS'),
-    RESOLVED: tickets.filter(t => t.status === 'RESOLVED'),
-  };
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
@@ -155,26 +231,71 @@ export function DashboardEmployee({
                 <DialogDescription className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Describe el problema detectado</DialogDescription>
              </div>
              <div className="p-10 space-y-6">
-                <Input placeholder="Asunto..." className="bg-white/[0.03] border-white/10 rounded-xl h-12 text-white" />
-                <DialogFooter>
-                  <Button className="bg-blue-600 w-full rounded-xl h-12 font-black uppercase text-xs">Enviar Reporte</Button>
+                <div className="space-y-4">
+                  <Input 
+                    placeholder="Asunto..." 
+                    value={newTicket.title}
+                    onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+                    className="bg-white/[0.03] border-white/10 rounded-xl h-12 text-white font-bold" 
+                  />
+                  <Textarea 
+                    placeholder="Describe el problema detalladamente..." 
+                    value={newTicket.description}
+                    onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+                    className="bg-white/[0.03] border-white/10 rounded-xl min-h-[120px] text-white italic" 
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Select 
+                      value={newTicket.priority} 
+                      onValueChange={(val: any) => setNewTicket({ ...newTicket, priority: val })}
+                    >
+                      <SelectTrigger className="bg-white/[0.03] border-white/10 h-12 rounded-xl text-white">
+                        <SelectValue placeholder="Prioridad" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a0b] border-white/10 text-white">
+                        <SelectItem value="LOW">Baja</SelectItem>
+                        <SelectItem value="MEDIUM">Media</SelectItem>
+                        <SelectItem value="HIGH">Alta</SelectItem>
+                        <SelectItem value="URGENT">Urgente</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select 
+                      value={newTicket.areaId} 
+                      onValueChange={(val) => setNewTicket({ ...newTicket, areaId: val })}
+                    >
+                      <SelectTrigger className="bg-white/[0.03] border-white/10 h-12 rounded-xl text-white">
+                        <SelectValue placeholder="Seleccionar Área" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a0b] border-white/10 text-white">
+                        {areas.map(area => (
+                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-4">
+                  <Button 
+                    onClick={handleCreateTicketSubmit}
+                    disabled={isLoadingAction}
+                    className="bg-blue-600 hover:bg-blue-500 w-full rounded-xl h-14 font-black uppercase text-xs tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)]"
+                  >
+                    {isLoadingAction ? 'Enviando...' : 'Enviar Reporte Oficial'}
+                  </Button>
                 </DialogFooter>
              </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatSummaryCard label="Abiertos" count={ticketsByStatus.OPEN.length} icon={<AlertCircle size={24} />} colorClass="text-rose-400" />
-        <StatSummaryCard label="En Proceso" count={ticketsByStatus.IN_PROGRESS.length} icon={<Clock size={24} />} colorClass="text-amber-400" />
-        <StatSummaryCard label="Resueltos" count={ticketsByStatus.RESOLVED.length} icon={<CheckCircle size={24} />} colorClass="text-emerald-400" />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.4em] ml-2">Flujo de Trabajo Activo</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tickets.slice(0, 4).map((ticket) => (
+            {tickets.map((ticket) => (
               <GlassCard key={ticket.id} onClick={() => onViewTicket(ticket)} className="p-6 cursor-pointer hover:bg-white/[0.05] group">
                 <div className="flex justify-between items-start mb-4">
                   <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${priorityConfig[ticket.priority].bg} ${priorityConfig[ticket.priority].color}`}>
@@ -192,6 +313,12 @@ export function DashboardEmployee({
                 </div>
               </GlassCard>
             ))}
+            {tickets.length === 0 && (
+              <div className="col-span-full py-20 text-center">
+                <Inbox className="h-12 w-12 text-slate-700 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">No hay tickets registrados</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -199,7 +326,7 @@ export function DashboardEmployee({
           <GlassCard className="p-8 h-full flex flex-col justify-between">
             <div className="space-y-8">
               <div className="w-20 h-20 bg-white/[0.05] rounded-3xl border border-white/10 flex items-center justify-center overflow-hidden mx-auto shadow-lg">
-                {company.logo ? <img src={getFileUrl(company.logo)} className="w-full h-full object-cover" /> : <Building2 size={32} className="text-blue-400/20" />}
+                {company.logo ? <img src={getFileUrl(company.logo) || ''} className="w-full h-full object-cover" /> : <Building2 size={32} className="text-blue-400/20" />}
               </div>
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">{company.name}</h2>

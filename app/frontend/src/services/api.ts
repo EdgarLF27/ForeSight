@@ -108,4 +108,8 @@ export const notificationsApi = {
   markAllAsRead: () => api.put('/notifications/mark-all-read'),
 };
 
+export const reportsApi = {
+  downloadAdminReport: () => api.get('/reports/admin-general', { responseType: 'blob' }),
+};
+
 export default api;

@@ -66,9 +66,8 @@ export class AuthService {
       if (!user) {
         // BUSCAR ROL DE EMPLEADO POR DEFECTO
         const role = await this.prisma.role.findFirst({
-          where: { name: 'Empleado', isSystem: true }
+          where: { name: { contains: 'Empleado', mode: 'insensitive' }, isSystem: true }
         });
-
         user = await this.prisma.user.create({
           data: {
             email: email!,
@@ -132,7 +131,7 @@ export class AuthService {
 
     // Todos los registros manuales inician como 'Empleado' base sin empresa asignada
     const role = await this.prisma.role.findFirst({
-      where: { name: 'Empleado', isSystem: true }
+      where: { name: { contains: 'Empleado', mode: 'insensitive' }, isSystem: true }
     });
 
     const user = await this.prisma.user.create({
@@ -180,14 +179,21 @@ export class AuthService {
       },
       include: { 
         company: true,
-        area: true 
+        area: true,
+        role: {
+          include: { permissions: true }
+        }
       },
     });
 
     const { password: _, ...result } = updatedUser;
+    
+    // Generar nuevo token con el nuevo companyId y rol
+    const loginResult = await this.login(result);
+
     return {
       message: 'Te has unido a la empresa exitosamente',
-      user: result,
+      ...loginResult, // Devuelve access_token y user actualizado
     };
   }
 

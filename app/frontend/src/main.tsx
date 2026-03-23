@@ -1,38 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { ThemeProvider } from 'next-themes'
-import { GoogleOAuthProvider } from '@react-oauth/google'
-import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+import './index.css'
+import { Toaster } from './components/ui/sonner'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
-// Interceptor de consola ultra-agresivo para mantener la consola inmaculada
-const silenceGoogleNoise = () => {
-  const silencers = ['Cross-Origin-Opener-Policy', 'window.closed', 'gsi/client'];
-  const types: Array<keyof Console> = ['error', 'warn', 'info', 'debug'];
-  
-  types.forEach((type) => {
-    const original = console[type] as any;
-    (console[type] as any) = (...args: any[]) => {
-      const msg = args.join(' ');
-      if (silencers.some(s => msg.includes(s))) return;
-      original.apply(console, args);
-    };
-  });
-};
+const GOOGLE_CLIENT_ID = "104169727409-5shv572iv08n6k8aovmivj0iv2d9526n.apps.googleusercontent.com";
 
-silenceGoogleNoise();
-
-const GOOGLE_CLIENT_ID = "433426856774-t1e521993r6fs4ug2f3oi76o0rtia64n.apps.googleusercontent.com"
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <GoogleOAuthProvider 
-      clientId={GOOGLE_CLIENT_ID}
-      useFedCM={true}
-    >
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <App />
-      </ThemeProvider>
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <App />
+      <Toaster position="top-right" richColors closeButton />
     </GoogleOAuthProvider>
-  </StrictMode>,
+  </React.StrictMode>,
 )

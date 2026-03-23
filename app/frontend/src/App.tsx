@@ -14,20 +14,18 @@ import { RolesPage } from '@/components/RolesPage';
 import { AreasPage } from '@/components/AreasPage';
 import { AgendaPage } from '@/components/AgendaPage';
 import { SettingsPage } from '@/components/SettingsPage';
-import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { companiesApi } from '@/services/api';
 import { Tutorial } from '@/components/Tutorial';
-import type { Ticket, Company } from '@/types';
+import type { Ticket } from '@/types';
 
 type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
 
 function App() {
   const { 
     user, 
-    company: authCompany, 
+    company, // Usamos la empresa directamente de useAuth
     isAuthenticated, 
     isLoading, 
     login, 
@@ -35,24 +33,12 @@ function App() {
     googleLogin,
     logout, 
     joinCompany,
+    createCompany,
     updateUser 
   } = useAuth();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [company, setCompany] = useState<Company | null>(authCompany);
-
-  // LIMPIAR ESTADO AL CERRAR SESIÓN
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setCompany(null);
-      setSelectedTicket(null);
-      setCurrentPage('dashboard');
-    } else {
-      setCompany(authCompany);
-    }
-  }, [isAuthenticated, authCompany]);
 
   const { 
     tickets, 
@@ -76,153 +62,70 @@ function App() {
   } = useTeam(company?.id);
   const { areas, loadAreas } = useAreas();
 
-  const isAdmin = user?.role === 'Administrador' || (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'EMPRESA';
+  // DETECCIÓN ROBUSTA DE ROLES
+  const isAdmin = (typeof user?.role === 'object' && user?.role?.name === 'Administrador') || user?.role === 'Administrador' || user?.role === 'EMPRESA';
   const isTechnician = (typeof user?.role === 'object' && user?.role?.name === 'Técnico');
 
-  const myTickets = tickets.filter(t => t.createdById === user?.id || (typeof t.createdBy === 'object' && t.createdBy.id === user?.id));
-
-  // CARGAR DATOS INICIALES Y REFRESCAR EMPRESA
+  // CARGAR DATOS CUANDO TENGAMOS EMPRESA
   useEffect(() => {
-    const initData = async () => {
-      if (isAuthenticated && user?.companyId) {
-        // Cargar datos frescos de la empresa (Para que empleados vean logo/info nueva)
-        try {
-          const { data } = await companiesApi.getById(user.companyId);
-          setCompany(data);
-        } catch (err) {
-          setCompany(authCompany);
-        }
-        
-        loadTickets();
-        loadMembers();
-        loadAreas();
-        if (isAdmin) loadTechnicians();
-      }
-    };
-    initData();
-  }, [isAuthenticated, user?.companyId, isAdmin, loadTickets, loadMembers, loadAreas, loadTechnicians, authCompany]);
+    if (isAuthenticated && company?.id) {
+      loadTickets();
+      loadMembers();
+      loadAreas();
+      if (isAdmin) loadTechnicians();
+    }
+  }, [isAuthenticated, company?.id, isAdmin, loadTickets, loadMembers, loadAreas, loadTechnicians]);
 
   useEffect(() => {
-    const refreshTicketDetails = async () => {
-      if (selectedTicket && !selectedTicket.activities) {
-        try {
-          const fullTicket = await getTicketById(selectedTicket.id);
-          if (fullTicket) setSelectedTicket(fullTicket);
-        } catch (err) {}
-      }
-    };
-
     if (selectedTicket) {
       loadComments(selectedTicket.id);
-      refreshTicketDetails();
       if (isAdmin) loadTechnicians(selectedTicket.areaId);
     }
-  }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians, getTicketById]);
+  }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians]);
 
   const handlePageChange = (page: Page) => {
     setSelectedTicket(null);
     setCurrentPage(page);
   };
 
-  const handleNotificationAction = async (ticketId: string) => {
-    try {
-      const ticket = await getTicketById(ticketId);
-      if (ticket) setSelectedTicket(ticket);
-    } catch (err) {
-      toast.error("No se pudo abrir el ticket asociado.");
+  const handleCreateCompany = async (name: string): Promise<boolean> => {
+    const result = await createCompany(name) as any;
+    if (result.success) {
+      toast.success("Empresa creada correctamente");
+      return true;
+    } else {
+      toast.error(result.message || "Error al crear la empresa");
+      return false;
     }
   };
 
   const handleCreateTicket = async (ticketData: any): Promise<boolean> => {
-    try {
-      const result = await createTicket(ticketData);
-      if (result) {
-        toast.success("Ticket creado correctamente");
-        return true;
-      }
-      return false;
-    } catch (err: any) {
-      const serverError = err.response?.data?.message;
-      const message = serverError || 'Error al crear ticket';
-      toast.error(Array.isArray(message) ? message[0] : message);
-      return false;
-    }
-  };
-
-  const handleUpdateTicketStatus = async (status: Ticket['status']) => {
-    if (selectedTicket) {
-      const success = await updateTicket(selectedTicket.id, { status });
-      if (success) {
-        const updated = await getTicketById(selectedTicket.id);
-        if (updated) setSelectedTicket(updated);
-      }
-    }
-  };
-
-  const handleAssignTicket = async (userId: string) => {
-    if (selectedTicket) {
-      const success = await updateTicket(selectedTicket.id, { assignedToId: userId });
-      if (success) {
-        const updated = await getTicketById(selectedTicket.id);
-        if (updated) setSelectedTicket(updated);
-      }
-    }
-  };
-
-  const handleClaimTicket = async () => {
-    if (selectedTicket) {
-      const success = await claimTicket(selectedTicket.id);
-      if (success) {
-        const updated = await getTicketById(selectedTicket.id);
-        if (updated) setSelectedTicket(updated);
-      }
-    }
-  };
-
-  const handleAddComment = async (content: string) => {
-    if (selectedTicket) {
-      await addComment(selectedTicket.id, content);
-    }
-  };
-
-  const handleCreateCompany = async (name: string): Promise<boolean> => {
-    try {
-      const { data } = await companiesApi.create({ name });
-      // Al crear empresa, el backend debería devolver el usuario actualizado o 
-      // podemos simplemente forzar una recarga para obtener el nuevo rol de Admin
+    const result = await createTicket(ticketData);
+    if (result) {
+      toast.success("Ticket creado correctamente");
       return true;
-    } catch (err) {
-      return false;
     }
+    return false;
   };
 
   if (isLoading) return <LoadingState />;
 
   if (!isAuthenticated || !user) {
     return (
-      <>
-        <AuthPage 
-          onLogin={login} 
-          onRegister={register} 
-          onJoinCompany={joinCompany} 
-          onGoogleLogin={googleLogin}
-          onBack={() => {}} 
-        />
-        <Toaster position="top-right" />
-      </>
+      <AuthPage 
+        onLogin={login} 
+        onRegister={register} 
+        onJoinCompany={joinCompany} 
+        onGoogleLogin={googleLogin}
+        onBack={() => {}} 
+      />
     );
   }
 
   const renderPage = () => {
-    const isAdminRole = user.role === 'Administrador' || (typeof user.role === 'object' && (user.role as any).name === 'Administrador') || user.role === 'EMPRESA';
-    
-    // Filtramos tickets para que el técnico vea los que puede atender y el empleado los suyos
-    const isTechnicianRole = (typeof user.role === 'object' && (user.role as any).name === 'Técnico');
-    const displayTickets = isTechnicianRole ? tickets : myTickets;
-
     switch (currentPage) {
       case 'dashboard':
-        if (isAdminRole) {
+        if (isAdmin) {
           return (
             <DashboardAdmin
               company={company}
@@ -238,7 +141,7 @@ function App() {
         return (
           <DashboardEmployee
             company={company}
-            tickets={displayTickets}
+            tickets={tickets}
             areas={areas}
             onCreateTicket={handleCreateTicket}
             onViewTicket={setSelectedTicket}
@@ -250,7 +153,7 @@ function App() {
       case 'tickets':
         return (
           <TicketsPage
-            tickets={(isAdminRole || isTechnician) ? tickets : myTickets}
+            tickets={(isAdmin || isTechnician) ? tickets : tickets.filter(t => t.createdById === user.id)}
             areas={areas}
             teamMembers={teamMembers}
             currentUser={user}
@@ -261,7 +164,7 @@ function App() {
         );
 
       case 'team':
-        return isAdminRole && company ? (
+        return isAdmin && company ? (
           <TeamPage
             user={user}
             company={company}
@@ -273,8 +176,8 @@ function App() {
           />
         ) : null;
 
-      case 'roles': return isAdminRole ? <RolesPage /> : null;
-      case 'areas': return isAdminRole ? <AreasPage /> : null;
+      case 'roles': return isAdmin ? <RolesPage /> : null;
+      case 'areas': return isAdmin ? <AreasPage /> : null;
       case 'agenda': return <AgendaPage onViewTicket={setSelectedTicket} currentUser={user} />;
       case 'settings': return <SettingsPage user={user} company={company} onUpdateUser={updateUser} />;
       default: return null;
@@ -282,26 +185,51 @@ function App() {
   };
 
   return (
-    <>
-      <Layout user={user} company={company} onLogout={logout} currentPage={currentPage} onPageChange={handlePageChange} onNotificationAction={handleNotificationAction}>
-        {selectedTicket ? (
-          <TicketDetail
-            ticket={selectedTicket}
-            comments={comments}
-            currentUser={user}
-            teamMembers={teamMembers}
-            technicians={technicians}
-            onBack={() => { setSelectedTicket(null); loadTickets(); }}
-            onUpdateStatus={handleUpdateTicketStatus}
-            onAssign={handleAssignTicket}
-            onClaim={handleClaimTicket}
-            onAddComment={handleAddComment}
-          />
-        ) : renderPage()}
-        <Tutorial user={user} />
-      </Layout>
-      <Toaster position="top-right" />
-    </>
+    <Layout 
+      user={user} 
+      company={company} 
+      onLogout={logout} 
+      currentPage={currentPage} 
+      onPageChange={handlePageChange}
+      onNotificationAction={async (id) => {
+        const ticket = await getTicketById(id);
+        if (ticket) setSelectedTicket(ticket);
+      }}
+    >
+      {selectedTicket ? (
+        <TicketDetail
+          ticket={selectedTicket}
+          comments={comments}
+          currentUser={user}
+          teamMembers={teamMembers}
+          technicians={technicians}
+          onBack={() => { setSelectedTicket(null); loadTickets(); }}
+          onUpdateStatus={async (status) => {
+             const ok = await updateTicket(selectedTicket.id, { status });
+             if (ok) {
+               const upd = await getTicketById(selectedTicket.id);
+               if (upd) setSelectedTicket(upd);
+             }
+          }}
+          onAssign={async (uid) => {
+            const ok = await updateTicket(selectedTicket.id, { assignedToId: uid });
+            if (ok) {
+              const upd = await getTicketById(selectedTicket.id);
+              if (upd) setSelectedTicket(upd);
+            }
+          }}
+          onClaim={async () => {
+             const ok = await claimTicket(selectedTicket.id);
+             if (ok) {
+              const upd = await getTicketById(selectedTicket.id);
+              if (upd) setSelectedTicket(upd);
+             }
+          }}
+          onAddComment={(content) => addComment(selectedTicket.id, content)}
+        />
+      ) : renderPage()}
+      <Tutorial user={user} />
+    </Layout>
   );
 }
 

@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/useAuth';
 import { getFileUrl } from '@/services/api';
 import { toast } from 'sonner';
@@ -29,8 +28,24 @@ interface SettingsPageProps {
 }
 
 export function SettingsPage({ user, company, onUpdateUser }: SettingsPageProps) {
-  const { theme, setTheme } = useTheme();
   const { updatePassword, uploadAvatar } = useAuth();
+  const [theme, setThemeState] = useState<'light' | 'dark' | 'system'>(() => {
+    return (localStorage.getItem('theme') as any) || 'dark';
+  });
+
+  const setTheme = (newTheme: 'light' | 'dark' | 'system') => {
+    setThemeState(newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System logic
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', isDark);
+    }
+    localStorage.setItem('theme', newTheme);
+  };
   
   const [profileData, setProfileData] = useState({ name: user.name, email: user.email });
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });

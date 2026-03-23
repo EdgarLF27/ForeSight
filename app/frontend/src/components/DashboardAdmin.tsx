@@ -13,7 +13,8 @@ import {
   Calendar,
   Activity,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +36,9 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { getFileUrl } from '@/services/api';
+import { getFileUrl, reportsApi } from '@/services/api';
 import type { Ticket, Company, Area as AreaType, User } from '@/types';
+import { toast } from 'sonner';
 
 interface DashboardAdminProps {
   company: Company | null;
@@ -102,6 +104,7 @@ export function DashboardAdmin({
   onViewTicket 
 }: DashboardAdminProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [period, setPeriod] = useState('Semana');
   const [metric, setMetric] = useState('Volumen');
   const [category, setCategory] = useState('Todos');
@@ -156,6 +159,29 @@ export function DashboardAdmin({
     if (success) setIsCreateDialogOpen(false);
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      setIsDownloading(true);
+      const response = await reportsApi.downloadAdminReport();
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Reporte_ForeSight_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Reporte descargado correctamente');
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      toast.error('Error al generar el reporte');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const CurrentMetricIcon = metricConfig[metric].icon;
 
   return (
@@ -165,9 +191,19 @@ export function DashboardAdmin({
           <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Panel General</h1>
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Terminal de Control Operativo</p>
         </div>
-        <button onClick={() => setIsCreateDialogOpen(true)} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 flex items-center gap-2">
-          <Plus className="h-4 w-4" strokeWidth={3} /> Nueva Incidencia
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleDownloadReport} 
+            disabled={isDownloading}
+            className="px-6 py-3 bg-white/[0.03] hover:bg-white/[0.08] text-white border border-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+          >
+            <Download className={`h-4 w-4 ${isDownloading ? 'animate-bounce' : ''}`} strokeWidth={3} /> 
+            {isDownloading ? 'Generando...' : 'Reporte'}
+          </button>
+          <button onClick={() => setIsCreateDialogOpen(true)} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 flex items-center gap-2">
+            <Plus className="h-4 w-4" strokeWidth={3} /> Nueva Incidencia
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
