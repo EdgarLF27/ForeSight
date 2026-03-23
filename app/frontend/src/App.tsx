@@ -80,8 +80,25 @@ function App() {
     if (selectedTicket) {
       loadComments(selectedTicket.id);
       if (isAdmin) loadTechnicians(selectedTicket.areaId);
+
+      // POLLING PARA IA: Si no hay resumen de IA, reintentar cada 3 seg (máx 6 veces)
+      if (!selectedTicket.aiSummary && !selectedTicket.aiSentiment) {
+        const interval = setInterval(async () => {
+          try {
+            const updated = await getTicketById(selectedTicket.id);
+            if (updated?.aiSummary || updated?.aiSentiment) {
+              setSelectedTicket(updated);
+              clearInterval(interval);
+            }
+          } catch (err) {
+            clearInterval(interval);
+          }
+        }, 3000);
+
+        return () => clearInterval(interval);
+      }
     }
-  }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians]);
+  }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians, getTicketById]);
 
   const handlePageChange = (page: Page) => {
     setSelectedTicket(null);

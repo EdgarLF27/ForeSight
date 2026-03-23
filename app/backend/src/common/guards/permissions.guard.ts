@@ -18,6 +18,11 @@ export class PermissionsGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     
+    // Si el usuario es de tipo EMPRESA (Administrador Principal), tiene permiso total
+    if (user && user.role === 'EMPRESA') {
+      return true;
+    }
+    
     if (!user || !user.permissions) {
       throw new ForbiddenException('No tienes permisos suficientes');
     }
