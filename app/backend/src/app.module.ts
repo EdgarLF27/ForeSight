@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { ReportsModule } from './reports/reports.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ReportsModule } from './reports/reports.module';
     AiModule,
     ReportsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
