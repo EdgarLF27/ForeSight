@@ -74,7 +74,7 @@ export class AiService implements OnModuleInit {
         }).join('\n')
       : "No hay historial previo para esta empresa.";
 
-    const prompt = `
+    const aiPrompt = `
       Eres un experto en estimación de tiempos de soporte técnico.
       Basándote en este historial de casos resueltos:
       ${historyText}
@@ -94,7 +94,7 @@ export class AiService implements OnModuleInit {
 
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent(aiPrompt);
       const text = result.response.text();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
