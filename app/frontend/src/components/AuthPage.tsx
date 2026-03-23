@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, 
   EyeOff, 
   ArrowLeft,
-  Loader2 
+  Loader2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,6 +112,20 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   const handleGoogleClick = useGoogleLogin({
     use_fedcm: true,
@@ -170,6 +186,20 @@ export function AuthPage({ onLogin, onRegister, onGoogleLogin, onBack }: AuthPag
     <div className="min-h-screen bg-background flex font-sans text-foreground selection:bg-blue-600/30 overflow-hidden relative transition-colors duration-300">
       <div className="fixed top-0 left-0 w-[500px] h-full bg-gradient-to-br from-blue-200/40 to-purple-200/30 blur-[120px] pointer-events-none z-0 opacity-100 dark:opacity-0 transition-opacity duration-500" />
       <DataLines />
+
+      {/* BOTÓN DE TEMA */}
+      <div className="absolute top-8 right-8 z-50">
+        <button 
+          onClick={toggleTheme}
+          className="p-3 bg-white/50 dark:bg-card/50 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-lg dark:shadow-none text-slate-600 dark:text-slate-400 hover:scale-110 transition-all active:scale-95"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-6 w-6 text-amber-400" strokeWidth={2.5} />
+          ) : (
+            <Moon className="h-6 w-6 text-blue-600" strokeWidth={2.5} />
+          )}
+        </button>
+      </div>
 
       {onBack && (
         <motion.button 
