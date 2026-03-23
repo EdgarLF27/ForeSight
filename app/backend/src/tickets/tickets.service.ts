@@ -182,49 +182,42 @@ export class TicketsService {
       data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado' },
     });
 
-    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO EN SEGUNDO PLANO
-    // No usamos 'await' aquí para que el usuario reciba su ticket de inmediato
-    const processAiAnalytics = async () => {
-      try {
-        // 1. Análisis de Sentimiento y Clasificación
-        const analysis = await this.aiService.analyzeTicket(data.description);
-        
-        // 2. Machine Learning: Predicción de Tiempo (Día 2)
-        // Buscamos tickets similares resueltos recientemente en la misma empresa
-        const history = await this.prisma.ticket.findMany({
-          where: { 
-            companyId: data.companyId, 
-            status: { in: ['RESOLVED', 'CLOSED'] },
-            resolvedAt: { not: null }
-          },
-          take: 10,
-          orderBy: { resolvedAt: 'desc' },
-          include: { area: { select: { name: true } } }
+    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO (Síncrono para asegurar funcionamiento)
+    try {
+      console.log('TicketsService: Iniciando análisis de IA para nuevo ticket...');
+      const analysis = await this.aiService.analyzeTicket(data.description);
+      
+      const history = await this.prisma.ticket.findMany({
+        where: { 
+          companyId: data.companyId, 
+          status: { in: ['RESOLVED', 'CLOSED'] },
+          resolvedAt: { not: null }
+        },
+        take: 10,
+        orderBy: { resolvedAt: 'desc' },
+        include: { area: { select: { name: true } } }
+      });
+
+      const prediction = await this.aiService.predictResolutionTime(ticket, history);
+
+      if (analysis || prediction) {
+        const updatedTicket = await this.prisma.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            aiSentiment: analysis?.sentiment,
+            aiSummary: analysis?.summary,
+            aiReasoning: analysis?.ai_reasoning,
+            aiSuggestedArea: analysis?.suggestedArea,
+            aiSuggestedPriority: analysis?.suggestedPriority,
+            aiEstimatedTime: prediction?.estimatedMinutes,
+            aiConfidence: prediction?.confidence,
+          }
         });
-
-        const prediction = await this.aiService.predictResolutionTime(ticket, history);
-
-        if (analysis || prediction) {
-          await this.prisma.ticket.update({
-            where: { id: ticket.id },
-            data: {
-              aiSentiment: analysis?.sentiment,
-              aiSummary: analysis?.summary,
-              aiReasoning: analysis?.ai_reasoning,
-              aiSuggestedArea: analysis?.suggestedArea,
-              aiSuggestedPriority: analysis?.suggestedPriority,
-              // Campos de ML
-              aiEstimatedTime: prediction?.estimatedMinutes,
-              aiConfidence: prediction?.confidence,
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Error en proceso de inteligencia de ticket:', err);
+        return updatedTicket;
       }
-    };
-
-    processAiAnalytics();
+    } catch (err) {
+      console.error('Error en proceso de inteligencia de ticket:', err);
+    }
 
     return ticket;
   }
