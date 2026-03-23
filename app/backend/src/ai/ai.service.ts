@@ -18,9 +18,7 @@ export class AiService implements OnModuleInit {
 
   async onModuleInit() {
     if (!this.genAI) {
-      console.warn(
-        "AiService: El servicio de IA no se inició por falta de API Key.",
-      );
+      console.warn("AiService: El servicio de IA no se inició por falta de API Key.");
     }
   }
 
@@ -42,9 +40,8 @@ export class AiService implements OnModuleInit {
     `;
 
     try {
-      console.log("AiService: Iniciando análisis con gemini-1.5-flash");
       const model = this.genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-flash-latest",
       });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
