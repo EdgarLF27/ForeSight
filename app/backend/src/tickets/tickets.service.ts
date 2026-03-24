@@ -198,21 +198,21 @@ export class TicketsService {
       throw new BadRequestException('Ya has enviado un ticket idéntico recientemente. Por favor, espera un momento.');
     }
 
-    // BUSCAMOS EL ÁREA DEL USUARIO CREADOR
+    // BUSCAMOS EL ÁREA DEL USUARIO CREADOR PARA EL LOG Y LA ASIGNACIÓN
     const user = await this.prisma.user.findUnique({
       where: { id: data.createdById },
-      select: { areaId: true }
+      include: { area: true }
     });
 
     const ticket = await this.prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
-        priority: 'MEDIUM', // Por defecto media, la IA la ajustará si es necesario
+        priority: 'MEDIUM',
         category: data.category || 'General',
         companyId: data.companyId,
         createdById: data.createdById,
-        areaId: user?.areaId || null, // Tomamos el área del empleado
+        areaId: user?.areaId || null,
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -221,10 +221,15 @@ export class TicketsService {
     });
 
     await this.prisma.ticketActivity.create({
-      data: { ticketId: ticket.id, userId: data.createdById, action: 'CREATED', details: 'Ticket creado desde el área de origen' },
+      data: { 
+        ticketId: ticket.id, 
+        userId: data.createdById, 
+        action: 'CREATED', 
+        details: `Ticket registrado desde el área: ${user?.area?.name || 'Área General'}` 
+      },
     });
 
-    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO (Síncrono para asegurar funcionamiento)
+    // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO
     try {
       console.log('TicketsService: Iniciando análisis de IA para nuevo ticket...');
       const analysis = await this.aiService.analyzeTicket(data.description);
@@ -243,29 +248,27 @@ export class TicketsService {
       const prediction = await this.aiService.predictResolutionTime(ticket, history);
 
       if (analysis || prediction) {
-        // AUTO-CLASIFICACIÓN: Si la IA sugiere un área técnica específica
-        let autoAreaId = ticket.areaId;
+        let finalAreaId = ticket.areaId;
         let activityLog = '';
 
         if (analysis?.suggestedArea) {
-          const area = await this.prisma.area.findFirst({
+          const suggestedArea = await this.prisma.area.findFirst({
             where: { 
               name: { contains: analysis.suggestedArea, mode: 'insensitive' },
               companyId: data.companyId 
             }
           });
-          // Solo cambiamos si encontramos una mejor coincidencia técnica que la del empleado
-          if (area && area.id !== ticket.areaId) {
-            autoAreaId = area.id;
-            activityLog += `Área re-clasificada técnicamente a: ${area.name}. `;
+          
+          if (suggestedArea && suggestedArea.id !== ticket.areaId) {
+            finalAreaId = suggestedArea.id;
+            activityLog += `Área re-clasificada técnicamente a: ${suggestedArea.name}. `;
           }
         }
 
-        // AUTO-PRIORIDAD: Ajuste basado en urgencia detectada
-        let autoPriority = ticket.priority;
+        let finalPriority = ticket.priority;
         if (analysis?.suggestedPriority && (analysis.suggestedPriority === 'HIGH' || analysis.suggestedPriority === 'URGENT')) {
-          autoPriority = analysis.suggestedPriority as any;
-          activityLog += `Prioridad elevada automáticamente a: ${autoPriority}. `;
+          finalPriority = analysis.suggestedPriority as any;
+          activityLog += `Prioridad elevada automáticamente a: ${finalPriority}. `;
         }
 
         const updatedTicket = await this.prisma.ticket.update({
@@ -278,8 +281,13 @@ export class TicketsService {
             aiSuggestedPriority: analysis?.suggestedPriority,
             aiEstimatedTime: prediction?.estimatedMinutes,
             aiConfidence: prediction?.confidence,
-            areaId: autoAreaId ?? ticket.areaId, // Usamos el autoAreaId o mantenemos el del ticket
-            priority: autoPriority ?? ticket.priority, // Usamos el autoPriority o mantenemos el del ticket
+            areaId: finalAreaId,
+            priority: finalPriority,
+          },
+          include: {
+            createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+            assignedTo: { select: { id: true, name: true, email: true, avatar: true } },
+            area: { select: { id: true, name: true } },
           }
         });
 
