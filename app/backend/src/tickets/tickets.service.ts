@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AiService } from '../ai/ai.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class TicketsService {
@@ -10,6 +11,7 @@ export class TicketsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private aiService: AiService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async findAll(companyId: string, user: any) {
@@ -46,7 +48,7 @@ export class TicketsService {
     const updated = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: { assignedToId: userId, status: 'IN_PROGRESS' },
-      include: { assignedTo: { select: { id: true, name: true, avatar: true } } },
+      include: { assignedTo: { select: { id: true, name: true, avatar: true } }, createdBy: { select: { id: true, name: true } }, area: { select: { id: true, name: true } } },
     });
 
     await this.prisma.ticketActivity.create({
@@ -60,6 +62,8 @@ export class TicketsService {
         type: 'TICKET_ASSIGNED',
         link: ticket.id
       });
+      // Notificar a todos en la empresa que el ticket se actualizó
+      this.eventsGateway.server.to(`company_${companyId}`).emit('ticketUpdated', updated);
     } catch (e) {}
 
     return updated;
@@ -75,11 +79,14 @@ export class TicketsService {
     const updated = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: { assignedToId: null, status: 'OPEN' },
+      include: { assignedTo: { select: { id: true, name: true, avatar: true } }, createdBy: { select: { id: true, name: true } }, area: { select: { id: true, name: true } } },
     });
 
     await this.prisma.ticketActivity.create({
       data: { ticketId, userId, action: 'UNASSIGNED', details: isAdmin ? 'Liberado por admin' : 'Liberado por técnico' },
     });
+
+    this.eventsGateway.server.to(`company_${companyId}`).emit('ticketUpdated', updated);
 
     return updated;
   }
@@ -146,7 +153,7 @@ export class TicketsService {
               activityLog += `Prioridad ajustada a: ${autoPriority}. `;
             }
 
-            await this.prisma.ticket.update({
+            const updatedAnalysis = await this.prisma.ticket.update({
               where: { id: ticket.id },
               data: {
                 aiSentiment: analysis.sentiment,
@@ -156,7 +163,8 @@ export class TicketsService {
                 aiSuggestedPriority: analysis.suggestedPriority,
                 areaId: autoAreaId,
                 priority: autoPriority,
-              }
+              },
+              include: { assignedTo: { select: { id: true, name: true, avatar: true } }, createdBy: { select: { id: true, name: true } }, area: { select: { id: true, name: true } } },
             });
 
             if (activityLog) {
@@ -170,6 +178,7 @@ export class TicketsService {
               });
             }
             console.log(`TicketsService: Análisis diferido completado para ticket ${ticket.id}`);
+            this.eventsGateway.server.to(`company_${ticket.companyId}`).emit('ticketUpdated', updatedAnalysis);
           }
         } catch (err) {
           console.error('Error en análisis IA diferido:', err);
@@ -217,6 +226,7 @@ export class TicketsService {
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
         area: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true, avatar: true } }
       },
     });
 
@@ -228,6 +238,9 @@ export class TicketsService {
         details: `Ticket registrado desde el área: ${user?.area?.name || 'Área General'}` 
       },
     });
+    
+    // Emitir creación inmediata
+    this.eventsGateway.server.to(`company_${data.companyId}`).emit('ticketCreated', ticket);
 
     // ANÁLISIS POR IA Y PREDICCIÓN DE TIEMPO
     try {
@@ -301,7 +314,9 @@ export class TicketsService {
             }
           });
         }
-
+        
+        // Emitir actualización tras IA
+        this.eventsGateway.server.to(`company_${data.companyId}`).emit('ticketUpdated', updatedTicket);
         return updatedTicket;
       }
     } catch (err) {
@@ -347,9 +362,9 @@ export class TicketsService {
       where: { id },
       data: updateData,
       include: { 
-        area: { select: { name: true } }, 
-        assignedTo: { select: { id: true, name: true } },
-        createdBy: { select: { id: true, name: true } }
+        area: { select: { id: true, name: true } }, 
+        assignedTo: { select: { id: true, name: true, avatar: true } },
+        createdBy: { select: { id: true, name: true, avatar: true } }
       },
     });
 
@@ -386,6 +401,11 @@ export class TicketsService {
       console.error('Error en disparadores de notificación:', e);
     }
 
+    // Emitir evento WebSocket a toda la compañía
+    this.eventsGateway.server.to(`company_${companyId}`).emit('ticketUpdated', updated);
+    // Y a la sala específica del ticket para la vista de detalle
+    this.eventsGateway.server.to(`ticket_${id}`).emit('ticketDetailUpdated', updated);
+
     return updated;
   }
 
@@ -404,6 +424,10 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id } });
     if (!ticket || ticket.companyId !== companyId) throw new NotFoundException();
     await this.prisma.ticket.delete({ where: { id } });
+    
+    // Emitir eliminación
+    this.eventsGateway.server.to(`company_${companyId}`).emit('ticketDeleted', id);
+    
     return { message: 'Eliminado' };
   }
 

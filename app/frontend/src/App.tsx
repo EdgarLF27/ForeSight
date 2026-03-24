@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useAreas } from '@/hooks/useAreas';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Tutorial } from '@/components/Tutorial';
+import { socketService } from '@/services/socket';
 import type { Ticket } from '@/types';
 
 type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 'settings';
@@ -39,6 +40,32 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+
+  // INICIALIZACIÓN GLOBAL DEL TEMA (PERSISTENCIA)
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', isDark);
+    }
+  }, []);
+
+  // CONEXIÓN WEBSOCKET BASADA EN AUTENTICACIÓN
+  useEffect(() => {
+    if (isAuthenticated) {
+      socketService.connect();
+    } else {
+      socketService.disconnect();
+    }
+
+    return () => {
+      socketService.disconnect();
+    };
+  }, [isAuthenticated]);
 
   const { 
     tickets, 

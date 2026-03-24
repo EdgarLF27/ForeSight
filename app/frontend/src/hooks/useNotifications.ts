@@ -1,10 +1,31 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { notificationsApi } from '@/services/api';
+import { socketService } from '@/services/socket';
+import { toast } from 'sonner';
 import type { Notification } from '@/types';
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    const handleNewNotification = (notification: Notification) => {
+      setNotifications(prev => [notification, ...prev]);
+      // Mostrar una alerta toast para la notificación en tiempo real
+      toast(notification.title, {
+        description: notification.message,
+      });
+    };
+
+    socket.on('newNotification', handleNewNotification);
+
+    return () => {
+      socket.off('newNotification', handleNewNotification);
+    };
+  }, []);
 
   const loadNotifications = useCallback(async () => {
     try {

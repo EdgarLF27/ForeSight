@@ -41,8 +41,18 @@ interface LayoutProps {
 
 export function Layout({ children, user, company, currentPage, onPageChange, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllRead, loadNotifications } = useNotifications();
   const companyName = company?.name || 'ForeSight';
+
+  // CARGAR NOTIFICACIONES AL MONTAR Y CUANDO CAMBIA EL USUARIO
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
+      // Opcional: Polling cada 30 segundos
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, loadNotifications]);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -142,7 +152,9 @@ export function Layout({ children, user, company, currentPage, onPageChange, onL
                   </Avatar>
                   <div className="hidden sm:block text-left">
                     <p className="text-xs font-black text-foreground uppercase tracking-tight">{user.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Activo</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">
+                      {typeof user.role === 'object' ? (user.role as any).name : (user.role || 'Usuario')}
+                    </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>

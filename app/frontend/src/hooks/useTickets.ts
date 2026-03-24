@@ -1,11 +1,44 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ticketsApi } from '@/services/api';
+import { socketService } from '@/services/socket';
 import type { Ticket } from '@/types';
 
 export function useTickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Escuchar eventos de WebSocket para mantener la lista actualizada
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    const handleTicketCreated = (newTicket: Ticket) => {
+      setTickets(prev => {
+        // Evitar duplicados si fue el creador quien emitió la acción
+        if (prev.find(t => t.id === newTicket.id)) return prev;
+        return [newTicket, ...prev];
+      });
+    };
+
+    const handleTicketUpdated = (updatedTicket: Ticket) => {
+      setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+    };
+
+    const handleTicketDeleted = (deletedId: string) => {
+      setTickets(prev => prev.filter(t => t.id !== deletedId));
+    };
+
+    socket.on('ticketCreated', handleTicketCreated);
+    socket.on('ticketUpdated', handleTicketUpdated);
+    socket.on('ticketDeleted', handleTicketDeleted);
+
+    return () => {
+      socket.off('ticketCreated', handleTicketCreated);
+      socket.off('ticketUpdated', handleTicketUpdated);
+      socket.off('ticketDeleted', handleTicketDeleted);
+    };
+  }, []);
 
   const loadTickets = useCallback(async (myTickets = false) => {
     try {
@@ -25,7 +58,10 @@ export function useTickets() {
       setIsLoading(true);
       setError(null);
       const { data } = await ticketsApi.create(ticketData);
-      setTickets(prev => [data, ...prev]);
+      setTickets(prev => {
+        if (prev.find(t => t.id === data.id)) return prev;
+        return [data, ...prev];
+      });
       return data;
     } catch (err: any) {
       const message = err.response?.data?.message || 'Error al crear ticket';
