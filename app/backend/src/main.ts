@@ -15,8 +15,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Prefijo global para la API
-  app.setGlobalPrefix("api");
+  // Prefijo global para la API (Excluimos la raíz para Health Checks)
+  app.setGlobalPrefix("api", { exclude: ["/"] });
 
   // Pipes de validación global
   app.useGlobalPipes(
