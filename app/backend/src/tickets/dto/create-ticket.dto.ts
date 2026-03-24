@@ -7,8 +7,9 @@ export class CreateTicketDto {
   @IsString()
   description: string;
 
+  @IsOptional()
   @IsString()
-  priority: string;
+  priority?: string;
 
   @IsOptional()
   @IsString()

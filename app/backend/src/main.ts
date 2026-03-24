@@ -30,8 +30,8 @@ async function bootstrap() {
   // Filtro de excepciones global
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // Servir archivos estáticos (Avatares, Logos)
-  app.useStaticAssets(join(__dirname, "..", "uploads"), {
+  // Servir archivos estáticos (Avatares, Logos) usando la raíz del proceso
+  app.useStaticAssets(join(process.cwd(), "uploads"), {
     prefix: "/uploads/",
   });
 
@@ -42,5 +42,8 @@ async function bootstrap() {
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   });
+
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
 }
 bootstrap();
