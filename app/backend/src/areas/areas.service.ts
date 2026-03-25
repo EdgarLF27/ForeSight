@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAreaDto } from './dto/create-area.dto';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class AreasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway
+  ) {}
 
   async findAll(companyId: string) {
     return this.prisma.area.findMany({
@@ -48,12 +52,15 @@ export class AreasService {
       throw new ForbiddenException('Ya existe un área con este nombre en tu empresa');
     }
 
-    return this.prisma.area.create({
+    const area = await this.prisma.area.create({
       data: {
         ...dto,
         companyId,
       },
     });
+
+    this.eventsGateway.server.to(`company_${companyId}`).emit('areaCreated', area);
+    return area;
   }
 
   async update(id: string, companyId: string, dto: CreateAreaDto) {
@@ -72,10 +79,13 @@ export class AreasService {
       throw new ForbiddenException('Ya existe otra área con este nombre');
     }
 
-    return this.prisma.area.update({
+    const updated = await this.prisma.area.update({
       where: { id },
       data: dto,
     });
+
+    this.eventsGateway.server.to(`company_${companyId}`).emit('areaUpdated', updated);
+    return updated;
   }
 
   async delete(id: string, companyId: string) {
@@ -95,6 +105,7 @@ export class AreasService {
       where: { id },
     });
 
+    this.eventsGateway.server.to(`company_${companyId}`).emit('areaDeleted', id);
     return { message: 'Área eliminada exitosamente' };
   }
 }

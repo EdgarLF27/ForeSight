@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { OAuth2Client } from 'google-auth-library';
+import { EventsGateway } from '../events/events.gateway';
 
 const client = new OAuth2Client();
 
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -19,7 +21,7 @@ export class AuthService {
       where: { email },
       include: { 
         company: true,
-        area: true, // INCLUIMOS EL ÁREA
+        area: true,
         role: {
           include: {
             permissions: true
@@ -44,7 +46,6 @@ export class AuthService {
 
   async googleLogin(accessToken: string) {
     try {
-      // Obtener info del usuario usando el access_token
       const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
       const payload = await response.json();
       
@@ -64,7 +65,6 @@ export class AuthService {
       });
 
       if (!user) {
-        // BUSCAR ROL DE EMPLEADO POR DEFECTO
         const role = await this.prisma.role.findFirst({
           where: { name: { contains: 'Empleado', mode: 'insensitive' }, isSystem: true }
         });
@@ -109,7 +109,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        area: user.area, // INCLUIMOS EL OBJETO ÁREA COMPLETO
+        area: user.area,
         avatar: user.avatar,
         companyId: user.companyId,
         company: user.company,
@@ -129,7 +129,6 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Todos los registros manuales inician como 'Empleado' base sin empresa asignada
     const role = await this.prisma.role.findFirst({
       where: { name: { contains: 'Empleado', mode: 'insensitive' }, isSystem: true }
     });
@@ -163,7 +162,6 @@ export class AuthService {
       throw new UnauthorizedException('Código de invitación inválido');
     }
 
-    // BUSCAR ÁREA GENERAL DE LA EMPRESA
     const defaultArea = await this.prisma.area.findFirst({
       where: { 
         companyId: company.id,
@@ -175,7 +173,7 @@ export class AuthService {
       where: { id: userId },
       data: { 
         companyId: company.id,
-        areaId: defaultArea?.id || null // ASIGNAR ÁREA GENERAL SI EXISTE
+        areaId: defaultArea?.id || null
       },
       include: { 
         company: true,
@@ -188,12 +186,14 @@ export class AuthService {
 
     const { password: _, ...result } = updatedUser;
     
-    // Generar nuevo token con el nuevo companyId y rol
     const loginResult = await this.login(result);
+
+    // Emitir evento WebSocket para que el Admin vea al nuevo empleado
+    this.eventsGateway.server.to(`company_${company.id}`).emit('userJoined', loginResult.user);
 
     return {
       message: 'Te has unido a la empresa exitosamente',
-      ...loginResult, // Devuelve access_token y user actualizado
+      ...loginResult,
     };
   }
 
@@ -206,3 +206,4 @@ export class AuthService {
     return code;
   }
 }
+

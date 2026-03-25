@@ -80,7 +80,7 @@ export function TeamPage({
   const [copied, setCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState(company.inviteCode);
   
-  const { roles } = useRoles();
+  const { roles, loadData: loadRoles } = useRoles();
   const { areas, loadAreas } = useAreas();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -93,7 +93,8 @@ export function TeamPage({
 
   useEffect(() => {
     loadAreas();
-  }, [loadAreas]);
+    loadRoles();
+  }, [loadAreas, loadRoles]);
 
   const filteredMembers = teamMembers.filter(member => 
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

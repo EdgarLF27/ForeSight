@@ -97,15 +97,36 @@ export const meetingsApi = {
   getByTicket: (ticketId: string) => api.get(`/meetings/ticket/${ticketId}`),
   getMyMeetings: () => api.get('/meetings/my-meetings'),
   getAgenda: () => api.get('/meetings/agenda'),
+  getCompanyAgenda: () => api.get('/meetings/company'),
   createProposal: (data: any) => api.post('/meetings', data),
   updateStatus: (id: string, status: string) => api.put(`/meetings/${id}/status`, { status }),
   repropose: (id: string, data: any) => api.put(`/meetings/${id}/repropose`, data),
+};
+
+export const teamApi = {
+  getAll: () => api.get('/users'),
+  updateRole: (userId: string, roleId: string) => api.patch(`/users/${userId}/role`, { roleId }),
+  updateArea: (userId: string, areaId: string | null) => api.patch(`/users/${userId}/area`, { areaId }),
+  delete: (userId: string) => api.delete(`/users/${userId}`),
+};
+
+export const rolesApi = {
+  getAll: () => api.get('/roles'),
+  getById: (id: string) => api.get(`/roles/${id}`),
+  create: (data: { name: string; description?: string; permissionIds: string[] }) => api.post('/roles', data),
+  update: (id: string, data: { name?: string; description?: string; permissionIds?: string[] }) => api.put(`/roles/${id}`, data),
+  delete: (id: string) => api.delete(`/roles/${id}`),
+};
+
+export const permissionsApi = {
+  getAll: () => api.get('/permissions'),
 };
 
 export const notificationsApi = {
   getAll: () => api.get('/notifications'),
   markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
   markAllAsRead: () => api.put('/notifications/mark-all-read'),
+  deleteAll: () => api.post('/notifications/clear'),
 };
 
 export const reportsApi = {

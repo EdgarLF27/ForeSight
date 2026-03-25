@@ -15,6 +15,7 @@ import { AiModule } from './ai/ai.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { ReportsModule } from './reports/reports.module';
 import { AppController } from './app.controller';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AppController } from './app.controller';
       envFilePath: '.env',
     }),
     PrismaModule,
+    EventsModule,
     AuthModule,
     UsersModule,
     CompaniesModule,

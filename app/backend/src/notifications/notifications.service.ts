@@ -1,17 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {}
 
   async create(userId: string, data: { title: string; message: string; type: string; link?: string }) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         ...data,
       },
     });
+
+    // Enviar la notificación en tiempo real solo al usuario correspondiente
+    this.eventsGateway.server.to(`user_${userId}`).emit('newNotification', notification);
+
+    return notification;
   }
 
   async findAll(userId: string) {
@@ -33,6 +42,12 @@ export class NotificationsService {
     return this.prisma.notification.updateMany({
       where: { userId, read: false },
       data: { read: true },
+    });
+  }
+
+  async deleteAll(userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: { userId },
     });
   }
 }

@@ -3,12 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { MeetingStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class MeetingsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   private async checkOverlap(technicianId: string, startTime: Date, endTime: Date, excludeMeetingId?: string) {
@@ -74,12 +76,12 @@ export class MeetingsService {
         lastProposedById: technicianId,
       },
       include: {
-        employee: { select: { name: true, email: true } },
-        technician: { select: { name: true } }
+        employee: { select: { id: true, name: true, email: true, avatar: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        ticket: { select: { id: true, title: true } }
       }
     }) as any;
 
-    // NOTIFICACIÓN: Con link al ticket
     await this.notificationsService.create(ticket.createdById, {
       title: 'Nueva propuesta de reunión',
       message: `El técnico ${meeting.technician.name} ha propuesto una reunión para el ticket: ${ticket.title}`,
@@ -87,6 +89,7 @@ export class MeetingsService {
       link: ticketId
     });
 
+    this.emitMeetingUpdate(meeting);
     return meeting;
   }
 
@@ -120,13 +123,17 @@ export class MeetingsService {
         duration,
         status: 'PROPOSED',
         lastProposedById: userId,
+      },
+      include: {
+        employee: { select: { id: true, name: true, email: true, avatar: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        ticket: { select: { id: true, title: true } }
       }
     });
 
     const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
     const proposerName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
 
-    // NOTIFICACIÓN: Con link al ticket
     await this.notificationsService.create(otherUserId, {
       title: 'Nueva propuesta de horario',
       message: `${proposerName} ha sugerido un nuevo horario para la reunión del ticket: ${meeting.ticket.title}`,
@@ -134,6 +141,7 @@ export class MeetingsService {
       link: meeting.ticketId
     });
 
+    this.emitMeetingUpdate(updatedMeeting);
     return updatedMeeting;
   }
 
@@ -141,8 +149,8 @@ export class MeetingsService {
     return this.prisma.meeting.findMany({
       where: { ticketId },
       include: {
-        technician: { select: { name: true, avatar: true } },
-        employee: { select: { name: true, avatar: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        employee: { select: { id: true, name: true, avatar: true } },
       },
       orderBy: { scheduledAt: 'asc' },
     });
@@ -157,9 +165,9 @@ export class MeetingsService {
         ]
       },
       include: {
-        ticket: { select: { title: true } },
-        technician: { select: { name: true } },
-        employee: { select: { name: true } },
+        ticket: { select: { id: true, title: true } },
+        technician: { select: { id: true, name: true } },
+        employee: { select: { id: true, name: true } },
       },
       orderBy: { scheduledAt: 'asc' },
     });
@@ -182,9 +190,13 @@ export class MeetingsService {
     const updated = await this.prisma.meeting.update({
       where: { id },
       data: { status },
+      include: {
+        employee: { select: { id: true, name: true, email: true, avatar: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        ticket: { select: { id: true, title: true } }
+      }
     });
 
-    // NOTIFICACIÓN: Al técnico (si el empleado acepta) o viceversa
     const otherUserId = userId === meeting.technicianId ? meeting.employeeId : meeting.technicianId;
     const responderName = userId === meeting.technicianId ? meeting.technician.name : meeting.employee.name;
     const statusText = status === 'ACCEPTED' ? 'aceptado' : 'rechazado';
@@ -196,6 +208,7 @@ export class MeetingsService {
       link: meeting.ticketId
     });
 
+    this.emitMeetingUpdate(updated);
     return updated;
   }
 
@@ -208,15 +221,45 @@ export class MeetingsService {
         ],
         status: 'ACCEPTED',
         scheduledAt: {
-          gte: new Date(),
+          gte: new Date(new Date().setHours(0, 0, 0, 0)), // Mostrar desde el inicio del día actual
         },
       },
       include: {
         ticket: { select: { id: true, title: true } },
-        technician: { select: { name: true, avatar: true } },
-        employee: { select: { name: true, avatar: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        employee: { select: { id: true, name: true, avatar: true } },
       },
       orderBy: { scheduledAt: 'asc' },
     });
   }
+
+  async findCompanyAgenda(companyId: string, technicianId?: string) {
+    return this.prisma.meeting.findMany({
+      where: {
+        ticket: { companyId },
+        technicianId: technicianId || undefined,
+        status: 'ACCEPTED',
+        scheduledAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)), // Desde hoy
+        },
+      },
+      include: {
+        ticket: { select: { id: true, title: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        employee: { select: { id: true, name: true, avatar: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  private emitMeetingUpdate(meeting: any) {
+    // Notificar a ambos participantes en sus salas privadas
+    this.eventsGateway.server.to(`user_${meeting.technicianId}`).emit('meetingUpdated', meeting);
+    this.eventsGateway.server.to(`user_${meeting.employeeId}`).emit('meetingUpdated', meeting);
+    
+    // Si la reunión está aceptada, notificar también a la empresa (para dashboards de supervisión si existen)
+    // Opcional: Esto depende de si el Admin ve la agenda global
+    // this.eventsGateway.server.to(`company_${companyId}`).emit('meetingUpdated', meeting);
+  }
 }
+

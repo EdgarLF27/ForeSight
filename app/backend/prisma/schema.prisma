@@ -3,43 +3,36 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  avatar    String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id])
-
-  roleId    String?
-  role      Role?    @relation(fields: [roleId], references: [id])
-
-  areaId    String?
-  area      Area?    @relation(fields: [areaId], references: [id])
-
-  ownedCompany Company? @relation("CompanyOwner")
-
-  createdTickets Ticket[] @relation("TicketCreator")
-  assignedTickets Ticket[] @relation("TicketAssignee")
-  comments       Comment[]
-  
-  technicianMeetings Meeting[] @relation("TechnicianMeetings")
-  employeeMeetings   Meeting[] @relation("EmployeeMeetings")
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  password           String
+  name               String
+  avatar             String?
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  companyId          String?
+  roleId             String?
+  areaId             String?
+  comments           Comment[]
+  ownedCompany       Company?         @relation("CompanyOwner")
+  employeeMeetings   Meeting[]        @relation("EmployeeMeetings")
+  technicianMeetings Meeting[]        @relation("TechnicianMeetings")
   notifications      Notification[]
   activities         TicketActivity[]
+  assignedTickets    Ticket[]         @relation("TicketAssignee")
+  createdTickets     Ticket[]         @relation("TicketCreator")
+  area               Area?            @relation(fields: [areaId], references: [id])
+  company            Company?         @relation(fields: [companyId], references: [id])
+  role               Role?            @relation(fields: [roleId], references: [id])
 
-  @@map("users")
   @@index([areaId])
+  @@map("users")
 }
 
 model Role {
@@ -49,13 +42,10 @@ model Role {
   isSystem    Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
-  // Relations
   companyId   String?
   company     Company?     @relation(fields: [companyId], references: [id])
-
-  permissions Permission[] @relation("RolePermissions")
   users       User[]
+  permissions Permission[] @relation("RolePermissions")
 
   @@map("roles")
 }
@@ -66,31 +56,26 @@ model Permission {
   description String?
   module      String
   createdAt   DateTime @default(now())
-
-  // Relations
   roles       Role[]   @relation("RolePermissions")
 
   @@map("permissions")
 }
 
 model Company {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
-  information String?  // Nueva sección de información detallada
-  logo        String?  // Ruta de la imagen del logo
-  inviteCode  String @unique
+  inviteCode  String   @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  ownerId String @unique
-  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
-
-  members User[]
-  roles   Role[]
-  areas   Area[]
-  tickets Ticket[]
+  ownerId     String   @unique
+  information String?
+  logo        String?
+  areas       Area[]
+  owner       User     @relation("CompanyOwner", fields: [ownerId], references: [id])
+  roles       Role[]
+  tickets     Ticket[]
+  members     User[]
 
   @@map("companies")
 }
@@ -101,56 +86,43 @@ model Area {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  users   User[]
-  tickets Ticket[]
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tickets     Ticket[]
+  users       User[]
 
   @@map("areas")
 }
 
 model Ticket {
-  id          String       @id @default(uuid())
-  title       String
-  description String
-  status      TicketStatus @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  category    String       @default("General")
-  attachments String[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  areaId    String?
-  area      Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
-
-  createdById String
-  createdBy   User   @relation("TicketCreator", fields: [createdById], references: [id])
-
-  assignedToId String?
-  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
-
-  meetings   Meeting[]
-  comments   Comment[]
-  activities TicketActivity[]
-
-  // AI Insights
-  aiSentiment         String?
-  aiSummary           String?
+  id                  String           @id @default(uuid())
+  title               String
+  description         String
+  status              TicketStatus     @default(OPEN)
+  priority            TicketPriority   @default(MEDIUM)
+  category            String           @default("General")
+  attachments         String[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  companyId           String
+  areaId              String?
+  createdById         String
+  assignedToId        String?
   aiReasoning         String?
+  aiSentiment         String?
   aiSuggestedArea     String?
   aiSuggestedPriority String?
-  
-  // ML Predictive Fields
-  resolvedAt          DateTime? // Momento exacto de resolución para métricas
-  aiEstimatedTime     Int?      // Estimación en minutos
-  aiConfidence        Float?    // Nivel de confianza (0-1)
+  aiSummary           String?
+  aiConfidence        Float?
+  aiEstimatedTime     Int?
+  resolvedAt          DateTime?
+  comments            Comment[]
+  meetings            Meeting[]
+  activities          TicketActivity[]
+  area                Area?            @relation(fields: [areaId], references: [id])
+  assignedTo          User?            @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy           User             @relation("TicketCreator", fields: [createdById], references: [id])
 
   @@map("tickets")
 }
@@ -159,41 +131,35 @@ model TicketActivity {
   id        String   @id @default(uuid())
   ticketId  String
   userId    String
-  action    String   // 'CREATED', 'STATUS_CHANGE', 'ASSIGNED', 'UNASSIGNED', 'PRIORITY_CHANGE'
-  details   String?  // Detalles legibles: "De OPEN a IN_PROGRESS"
+  action    String
+  details   String?
   createdAt DateTime @default(now())
-
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
 
-  @@map("ticket_activities")
   @@index([ticketId])
   @@index([userId])
+  @@map("ticket_activities")
 }
 
 model Meeting {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  scheduledAt DateTime
-  duration    Int      @default(60)
-  type        String
-  meetingLink String?
-  status      MeetingStatus @default(PROPOSED)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  technicianId String
-  technician   User @relation("TechnicianMeetings", fields: [technicianId], references: [id])
-
-  employeeId String
-  employee   User @relation("EmployeeMeetings", fields: [employeeId], references: [id])
-
+  id               String        @id @default(uuid())
+  title            String
+  description      String?
+  scheduledAt      DateTime
+  duration         Int           @default(60)
+  type             String
+  status           MeetingStatus @default(PROPOSED)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  ticketId         String
+  technicianId     String
+  employeeId       String
   lastProposedById String?
+  meetingLink      String?
+  employee         User          @relation("EmployeeMeetings", fields: [employeeId], references: [id])
+  technician       User          @relation("TechnicianMeetings", fields: [technicianId], references: [id])
+  ticket           Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("meetings")
 }
@@ -203,13 +169,11 @@ model Notification {
   title     String
   message   String
   type      String
-  link      String?  // Nuevo campo para redirección (ej: ticket id)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  // Relations
-  userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  link      String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -218,13 +182,10 @@ model Comment {
   id        String   @id @default(uuid())
   content   String
   createdAt DateTime @default(now())
-
-  // Relations
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  ticketId  String
+  userId    String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("comments")
 }

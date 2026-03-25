@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class CommentsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async findByTicket(ticketId: string, userCompanyId?: string) {
@@ -32,6 +34,9 @@ export class CommentsService {
       data: { content: data.content, ticketId: data.ticketId, userId: data.userId },
       include: { user: { select: { id: true, name: true, avatar: true, role: { select: { name: true } } } } },
     });
+    
+    // Emitir el comentario a todos los que estén viendo este ticket
+    this.eventsGateway.server.to(`ticket_${data.ticketId}`).emit('newComment', comment);
 
     try {
       const isCreator = data.userId === ticket.createdById;
@@ -68,6 +73,10 @@ export class CommentsService {
     if (comment.userId !== userId) throw new ForbiddenException('Solo el autor puede eliminar');
 
     await this.prisma.comment.delete({ where: { id } });
+    
+    // Notificar eliminación
+    this.eventsGateway.server.to(`ticket_${comment.ticketId}`).emit('commentDeleted', id);
+    
     return { message: 'Eliminado' };
   }
 }
