@@ -104,6 +104,10 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Conectar socket inmediatamente después del login exitoso
+      socketService.connect();
+      
       return { success: true };
     } catch (error: any) {
       const message = error.response?.data?.message || 'Error de conexión con el servidor';
@@ -125,6 +129,10 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Conectar socket
+      socketService.connect();
+      
       return true;
     } catch (error) {
       return false;
@@ -134,6 +142,7 @@ export function useAuth() {
   const logout = () => {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
+    socketService.disconnect(); // Desconectar socket al cerrar sesión
     setState({
       user: null,
       company: null,
@@ -154,6 +163,9 @@ export function useAuth() {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      socketService.connect();
+      
       return true;
     } catch (error) {
       return false;

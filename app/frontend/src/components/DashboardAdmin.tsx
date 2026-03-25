@@ -14,7 +14,9 @@ import {
   Activity,
   Zap,
   ShieldAlert,
-  Download
+  Download,
+  FileText,
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -47,6 +50,7 @@ interface DashboardAdminProps {
   currentUser: User;
   onCreateTicket: (ticket: any) => Promise<boolean>;
   onViewTicket: (ticket: Ticket) => void;
+  onUpdateTicket: (id: string, data: any) => Promise<boolean>;
 }
 
 const statusConfig = {
@@ -104,10 +108,17 @@ export function DashboardAdmin({
   onViewTicket 
 }: DashboardAdminProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [period, setPeriod] = useState('Semana');
   const [metric, setMetric] = useState('Volumen');
   const [category, setCategory] = useState('Todos');
+
+  // Filtros de reporte
+  const [reportDates, setReportDates] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
 
   const stats = useMemo(() => ({
     open: tickets.filter(t => t.status === 'OPEN').length,
@@ -162,21 +173,22 @@ export function DashboardAdmin({
   const handleDownloadReport = async () => {
     try {
       setIsDownloading(true);
-      const response = await reportsApi.downloadAdminReport();
+      const response = await reportsApi.downloadAdminReport(reportDates.start, reportDates.end);
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Reporte_ForeSight_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.setAttribute('download', `Reporte_ForeSight_${new Date().toISOString().split('T')[0]}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
       
-      toast.success('Reporte descargado correctamente');
+      toast.success('PDF generado y descargado correctamente');
+      setIsReportDialogOpen(false);
     } catch (error) {
       console.error('Error downloading report:', error);
-      toast.error('Error al generar el reporte');
+      toast.error('Error al generar el reporte PDF');
     } finally {
       setIsDownloading(false);
     }
@@ -192,14 +204,13 @@ export function DashboardAdmin({
           <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Terminal de Control Operativo</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={handleDownloadReport} 
-            disabled={isDownloading}
-            className="px-6 py-3 bg-white/[0.03] hover:bg-white/[0.08] text-white border border-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+          <Button 
+            variant="outline"
+            onClick={() => setIsReportDialogOpen(true)}
+            className="px-6 py-3 bg-white/[0.03] hover:bg-white/[0.08] text-white border border-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all h-auto flex items-center gap-2"
           >
-            <Download className={`h-4 w-4 ${isDownloading ? 'animate-bounce' : ''}`} strokeWidth={3} /> 
-            {isDownloading ? 'Generando...' : 'Reporte'}
-          </button>
+            <Download className="h-4 w-4" strokeWidth={3} /> Reporte PDF
+          </Button>
           <button onClick={() => setIsCreateDialogOpen(true)} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 flex items-center gap-2">
             <Plus className="h-4 w-4" strokeWidth={3} /> Nueva Incidencia
           </button>
@@ -268,7 +279,7 @@ export function DashboardAdmin({
             </div>
             <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">{company?.name}</h4>
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-1">Nodo Corporativo</p>
-            <p className="text-xs text-slate-500 font-medium leading-relaxed mt-6 italic italic">
+            <p className="text-xs text-slate-500 font-medium leading-relaxed mt-6 italic">
                {company?.description || 'Gestión centralizada de infraestructura técnica.'}
             </p>
           </div>
@@ -319,6 +330,73 @@ export function DashboardAdmin({
           </table>
         </div>
       </GlassCard>
+
+      {/* DIÁLOGO DE REPORTE PERRÓN */}
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="max-w-md rounded-[2.5rem] bg-[#0a0a0b] border border-white/10 p-0 overflow-hidden shadow-2xl">
+          <div className="p-8 bg-gradient-to-br from-blue-600/20 to-transparent border-b border-white/5">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-blue-600 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black text-white uppercase italic tracking-tighter">Exportación Ejecutiva</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Generación de Reporte de Inteligencia PDF</DialogDescription>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <CalendarDays className="h-3 w-3" /> Fecha de Inicio
+                </label>
+                <Input 
+                  type="date" 
+                  value={reportDates.start} 
+                  onChange={(e) => setReportDates(prev => ({ ...prev, start: e.target.value }))}
+                  className="bg-white/[0.03] border-white/10 rounded-xl font-bold text-white focus:ring-blue-500/20"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <CalendarDays className="h-3 w-3" /> Fecha de Corte
+                </label>
+                <Input 
+                  type="date" 
+                  value={reportDates.end} 
+                  onChange={(e) => setReportDates(prev => ({ ...prev, end: e.target.value }))}
+                  className="bg-white/[0.03] border-white/10 rounded-xl font-bold text-white focus:ring-blue-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-2xl">
+              <p className="text-[9px] text-blue-400 font-medium leading-relaxed italic">
+                El reporte incluirá métricas de rendimiento por área, KPIs de resolución y análisis de desempeño del personal técnico para el periodo seleccionado.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="p-8 pt-0 gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsReportDialogOpen(false)}
+              className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDownloadReport}
+              disabled={isDownloading}
+              className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex-1 shadow-lg shadow-blue-500/20"
+            >
+              {isDownloading ? 'Procesando...' : 'Generar PDF Intel'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

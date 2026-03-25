@@ -130,7 +130,11 @@ export const notificationsApi = {
 };
 
 export const reportsApi = {
-  downloadAdminReport: () => api.get('/reports/admin-general', { responseType: 'blob' }),
+  downloadAdminReport: (startDate?: string, endDate?: string) => 
+    api.get('/reports/admin-general', { 
+      params: { startDate, endDate },
+      responseType: 'blob' 
+    }),
 };
 
 export default api;
