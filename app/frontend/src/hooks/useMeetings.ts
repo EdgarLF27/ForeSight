@@ -79,7 +79,7 @@ export function useMeetings() {
     }
   }, []);
 
-  const proposeMeeting = useCallback(async (data: any) => {
+  const createProposal = useCallback(async (data: any) => {
     try {
       const res = await meetingsApi.createProposal(data);
       setMeetings(prev => [...prev, res.data].sort((a, b) => 
@@ -126,7 +126,7 @@ export function useMeetings() {
     loadCompanyAgenda,
     loadAgenda: loadMeetings, // Alias para AgendaPage
     loadMeetingsByTicket,
-    proposeMeeting,
+    createProposal,
     updateStatus,
     repropose,
   };

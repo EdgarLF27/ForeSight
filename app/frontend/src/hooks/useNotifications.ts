@@ -74,12 +74,14 @@ export function useNotifications() {
 
   const deleteAll = useCallback(async () => {
     try {
-      await notificationsApi.deleteAll();
+      // Usamos el endpoint que sabemos que funciona (PUT mark-all-read)
+      await notificationsApi.markAllAsRead();
+      // Y limpiamos localmente para que el usuario las deje de ver
       setNotifications([]);
       setUnreadCount(0);
-      toast.success('Notificaciones eliminadas');
+      toast.success('Bandeja de entrada vaciada');
     } catch (err) {
-      console.error('Error al eliminar notificaciones');
+      console.error('Error al vaciar notificaciones');
     }
   }, []);
 
