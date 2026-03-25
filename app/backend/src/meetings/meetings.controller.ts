@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MeetingsService } from './meetings.service';
@@ -42,6 +43,15 @@ export class MeetingsController {
   @Get('agenda')
   async getAgenda(@Request() req) {
     return this.meetingsService.findAgenda(req.user.userId);
+  }
+
+  @Get('company')
+  async getCompanyAgenda(@Request() req) {
+    const userRole = req.user.user.role?.name || req.user.user.role;
+    if (userRole !== 'Administrador' && userRole !== 'EMPRESA') {
+      throw new ForbiddenException('No tienes permiso para ver la agenda global');
+    }
+    return this.meetingsService.findCompanyAgenda(req.user.companyId);
   }
 
   @Put(':id/status')

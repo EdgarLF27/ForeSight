@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoles } from '../hooks/useRoles';
-import type { Role } from '../hooks/useRoles';
+import type { Role } from '../types'; // Importar de types centralizado
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
-import { Badge } from './ui/badge';
 import { Shield, Plus, Trash2, Edit2, XCircle, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { 
   Dialog, 
@@ -29,7 +28,7 @@ import {
 } from "./ui/alert-dialog";
 
 export const RolesPage: React.FC = () => {
-  const { roles, permissions, loading, error, createRole, updateRole, deleteRole } = useRoles();
+  const { roles, permissions, isLoading, error, loadData, createRole, updateRole, deleteRole } = useRoles();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -40,6 +39,11 @@ export const RolesPage: React.FC = () => {
     description: '',
     permissionIds: [] as string[]
   });
+
+  // CARGAR DATOS AL MONTAR EL COMPONENTE
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleOpenCreate = () => {
     setEditingRole(null);
@@ -69,9 +73,9 @@ export const RolesPage: React.FC = () => {
         toast.success('Rol creado');
       }
       setIsDialogOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Error al guardar', {
-        description: err instanceof Error ? err.message : 'No se pudo guardar el rol.'
+        description: err.response?.data?.message || 'No se pudo guardar el rol.'
       });
     } finally {
       setIsActionLoading(false);
@@ -98,9 +102,9 @@ export const RolesPage: React.FC = () => {
     try {
       await deleteRole(roleToDelete);
       toast.success('Rol eliminado');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Error al eliminar', {
-        description: err instanceof Error ? err.message : 'No se pudo eliminar el rol.'
+        description: err.response?.data?.message || 'No se pudo eliminar el rol.'
       });
     } finally {
       setIsActionLoading(false);
@@ -109,7 +113,7 @@ export const RolesPage: React.FC = () => {
     }
   };
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="h-[60vh] flex items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-primary" strokeWidth={2} />
     </div>
@@ -138,7 +142,7 @@ export const RolesPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {Array.isArray(roles) && roles.map((role) => (
-          <Card key={role.id} className={`group border-none shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] dark:shadow-none bg-[#f8fafc] dark:bg-card rounded-[2rem] overflow-hidden relative transition-all duration-500 hover:scale-[1.02] ${role.isSystem ? 'opacity-80' : ''}`}>
+          <Card key={role.id} className={`group border-none shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] dark:shadow-none bg-[#f8fafc] dark:bg-card rounded-[2rem] overflow-hidden relative transition-all duration-500 hover:scale-[1.02] ${role.isSystem ? 'opacity-90' : ''}`}>
             <div className={`absolute left-0 top-0 bottom-0 w-[5px] ${role.isSystem ? 'bg-slate-300 dark:bg-muted-foreground/30' : 'bg-blue-600 dark:bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`} />
             
             <CardHeader className="p-8 pb-4">
@@ -148,7 +152,7 @@ export const RolesPage: React.FC = () => {
                     <CardTitle className="text-xl font-black text-slate-800 dark:text-foreground group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">
                       {role.name}
                     </CardTitle>
-                    {role.isSystem && <div className="px-2 py-0.5 rounded-full text-[8px] font-black bg-slate-100 text-slate-400 uppercase tracking-widest shadow-sm">Sistema</div>}
+                    {role.isSystem && <div className="px-2 py-0.5 rounded-full text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-400 uppercase tracking-widest shadow-sm">Sistema</div>}
                   </div>
                   <CardDescription className="text-xs text-slate-400 dark:text-muted-foreground line-clamp-2 min-h-[40px] font-medium leading-relaxed italic">
                     "{role.description || 'Sin descripción corporativa'}"
@@ -159,12 +163,12 @@ export const RolesPage: React.FC = () => {
             <CardContent className="p-8 pt-0">
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
-                  {role.permissions.slice(0, 4).map(p => (
+                  {role.permissions?.slice(0, 4).map(p => (
                     <div key={p.id} className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 dark:text-muted-foreground shadow-sm">
                       {p.name}
                     </div>
                   ))}
-                  {role.permissions.length > 4 && (
+                  {role.permissions?.length > 4 && (
                     <div className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 dark:text-muted-foreground shadow-sm">
                       +{role.permissions.length - 4}
                     </div>
@@ -197,6 +201,12 @@ export const RolesPage: React.FC = () => {
             </CardContent>
           </Card>
         ))}
+        {Array.isArray(roles) && roles.length === 0 && (
+            <div className="col-span-full py-20 text-center space-y-4">
+              <Shield className="h-12 w-12 text-slate-200 mx-auto" />
+              <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest italic">No se encontraron roles vinculados</p>
+            </div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -276,7 +286,7 @@ export const RolesPage: React.FC = () => {
       </Dialog>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent className="rounded-[3rem] border-none bg-[#f8fafc] dark:bg-card shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff] dark:shadow-2xl p-12">
+        <AlertDialogContent className="rounded-[3rem] border-none bg-[#f8fafc] dark:bg-card shadow-2xl p-12">
           <AlertDialogHeader>
             <div className="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-rose-500 mb-8 border border-rose-500/20 shadow-lg shadow-rose-500/10">
               <AlertCircle className="h-8 w-8" strokeWidth={3} />

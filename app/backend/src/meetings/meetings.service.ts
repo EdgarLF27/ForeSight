@@ -221,7 +221,26 @@ export class MeetingsService {
         ],
         status: 'ACCEPTED',
         scheduledAt: {
-          gte: new Date(),
+          gte: new Date(new Date().setHours(0, 0, 0, 0)), // Mostrar desde el inicio del día actual
+        },
+      },
+      include: {
+        ticket: { select: { id: true, title: true } },
+        technician: { select: { id: true, name: true, avatar: true } },
+        employee: { select: { id: true, name: true, avatar: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findCompanyAgenda(companyId: string, technicianId?: string) {
+    return this.prisma.meeting.findMany({
+      where: {
+        ticket: { companyId },
+        technicianId: technicianId || undefined,
+        status: 'ACCEPTED',
+        scheduledAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)), // Desde hoy
         },
       },
       include: {

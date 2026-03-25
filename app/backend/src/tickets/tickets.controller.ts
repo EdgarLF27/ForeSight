@@ -22,7 +22,7 @@ export class TicketsController {
 
   @Get()
   async findAll(@Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     
     if (!companyId) {
       return [];
@@ -34,7 +34,7 @@ export class TicketsController {
 
   @Put(':id/claim')
   async claim(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     const userId = req.user.userId;
     
     return this.ticketsService.claim(id, userId, companyId);
@@ -42,7 +42,7 @@ export class TicketsController {
 
   @Put(':id/unclaim')
   async unclaim(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     const userId = req.user.userId;
     
     return this.ticketsService.unclaim(id, userId, companyId, req.user.user);
@@ -50,7 +50,7 @@ export class TicketsController {
 
   @Get('stats')
   async getStats(@Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     
     if (!companyId) {
       return { total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0 };
@@ -66,7 +66,7 @@ export class TicketsController {
 
   @Post()
   async create(@Body() createDto: CreateTicketDto, @Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     
     if (!companyId) {
       return { error: 'Debes pertenecer a una empresa para crear tickets' };
@@ -85,7 +85,7 @@ export class TicketsController {
     @Body() updateDto: UpdateTicketDto,
     @Request() req,
   ) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     const userId = req.user.userId;
     // Pasamos tanto el objeto usuario (para permisos) como el userId (para historial)
     return this.ticketsService.update(id, updateDto, companyId, userId, req.user.user);
@@ -93,7 +93,7 @@ export class TicketsController {
 
   @Delete(':id')
   async delete(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     return this.ticketsService.delete(id, companyId);
   }
 }

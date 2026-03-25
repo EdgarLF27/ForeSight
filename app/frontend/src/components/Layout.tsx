@@ -28,6 +28,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/hooks/useNotifications';
 import { getFileUrl } from '@/services/api';
+import { cn } from '@/lib/utils';
 import type { User, Company } from '@/types';
 
 interface LayoutProps {
@@ -41,7 +42,7 @@ interface LayoutProps {
 
 export function Layout({ children, user, company, currentPage, onPageChange, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead, markAllRead, loadNotifications } = useNotifications();
+  const { notifications, unreadCount, markAsRead, deleteAll, loadNotifications } = useNotifications();
   const companyName = company?.name || 'ForeSight';
 
   // CARGAR NOTIFICACIONES AL MONTAR Y CUANDO CAMBIA EL USUARIO
@@ -116,8 +117,16 @@ export function Layout({ children, user, company, currentPage, onPageChange, onL
               <DropdownMenuContent align="end" className="w-80 bg-popover/95 dark:bg-[#0a0a0b]/95 backdrop-blur-2xl border-border dark:border-white/10 rounded-2xl p-0 shadow-2xl overflow-hidden">
                 <div className="p-4 border-b border-border dark:border-white/5 flex items-center justify-between bg-white/5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Notificaciones</span>
-                  {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[9px] font-black text-blue-400 uppercase hover:underline">Limpiar</button>
+                  {notifications.length > 0 && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        deleteAll();
+                      }} 
+                      className="text-[9px] font-black text-rose-500 hover:text-rose-400 uppercase transition-colors"
+                    >
+                      Borrar Todo
+                    </button>
                   )}
                 </div>
                 <div className="max-h-96 overflow-y-auto font-sans">
@@ -188,13 +197,14 @@ export function Layout({ children, user, company, currentPage, onPageChange, onL
               <button 
                 key={item.id} 
                 onClick={() => { onPageChange(item.id); setSidebarOpen(false); }} 
-                className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-xs font-black transition-all duration-300 group uppercase tracking-[0.1em] ${
+                className={cn(
+                  "w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-xs font-black transition-all duration-300 group uppercase tracking-[0.1em]",
                   isActive 
-                  ? 'bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] dark:bg-blue-600/10 dark:text-blue-400' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-white/[0.03]'
-                }`}
+                  ? "bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] dark:bg-blue-600/10 dark:text-blue-400" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-white/[0.03]"
+                )}
               >
-                <Icon className={`h-4 w-4 transition-all duration-300 ${isActive ? 'text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'group-hover:text-primary'}`} />
+                <Icon className={cn("h-4 w-4 transition-all duration-300", isActive ? "text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "group-hover:text-primary")} />
                 <span>{item.label}</span>
               </button>
             );

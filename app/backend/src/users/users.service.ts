@@ -11,9 +11,9 @@ export class UsersService {
     private eventsGateway: EventsGateway,
   ) {}
 
-  async findAll(companyId?: string) {
+  async findAll(companyId: string) {
     return this.prisma.user.findMany({
-      where: companyId ? { companyId } : {},
+      where: { companyId },
       include: {
         role: { select: { id: true, name: true, isSystem: true } },
         area: { select: { id: true, name: true } },

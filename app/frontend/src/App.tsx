@@ -26,7 +26,7 @@ type Page = 'dashboard' | 'tickets' | 'team' | 'roles' | 'areas' | 'agenda' | 's
 function App() {
   const { 
     user, 
-    company, // Usamos la empresa directamente de useAuth
+    company,
     isAuthenticated, 
     isLoading, 
     login, 
@@ -38,30 +38,60 @@ function App() {
     updateUser 
   } = useAuth();
 
+  // 1. DETECCIÓN DE ROLES (DEBE IR PRIMERO)
+  const roleName = typeof user?.role === 'object' ? (user?.role as any)?.name : user?.role;
+  const isAdmin = roleName === 'Administrador' || roleName === 'EMPRESA';
+  const isTechnician = roleName === 'Técnico';
+  const isEmployee = roleName === 'Empleado' || roleName === 'EMPLEADO';
+
+  // 2. ESTADOS LOCALES
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
-  // INICIALIZACIÓN GLOBAL DEL TEMA (PERSISTENCIA)
+  // 3. HOOKS DE DATOS
+  const { 
+    tickets, 
+    createTicket, 
+    updateTicket, 
+    claimTicket,
+    loadTickets,
+    getTicketById 
+  } = useTickets();
+
+  const { comments, addComment, loadComments } = useComments();
+  
+  const { 
+    members: teamMembers, 
+    technicians, 
+    loadMembers, 
+    loadTechnicians, 
+    regenerateInviteCode, 
+    changeUserRole, 
+    changeUserArea,
+    deleteMember
+  } = useTeam(company?.id);
+
+  const { areas, loadAreas } = useAreas();
+
+  // 4. EFECTOS (USEEFFECT)
+
+  // INICIALIZACIÓN DEL TEMA
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else if (savedTheme === 'light') {
       document.documentElement.classList.remove('dark');
-    } else {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.toggle('dark', isDark);
     }
   }, []);
 
-  // CONEXIÓN WEBSOCKET BASADA EN AUTENTICACIÓN Y ESCUCHADORES GLOBALES
+  // CONEXIÓN WEBSOCKET (AHORA TIENE TODAS LAS DEPENDENCIAS LISTAS)
   useEffect(() => {
     if (isAuthenticated) {
       socketService.connect();
       const socket = socketService.getSocket();
 
       if (socket) {
-        // Recargar miembros cuando alguien se une, se actualiza o se borra
         const handleRefreshTeam = () => {
           console.log('👥 Actualizando equipo vía WebSocket...');
           loadMembers();
@@ -86,35 +116,7 @@ function App() {
     }
   }, [isAuthenticated, isAdmin, loadMembers, loadTechnicians]);
 
-  const { 
-    tickets, 
-    createTicket, 
-    updateTicket, 
-    claimTicket,
-    loadTickets,
-    getTicketById 
-  } = useTickets();
-
-  const { comments, addComment, loadComments } = useComments();
-  const { 
-    members: teamMembers, 
-    technicians, 
-    loadMembers, 
-    loadTechnicians, 
-    regenerateInviteCode, 
-    changeUserRole, 
-    changeUserArea,
-    deleteMember
-  } = useTeam(company?.id);
-  const { areas, loadAreas } = useAreas();
-
-  // DETECCIÓN ROBUSTA DE ROLES
-  const roleName = typeof user?.role === 'object' ? (user?.role as any)?.name : user?.role;
-  const isAdmin = roleName === 'Administrador' || roleName === 'EMPRESA';
-  const isTechnician = roleName === 'Técnico';
-  const isEmployee = roleName === 'Empleado' || roleName === 'EMPLEADO';
-
-  // CARGAR DATOS CUANDO TENGAMOS EMPRESA
+  // CARGAR DATOS INICIALES
   useEffect(() => {
     if (isAuthenticated && company?.id) {
       loadTickets();
@@ -124,12 +126,12 @@ function App() {
     }
   }, [isAuthenticated, company?.id, isAdmin, loadTickets, loadMembers, loadAreas, loadTechnicians]);
 
+  // POLLING PARA IA Y CARGA DE COMENTARIOS
   useEffect(() => {
     if (selectedTicket) {
       loadComments(selectedTicket.id);
       if (isAdmin) loadTechnicians(selectedTicket.areaId);
 
-      // POLLING PARA IA: Si no hay resumen de IA, reintentar cada 3 seg (máx 6 veces)
       if (!selectedTicket.aiSummary && !selectedTicket.aiSentiment) {
         const interval = setInterval(async () => {
           try {
@@ -142,12 +144,12 @@ function App() {
             clearInterval(interval);
           }
         }, 3000);
-
         return () => clearInterval(interval);
       }
     }
   }, [selectedTicket?.id, loadComments, isAdmin, loadTechnicians, getTicketById]);
 
+  // 5. MANEJADORES DE EVENTOS
   const handlePageChange = (page: Page) => {
     setSelectedTicket(null);
     setCurrentPage(page);
@@ -278,6 +280,13 @@ function App() {
           }}
           onAssign={async (uid) => {
             const ok = await updateTicket(selectedTicket.id, { assignedToId: uid });
+            if (ok) {
+              const upd = await getTicketById(selectedTicket.id);
+              if (upd) setSelectedTicket(upd);
+            }
+          }}
+          onAssignToArea={async (areaId) => {
+            const ok = await updateTicket(selectedTicket.id, { areaId });
             if (ok) {
               const upd = await getTicketById(selectedTicket.id);
               if (upd) setSelectedTicket(upd);

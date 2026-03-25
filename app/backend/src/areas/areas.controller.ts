@@ -22,14 +22,13 @@ export class AreasController {
 
   @Get()
   async findAll(@Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     return this.areasService.findAll(companyId);
   }
 
   @Post()
-  //@Permissions('areas:manage') // Podríamos añadir este permiso si existiera, por ahora usaremos lógica de Admin en el Guard o servicio
   async create(@Request() req, @Body() dto: CreateAreaDto) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     return this.areasService.create(companyId, dto);
   }
 
@@ -39,13 +38,13 @@ export class AreasController {
     @Request() req,
     @Body() dto: CreateAreaDto,
   ) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     return this.areasService.update(id, companyId, dto);
   }
 
   @Delete(':id')
   async delete(@Param('id') id: string, @Request() req) {
-    const companyId = req.user.user.companyId;
+    const companyId = req.user.companyId;
     return this.areasService.delete(id, companyId);
   }
 }

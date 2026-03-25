@@ -18,7 +18,8 @@ import {
   ChevronRight, 
   CalendarDays, 
   Loader2,
-  Sparkles
+  Sparkles,
+  Users as UsersIcon
 } from 'lucide-react';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -41,15 +42,25 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode, cl
 }
 
 export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
-  const { agenda, isLoading, loadAgenda } = useMeetings();
+  const { agenda, isLoading, loadAgenda, loadCompanyAgenda } = useMeetings();
   const { getTicketById } = useTickets();
   const [date, setDate] = React.useState<Date>(new Date());
   const [direction, setDirection] = useState(0);
   const [activeCall, setActiveCall] = useState<{ room: string; title: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'personal' | 'global'>('personal');
+
+  const isAdmin = currentUser?.role?.name === 'Administrador' || currentUser?.role === 'EMPRESA' || currentUser?.role?.name === 'Dueño';
+
+  // EXTRAER DÍAS CON REUNIONES PARA EL CALENDARIO
+  const meetingDays = (agenda || []).map(m => new Date(m.scheduledAt));
 
   useEffect(() => {
-    loadAgenda();
-  }, [loadAgenda]);
+    if (viewMode === 'global' && isAdmin) {
+      loadCompanyAgenda();
+    } else {
+      loadAgenda();
+    }
+  }, [loadAgenda, loadCompanyAgenda, viewMode, isAdmin]);
 
   // ESCUCHAR ACTUALIZACIONES DE AGENDA EN TIEMPO REAL
   useEffect(() => {
@@ -57,7 +68,11 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
     if (socket) {
       const handleMeetingUpdate = () => {
         console.log('📅 Agenda actualizada vía WebSocket');
-        loadAgenda();
+        if (viewMode === 'global' && isAdmin) {
+          loadCompanyAgenda();
+        } else {
+          loadAgenda();
+        }
       };
 
       socket.on('meetingUpdated', handleMeetingUpdate);
@@ -65,7 +80,7 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
         socket.off('meetingUpdated', handleMeetingUpdate);
       };
     }
-  }, [loadAgenda]);
+  }, [loadAgenda, loadCompanyAgenda, viewMode, isAdmin]);
 
   const handlePrevDay = () => {
     setDirection(-1);
@@ -77,7 +92,7 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
     setDate((prev) => addDays(prev, 1));
   };
 
-  const filteredMeetings = agenda.filter(meeting => {
+  const filteredMeetings = (agenda || []).filter(meeting => {
     const meetingDate = new Date(meeting.scheduledAt);
     return (
       meetingDate.getDate() === date.getDate() &&
@@ -91,15 +106,46 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">Agenda Operativa</h1>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Sincronización de sesiones técnicas</p>
+          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">
+            {viewMode === 'global' ? 'Vigilancia de Sesiones Corporativas' : 'Sincronización de sesiones técnicas'}
+          </p>
         </div>
-        
-        <div className="flex items-center gap-3 bg-card/50 dark:bg-white/[0.03] p-1.5 rounded-xl border border-border dark:border-white/10 shadow-lg">
-          <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-9 w-9 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><ChevronLeft size={18} /></Button>
-          <div className="px-4 py-1.5 bg-blue-600/10 rounded-lg text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-500/20 italic">
-            {format(date, "d 'de' MMMM", { locale: es })}
+
+        <div className="flex items-center gap-4">
+          {isAdmin && (
+            <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl shadow-inner border border-slate-200/50 dark:border-white/5">
+              <Button 
+                variant={viewMode === 'personal' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('personal')}
+                className={cn(
+                  "rounded-lg text-[9px] font-black uppercase tracking-widest px-4 h-8 transition-all",
+                  viewMode === 'personal' ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                )}
+              >
+                <User size={10} className="mr-1.5" /> Mi Agenda
+              </Button>
+              <Button 
+                variant={viewMode === 'global' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('global')}
+                className={cn(
+                  "rounded-lg text-[9px] font-black uppercase tracking-widest px-4 h-8 transition-all",
+                  viewMode === 'global' ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                )}
+              >
+                <UsersIcon size={10} className="mr-1.5" /> Global
+              </Button>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-3 bg-card/50 dark:bg-white/[0.03] p-1.5 rounded-xl border border-border dark:border-white/10 shadow-lg">
+            <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-9 w-9 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><ChevronLeft size={18} /></Button>
+            <div className="px-4 py-1.5 bg-blue-600/10 rounded-lg text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-500/20 italic min-w-[140px] text-center">
+              {format(date, "d 'de' MMMM", { locale: es })}
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleNextDay} className="h-9 w-9 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><ChevronRight size={18} /></Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleNextDay} className="h-9 w-9 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><ChevronRight size={18} /></Button>
         </div>
       </div>
 
@@ -130,6 +176,14 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
               onSelect={(d) => d && setDate(d)}
               locale={es}
               className="w-full text-slate-900 dark:text-white"
+              modifiers={{ booked: meetingDays }}
+              modifiersStyles={{
+                booked: { 
+                  fontWeight: '900',
+                  color: '#3b82f6',
+                  textDecoration: 'underline decoration-2 underline-offset-4 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                }
+              }}
             />
           </GlassCard>
         </div>
@@ -162,9 +216,14 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
                     </div>
                     <div className="flex-grow min-w-0">
                       <h4 className="text-slate-900 dark:text-white font-black uppercase tracking-tight italic truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{m.title}</h4>
-                      <div className="flex items-center gap-4 mt-2 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        <span className="flex items-center gap-1.5"><TicketIcon size={10} className="text-blue-600/40 dark:text-blue-500/40" /> {m.ticket?.title}</span>
-                        <span className="flex items-center gap-1.5"><User size={10} className="text-blue-600/40 dark:text-blue-500/40" /> {m.employee?.name}</span>
+                      <div className="flex flex-col gap-1 mt-2">
+                        <div className="flex items-center gap-4 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                            <span className="flex items-center gap-1.5"><TicketIcon size={10} className="text-blue-600/40 dark:text-blue-500/40" /> {m.ticket?.title}</span>
+                            <span className="flex items-center gap-1.5"><User size={10} className="text-blue-600/40 dark:text-blue-500/40" /> {m.employee?.name}</span>
+                        </div>
+                        {viewMode === 'global' && (
+                             <span className="text-[8px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-tighter italic">Técnico Asignado: {m.technician?.name}</span>
+                        )}
                       </div>
                     </div>
                     {m.type === 'VIRTUAL' && (

@@ -67,7 +67,15 @@ export class UsersController {
   }
 
   @Get()
-  async findAll(@Query('companyId') companyId?: string) {
+  async findAll(@Request() req) {
+    // Tomar el ID de la empresa directamente desde el usuario autenticado
+    const companyId = req.user.companyId;
+    
+    if (!companyId) {
+      // Si el usuario no tiene empresa vinculada, retornamos lista vacía o error 400
+      return [];
+    }
+
     return this.usersService.findAll(companyId);
   }
 

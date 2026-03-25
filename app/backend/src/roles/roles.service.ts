@@ -1,9 +1,13 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class RolesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway
+  ) {}
 
   async create(companyId: string, data: { name: string; description?: string; permissionIds: string[] }) {
     const existing = await this.prisma.role.findFirst({
@@ -14,7 +18,7 @@ export class RolesService {
       throw new ConflictException('Ya existe un rol con ese nombre en tu empresa');
     }
 
-    return this.prisma.role.create({
+    const role = await this.prisma.role.create({
       data: {
         name: data.name,
         description: data.description,
@@ -25,6 +29,9 @@ export class RolesService {
       },
       include: { permissions: true },
     });
+
+    this.eventsGateway.server.to(`company_${companyId}`).emit('roleCreated', role);
+    return role;
   }
 
   async findAll(companyId: string) {
@@ -38,7 +45,13 @@ export class RolesService {
       include: { permissions: true },
     });
 
-    // Obtener los conteos de usuarios por rol FILTRADOS por empresa
+    console.log(`RolesService: Se encontraron ${roles.length} roles para companyId: ${companyId}`);
+
+    // Si el usuario no está en una empresa, el groupBy fallará. Lo protegemos.
+    if (!companyId) {
+      return roles.map(role => ({ ...role, _count: { users: 0 } }));
+    }
+
     const userCounts = await this.prisma.user.groupBy({
       by: ['roleId'],
       where: { companyId },
@@ -80,7 +93,7 @@ export class RolesService {
       throw new ConflictException('No se pueden editar roles del sistema');
     }
 
-    return this.prisma.role.update({
+    const updated = await this.prisma.role.update({
       where: { id },
       data: {
         name: data.name,
@@ -91,6 +104,9 @@ export class RolesService {
       },
       include: { permissions: true },
     });
+
+    this.eventsGateway.server.to(`company_${companyId}`).emit('roleUpdated', updated);
+    return updated;
   }
 
   async remove(id: string, companyId: string) {
@@ -100,12 +116,13 @@ export class RolesService {
       throw new ConflictException('No se pueden eliminar roles del sistema');
     }
 
-    // Verificar si hay usuarios asignados
     const usersCount = await this.prisma.user.count({ where: { roleId: id } });
     if (usersCount > 0) {
       throw new ConflictException('No se puede eliminar un rol que tiene usuarios asignados');
     }
 
-    return this.prisma.role.delete({ where: { id } });
+    await this.prisma.role.delete({ where: { id } });
+    this.eventsGateway.server.to(`company_${companyId}`).emit('roleDeleted', id);
+    return { success: true };
   }
 }

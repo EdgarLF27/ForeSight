@@ -1,12 +1,17 @@
-import { Controller, Get, Put, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Put, Post, Delete, Param, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
 @UseGuards(AuthGuard('jwt'))
 export class NotificationsController {
-  // Manejador de notificaciones del sistema
   constructor(private notificationsService: NotificationsService) {}
+
+  @Post('clear') // Cambiamos a POST para máxima compatibilidad
+  async deleteAll(@Request() req) {
+    console.log('🔔 Backend: Limpiando notificaciones para el usuario:', req.user.userId);
+    return this.notificationsService.deleteAll(req.user.userId);
+  }
 
   @Get()
   async findAll(@Request() req) {

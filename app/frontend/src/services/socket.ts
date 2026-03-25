@@ -8,25 +8,26 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect() {
-    if (!this.socket) {
-      const token = sessionStorage.getItem('token');
-      if (!token) return;
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
 
-      this.socket = io(SOCKET_URL, {
-        auth: {
-          token
-        },
-        transports: ['websocket', 'polling']
-      });
+    if (this.socket?.connected) return;
 
-      this.socket.on('connect', () => {
-        console.log('🔗 WebSocket conectado:', this.socket?.id);
-      });
+    this.socket = io(SOCKET_URL, {
+      auth: { token },
+      // Dejamos que socket.io elija el mejor transporte
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
-      this.socket.on('disconnect', () => {
-        console.log('🔴 WebSocket desconectado');
-      });
-    }
+    this.socket.on('connect', () => {
+      console.log('🔗 WebSocket conectado:', this.socket?.id);
+    });
+
+    this.socket.on('connect_error', (err) => {
+      console.error('❌ Error de conexión WebSocket:', err.message);
+    });
   }
 
   disconnect() {
