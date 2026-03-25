@@ -6,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { useMeetings } from '@/hooks/useMeetings';
 import { useTickets } from '@/hooks/useTickets';
+import { socketService } from '@/services/socket';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -48,6 +49,22 @@ export function AgendaPage({ onViewTicket, currentUser }: AgendaPageProps) {
 
   useEffect(() => {
     loadAgenda();
+  }, [loadAgenda]);
+
+  // ESCUCHAR ACTUALIZACIONES DE AGENDA EN TIEMPO REAL
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      const handleMeetingUpdate = () => {
+        console.log('📅 Agenda actualizada vía WebSocket');
+        loadAgenda();
+      };
+
+      socket.on('meetingUpdated', handleMeetingUpdate);
+      return () => {
+        socket.off('meetingUpdated', handleMeetingUpdate);
+      };
+    }
   }, [loadAgenda]);
 
   const handlePrevDay = () => {

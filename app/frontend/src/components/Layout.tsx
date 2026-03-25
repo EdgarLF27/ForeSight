@@ -152,14 +152,23 @@ export function Layout({ children, user, company, currentPage, onPageChange, onL
                   </Avatar>
                   <div className="hidden sm:block text-left">
                     <p className="text-xs font-black text-foreground uppercase tracking-tight">{user.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">
-                      {typeof user.role === 'object' ? (user.role as any).name : (user.role || 'Usuario')}
-                    </p>
+                    <div className="flex flex-col">
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest italic leading-tight">
+                        {typeof user.role === 'object' ? (user.role as any).name : (user.role || 'Usuario')}
+                      </p>
+                      <p className="text-[9px] text-blue-500 dark:text-blue-400 font-black uppercase tracking-tighter leading-tight">
+                        {user.area ? (typeof user.area === 'object' ? (user.area as any).name : user.area) : 'Sin Área'}
+                      </p>
+                    </div>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-popover/95 backdrop-blur-2xl border-border dark:border-white/10 rounded-2xl p-1.5 shadow-2xl">
+                <div className="px-3 py-2 border-b border-border dark:border-white/5 mb-1">
+                   <p className="text-[10px] font-black uppercase text-foreground">{user.name}</p>
+                   <p className="text-[9px] text-muted-foreground uppercase">{user.email}</p>
+                </div>
                 <DropdownMenuItem onClick={onLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer py-3">
                   <LogOut className="h-4 w-4 mr-2" /> Cerrar Sesión
                 </DropdownMenuItem>

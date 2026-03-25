@@ -3,9 +3,10 @@ import { MeetingsService } from './meetings.service';
 import { MeetingsController } from './meetings.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, EventsModule],
   providers: [MeetingsService],
   controllers: [MeetingsController],
   exports: [MeetingsService],

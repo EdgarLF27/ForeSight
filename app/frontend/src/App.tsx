@@ -54,18 +54,37 @@ function App() {
     }
   }, []);
 
-  // CONEXIÓN WEBSOCKET BASADA EN AUTENTICACIÓN
+  // CONEXIÓN WEBSOCKET BASADA EN AUTENTICACIÓN Y ESCUCHADORES GLOBALES
   useEffect(() => {
     if (isAuthenticated) {
       socketService.connect();
+      const socket = socketService.getSocket();
+
+      if (socket) {
+        // Recargar miembros cuando alguien se une, se actualiza o se borra
+        const handleRefreshTeam = () => {
+          console.log('👥 Actualizando equipo vía WebSocket...');
+          loadMembers();
+          if (isAdmin) loadTechnicians();
+        };
+
+        socket.on('userJoined', (newUser) => {
+          toast.info(`Nuevo miembro: ${newUser.name} se ha unido`);
+          handleRefreshTeam();
+        });
+        socket.on('userUpdated', handleRefreshTeam);
+        socket.on('userDeleted', handleRefreshTeam);
+
+        return () => {
+          socket.off('userJoined');
+          socket.off('userUpdated');
+          socket.off('userDeleted');
+        };
+      }
     } else {
       socketService.disconnect();
     }
-
-    return () => {
-      socketService.disconnect();
-    };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAdmin, loadMembers, loadTechnicians]);
 
   const { 
     tickets, 

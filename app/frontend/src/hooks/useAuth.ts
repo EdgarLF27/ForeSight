@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authApi, usersApi, companiesApi } from '@/services/api';
+import { socketService } from '@/services/socket';
 import type { UserRole, AuthState } from '@/types';
 
 const TOKEN_KEY = 'token';
@@ -64,6 +65,30 @@ export function useAuth() {
   useEffect(() => {
     loadStoredAuth();
   }, [loadStoredAuth]);
+
+  // ESCUCHAR ACTUALIZACIONES DE PERFIL EN TIEMPO REAL (Socket)
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (state.isAuthenticated && socket) {
+      const handleProfileUpdate = (updatedUser: any) => {
+        // Solo actualizar si es el mismo usuario (aunque el backend ya filtra por sala, doble check)
+        if (updatedUser.id === state.user?.id) {
+          console.log('👤 Perfil actualizado vía WebSocket:', updatedUser);
+          setState(prev => ({
+            ...prev,
+            user: updatedUser,
+            company: updatedUser.company || prev.company
+          }));
+          sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+        }
+      };
+
+      socket.on('profileUpdated', handleProfileUpdate);
+      return () => {
+        socket.off('profileUpdated', handleProfileUpdate);
+      };
+    }
+  }, [state.isAuthenticated, state.user?.id]);
 
   const login = async (email: string, pass: string) => {
     try {
@@ -217,9 +242,10 @@ export function useAuth() {
     logout,
     register,
     joinCompany,
-    createCompany, // <--- AHORA SÍ ESTÁ AQUÍ
+    createCompany,
     updateUser,
     updatePassword,
     uploadAvatar
   };
 }
+

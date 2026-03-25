@@ -2,17 +2,21 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {}
 
   async findAll(companyId?: string) {
     return this.prisma.user.findMany({
       where: companyId ? { companyId } : {},
       include: {
-        role: { select: { name: true } },
-        area: { select: { name: true } },
+        role: { select: { id: true, name: true, isSystem: true } },
+        area: { select: { id: true, name: true } },
       },
     });
   }
@@ -21,8 +25,8 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        role: { select: { id: true, name: true, isSystem: true } },
-        area: { select: { id: true, name: true } },
+        role: { select: { id: true, name: true, isSystem: true, permissions: true } },
+        area: { select: { id: true, name: true, description: true } },
         company: { select: { id: true, name: true } },
       },
     });
@@ -43,6 +47,7 @@ export class UsersService {
         name: true,
         email: true,
         avatar: true,
+        area: { select: { id: true, name: true } },
         _count: {
           select: { assignedTickets: { where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } } },
         },
@@ -51,7 +56,6 @@ export class UsersService {
   }
 
   async update(id: string, updateDto: UpdateUserDto) {
-    // Si se está intentando cambiar el email, verificar que no esté en uso
     if (updateDto.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: updateDto.email } });
       if (existing && existing.id !== id) {
@@ -59,21 +63,31 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: updateDto,
       include: {
-        role: { select: { name: true } },
-        area: { select: { name: true } },
+        role: { select: { id: true, name: true, isSystem: true, permissions: true } },
+        area: { select: { id: true, name: true, description: true } },
+        company: { select: { id: true, name: true } },
       },
     });
+
+    this.emitUserUpdate(updated);
+    return updated;
   }
 
   async updateAvatar(id: string, avatarUrl: string) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { avatar: avatarUrl },
+      include: {
+        role: { select: { id: true, name: true, isSystem: true } },
+        area: { select: { id: true, name: true } },
+      },
     });
+    this.emitUserUpdate(updated);
+    return updated;
   }
 
   async updatePassword(id: string, data: any) {
@@ -91,24 +105,39 @@ export class UsersService {
   }
 
   async updateRole(id: string, roleId: string, companyId: string) {
-    // Verificar que el usuario pertenezca a la empresa
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user || user.companyId !== companyId) throw new ForbiddenException();
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { roleId },
+      include: {
+        role: { select: { id: true, name: true, isSystem: true, permissions: true } },
+        area: { select: { id: true, name: true, description: true } },
+        company: { select: { id: true, name: true } },
+      },
     });
+
+    this.emitUserUpdate(updated);
+    return updated;
   }
 
   async updateArea(id: string, areaId: string | null, companyId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user || user.companyId !== companyId) throw new ForbiddenException();
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { areaId },
+      include: {
+        role: { select: { id: true, name: true, isSystem: true, permissions: true } },
+        area: { select: { id: true, name: true, description: true } },
+        company: { select: { id: true, name: true } },
+      },
     });
+
+    this.emitUserUpdate(updated);
+    return updated;
   }
 
   async delete(id: string, companyId: string) {
@@ -121,18 +150,27 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // No permitir eliminar al dueño
     if (user.company?.ownerId === id) {
       throw new ForbiddenException('No se puede eliminar al dueño de la empresa');
     }
-
-    // ELIMINAR O DESVINCULAR DEPENDENCIAS (Notificaciones, Actividades, etc. ya tienen Cascade en schema si corresponde)
-    // Pero los tickets necesitan manejo o Prisma fallará por integridad referencial si no está en Cascade
     
     await this.prisma.user.delete({
       where: { id },
     });
 
+    // Notificar eliminación
+    this.eventsGateway.server.to(`company_${companyId}`).emit('userDeleted', id);
+
     return { message: 'Usuario eliminado exitosamente' };
   }
+
+  private emitUserUpdate(user: any) {
+    if (user.companyId) {
+      // Notificar a toda la empresa que este usuario cambió (para las listas de Admin/Team)
+      this.eventsGateway.server.to(`company_${user.companyId}`).emit('userUpdated', user);
+    }
+    // Notificar al usuario específico (para que su perfil/UI se actualice si es él mismo)
+    this.eventsGateway.server.to(`user_${user.id}`).emit('profileUpdated', user);
+  }
 }
+
